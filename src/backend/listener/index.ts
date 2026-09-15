@@ -151,6 +151,8 @@ async function startListener(options: { allowTrading: boolean }): Promise<Subscr
 async function main(): Promise<void> {
   // Next.js loads this automatically for server requests. The listener runs as
   // a standalone tsx process, so it must initialize the same server client.
+  // Mark it first so recurrent successful work is excluded from Sentry traces.
+  process.env.POLYSWAP_SENTRY_RUNTIME = "listener";
   await import("../../../sentry.server.config");
 
   const flags = readArgs();

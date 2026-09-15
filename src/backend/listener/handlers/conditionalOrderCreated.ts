@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import * as Sentry from "@sentry/nextjs";
+import Sentry from "@sentry/nextjs";
 import { decodeEventLog, type Log, type Hex, type Address } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
 import { DatabaseService } from "@/backend/services/databaseService";
