@@ -521,6 +521,7 @@ export class DatabaseService {
     outcomeSelected: string;
     betPercentageValue: number;
     polymarketOrderHash: string;
+    appData: string;
     salt: string;
     explicitDeadline: boolean;
     polymarketMakerAmount: string;
@@ -541,6 +542,7 @@ export class DatabaseService {
         outcomeSelected: orderData.outcomeSelected,
         betPercentage: new Prisma.Decimal(orderData.betPercentageValue),
         polymarketOrderHash: orderData.polymarketOrderHash,
+        appData: orderData.appData,
         salt: orderData.salt,
         explicitDeadline: orderData.explicitDeadline,
         polymarketMakerAmount: new Prisma.Decimal(orderData.polymarketMakerAmount),

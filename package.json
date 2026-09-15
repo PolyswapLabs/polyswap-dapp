@@ -26,6 +26,7 @@
     "cancel-polymarket-orders": "tsx script/cancelPolymarketOrders.ts",
     "sell-polymarket-positions": "tsx script/sellPolymarketPositions.ts",
     "check-polymarket-orders": "tsx script/checkPolymarketOrders.ts",
+    "register-cow-appdata": "tsx script/registerCowAppData.ts",
     "pusd": "tsx script/wrapUnwrapPUSD.ts",
     "postinstall": "prisma generate",
     "prepare": "husky"

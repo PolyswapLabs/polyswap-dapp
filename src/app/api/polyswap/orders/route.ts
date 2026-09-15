@@ -6,7 +6,6 @@ import {
   isAddress,
   maxUint256,
   type Address,
-  type Hex,
 } from "viem";
 import { DatabaseService } from "../../../../backend/services/databaseService";
 import { TransactionEncodingService } from "../../../../backend/services/transactionEncodingService";
@@ -22,6 +21,7 @@ import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
 import { fetchClobBestAsk } from "@/services/polymarket";
 import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
+import { CowAppDataService } from "@/backend/services/cowAppDataService";
 
 const log = createLogger("api-orders");
 const apiError = createApiErrorResponder("api-orders");
@@ -32,8 +32,6 @@ const VAULT_RELAYER: Address = getAddress(
 const COMPOSABLE_COW: Address = getAddress(
   process.env.COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
 );
-
-const APP_DATA_DEFAULT: Hex = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DEADLINE_DAYS = 30;
@@ -483,6 +481,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const appData = await CowAppDataService.createHashOrDefault();
+
     const orderData: PolyswapOrderData = {
       sellToken,
       buyToken,
@@ -492,7 +492,7 @@ export async function POST(request: NextRequest) {
       t0: Math.floor(startDate.getTime() / 1000).toString(),
       t: Math.floor(deadline.getTime() / 1000).toString(),
       polymarketOrderHash: sentinel.polymarket_order_hash,
-      appData: APP_DATA_DEFAULT,
+      appData,
       polymarketMakerAmount: sentinel.polymarket_maker_amount,
     };
 
@@ -523,6 +523,7 @@ export async function POST(request: NextRequest) {
         outcomeSelected: selectedOutcome,
         betPercentageValue: betPercentage,
         polymarketOrderHash: sentinel.polymarket_order_hash,
+        appData,
         salt: params.salt,
         explicitDeadline,
         polymarketMakerAmount: sentinel.polymarket_maker_amount,
