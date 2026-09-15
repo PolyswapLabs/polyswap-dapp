@@ -447,7 +447,7 @@ export function SwapDetailPage({ orderId }: Props) {
           prepare={{
             run: prepareCancel,
             heading: "Confirm cancel in your wallet",
-            body: "Sign the off-chain message authorising this cancel. The on-chain transaction follows immediately after.",
+            body: "Sign the off-chain message authorising this cancel. Then return here to open the on-chain remove transaction.",
           }}
         />
       )}

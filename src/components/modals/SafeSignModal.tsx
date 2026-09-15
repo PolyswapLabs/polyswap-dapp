@@ -50,8 +50,13 @@ export function SafeSignModal({
   // Local sub-phase tracking the optional pre-tx signing step. Kept separate
   // from useSafeSignFlow's transaction state so it can wrap around it without
   // changing the on-chain tx machine.
-  const [prePhase, setPrePhase] = useState<"idle" | "running" | "error">("idle");
+  const [prePhase, setPrePhase] = useState<"idle" | "running" | "ready" | "error">("idle");
   const [prepareError, setPrepareError] = useState<string | null>(null);
+  // React state is not a synchronous mutex: two clicks can observe the same
+  // `prePhase` before the component renders again. Keep an imperative guard so
+  // neither the off-chain signature nor the Safe transaction can be requested
+  // twice.
+  const actionInFlightRef = useRef(false);
 
   // Hold the latest onConfirmed in a ref so we can fire it exactly once on
   // success without putting it in the deps (which would re-run the effect on
@@ -80,25 +85,46 @@ export function SafeSignModal({
         state.phase === "error")
     ) {
       reset();
+      actionInFlightRef.current = false;
       setPrePhase("idle");
       setPrepareError(null);
     }
   }, [open, state.phase, reset]);
 
-  const startSend = async () => {
-    if (prepare && prePhase !== "running") {
-      setPrePhase("running");
-      setPrepareError(null);
-      try {
-        await prepare.run();
-      } catch (e) {
-        setPrePhase("error");
-        setPrepareError(e instanceof Error ? e.message : "Failed to sign confirmation message");
-        return;
-      }
+  const startPrepare = async () => {
+    if (actionInFlightRef.current) return;
+
+    if (!prepare) {
+      await startTransaction();
+      return;
     }
+
+    actionInFlightRef.current = true;
+    setPrePhase("running");
+    setPrepareError(null);
+    try {
+      await prepare.run();
+      // Do not open a second wallet request while Safe is still dismissing the
+      // message-signing request. A separate user action starts the transaction.
+      setPrePhase("ready");
+    } catch (e) {
+      setPrePhase("error");
+      setPrepareError(e instanceof Error ? e.message : "Failed to sign confirmation message");
+    } finally {
+      actionInFlightRef.current = false;
+    }
+  };
+
+  const startTransaction = async () => {
+    if (actionInFlightRef.current) return;
+
+    actionInFlightRef.current = true;
     setPrePhase("idle");
-    void send(calls);
+    try {
+      await send(calls);
+    } finally {
+      actionInFlightRef.current = false;
+    }
   };
 
   return (
@@ -127,8 +153,8 @@ export function SafeSignModal({
               <Button variant="ghost" size="md" onClick={onClose}>
                 Cancel
               </Button>
-              <Button variant="accent" size="md" onClick={() => void startSend()}>
-                Approve &amp; sign
+              <Button variant="accent" size="md" onClick={() => void startPrepare()}>
+                {prepare ? "Sign authorisation" : "Approve & sign"}
                 <Icon.arrowRight size={14} aria-hidden />
               </Button>
             </div>
@@ -140,13 +166,37 @@ export function SafeSignModal({
           <PendingScreen heading={prepare.heading} body={prepare.body} />
         )}
 
+        {/* prepared — wait for an explicit second action before opening Safe */}
+        {state.phase === "idle" && prePhase === "ready" && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <DrawnCheck />
+              <div role="status" aria-live="polite">
+                <p className="font-serif text-2xl">Message signed.</p>
+                <p className="text-sm text-ink-2">
+                  Now open Safe to approve the on-chain transaction.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button variant="ghost" size="md" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button variant="accent" size="md" onClick={() => void startTransaction()}>
+                Open Safe transaction
+                <Icon.arrowRight size={14} aria-hidden />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* prepare error — surface and let user retry */}
         {prePhase === "error" && (
           <ErrorScreen
             heading="Couldn't sign message"
             body={prepareError ?? "Try signing the confirmation message again."}
             onClose={onClose}
-            onRetry={() => void startSend()}
+            onRetry={() => void startPrepare()}
           />
         )}
 
@@ -214,7 +264,7 @@ export function SafeSignModal({
             body="The transaction executed on chain but reverted. No funds moved."
             detail={`On-chain hash: ${state.onChainHash}`}
             onClose={onClose}
-            onRetry={() => void send(calls)}
+            onRetry={() => void startTransaction()}
           />
         )}
 
@@ -224,7 +274,7 @@ export function SafeSignModal({
             heading="Transaction replaced"
             body="A different transaction with the same Safe nonce was executed first."
             onClose={onClose}
-            onRetry={() => void send(calls)}
+            onRetry={() => void startTransaction()}
           />
         )}
 
@@ -234,7 +284,7 @@ export function SafeSignModal({
             heading="Cancelled"
             body={state.message}
             onClose={onClose}
-            onRetry={() => void send(calls)}
+            onRetry={() => void startTransaction()}
           />
         )}
 
@@ -244,7 +294,7 @@ export function SafeSignModal({
             heading="Something went wrong"
             body={state.message}
             onClose={onClose}
-            onRetry={() => void send(calls)}
+            onRetry={() => void startTransaction()}
           />
         )}
       </div>

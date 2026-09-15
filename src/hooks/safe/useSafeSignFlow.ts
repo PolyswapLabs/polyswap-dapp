@@ -33,6 +33,9 @@ export function useSafeSignFlow() {
   // Tracks which send path was used so the persistence effect can write the
   // correct kind discriminant. A ref avoids rippling changes into SafeSignPhase.
   const sentViaRef = useRef<"5792" | "safetx" | null>(null);
+  // Wallet requests must be strictly serial. This also protects callers other
+  // than SafeSignModal from double clicks or concurrent send() calls.
+  const sendingRef = useRef(false);
 
   const storageKey: string | null = safeAddress
     ? `${STORAGE_KEY_PREFIX}.${safeAddress.toLowerCase()}`
@@ -44,12 +47,14 @@ export function useSafeSignFlow() {
 
   const send = useCallback(
     async (calls: SafeCall[]) => {
-      if (!safeAddress) {
-        dispatch({ phase: "error", message: "No Safe connected" });
-        return;
-      }
-      dispatch({ phase: "wallet" });
+      if (sendingRef.current) return;
+      sendingRef.current = true;
       try {
+        if (!safeAddress) {
+          dispatch({ phase: "error", message: "No Safe connected" });
+          return;
+        }
+        dispatch({ phase: "wallet" });
         let safeTxHash: Hash;
         if (supports5792) {
           const result = await sendCallsAsync({
@@ -91,6 +96,8 @@ export function useSafeSignFlow() {
         } else {
           dispatch({ phase: "error", message: (err as Error).message ?? "Unknown error" });
         }
+      } finally {
+        sendingRef.current = false;
       }
     },
     [safeAddress, supports5792, sendCallsAsync, sendTransactionAsync]
