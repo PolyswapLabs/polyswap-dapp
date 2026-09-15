@@ -10,12 +10,12 @@ interface ExternalLink {
 
 const GITHUB_LINKS: ExternalLink[] = [
   {
-    href: "https://github.com/EthGlobalBangkok/polyswap-dapp",
+    href: "https://github.com/PolyswapLabs/polyswap-dapp",
     label: "polyswap-dapp",
     caption: "Frontend + listener",
   },
   {
-    href: "https://github.com/EthGlobalBangkok/polyswap-contracts",
+    href: "https://github.com/PolyswapLabs/polyswap-contracts",
     label: "polyswap-contracts",
     caption: "Solidity",
   },
