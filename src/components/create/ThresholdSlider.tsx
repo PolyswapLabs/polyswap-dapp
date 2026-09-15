@@ -24,7 +24,7 @@ export function ThresholdSlider({ value, onChange, picks = DEFAULT_PICKS }: Prop
           <InfoTip
             label="How the trigger works"
             width="md"
-            body="Polyswap places a BUY limit order on Polymarket at this percentage. The order only stays pending if you set the threshold BELOW the current price — the swap then fires the first time the price drops to your line. If you set it at or above the current price, the order fills immediately and the swap fires right away."
+            body="Polyswap places a BUY limit order on Polymarket at this percentage. The order waits until the selected outcome reaches your threshold. Before signing, we verify the live order book to make sure the order would not execute immediately."
           />
         </span>
         <span className="num text-3xl font-semibold lg:text-4xl">{pct}%</span>

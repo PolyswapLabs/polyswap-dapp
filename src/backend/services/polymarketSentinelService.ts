@@ -14,6 +14,7 @@ export interface SentinelBucket {
   outcomeSelected: string;
   priceCents: number;
   negRisk: boolean;
+  postOnly: boolean;
   expiration: Date;
 }
 
@@ -29,6 +30,7 @@ export async function getOrCreateSentinel(
       marketId: bucket.marketId,
       tokenId: bucket.tokenId,
       priceCents: bucket.priceCents,
+      postOnly: bucket.postOnly,
       minimumExpiration: bucket.expiration,
     });
     if (reusable) {
@@ -129,11 +131,11 @@ export async function activateSentinel(
       signedOrder: sentinel.signed_order,
       expectedHash: sentinel.polymarket_order_hash,
       negRisk: sentinel.neg_risk,
-      postOnly: true,
+      postOnly: sentinel.post_only,
     });
     await DatabaseService.markSentinelLive(sentinelId);
     log.info(
-      `activated post-only sentinel ${sentinel.polymarket_order_hash} from Safe tx ${authorizationTxHash}`
+      `activated ${sentinel.post_only ? "post-only " : ""}sentinel ${sentinel.polymarket_order_hash} from Safe tx ${authorizationTxHash}`
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -137,6 +137,7 @@ function toPolymarketSentinelRow(s: PrismaPolymarketSentinel): DatabasePolymarke
     outcome_selected: s.outcomeSelected,
     price_cents: s.priceCents,
     neg_risk: s.negRisk,
+    post_only: s.postOnly,
     epoch: s.epoch,
     polymarket_order_hash: s.polymarketOrderHash,
     polymarket_maker_amount: s.polymarketMakerAmount.toString(),
@@ -371,6 +372,7 @@ export class DatabaseService {
     marketId: string;
     tokenId: string;
     priceCents: number;
+    postOnly: boolean;
     minimumExpiration: Date;
   }): Promise<DatabasePolymarketSentinel | null> {
     const row = await prisma.polymarketSentinel.findFirst({
@@ -378,6 +380,7 @@ export class DatabaseService {
         marketId: input.marketId,
         tokenId: input.tokenId,
         priceCents: input.priceCents,
+        postOnly: input.postOnly,
         status: { in: ["prepared", "activating", "live"] },
         expiration: { gte: input.minimumExpiration },
       },
@@ -409,6 +412,7 @@ export class DatabaseService {
     outcomeSelected: string;
     priceCents: number;
     negRisk: boolean;
+    postOnly: boolean;
     epoch: number;
     polymarketOrderHash: string;
     polymarketMakerAmount: string;
@@ -422,6 +426,7 @@ export class DatabaseService {
         outcomeSelected: input.outcomeSelected,
         priceCents: input.priceCents,
         negRisk: input.negRisk,
+        postOnly: input.postOnly,
         epoch: input.epoch,
         polymarketOrderHash: input.polymarketOrderHash,
         polymarketMakerAmount: new Prisma.Decimal(input.polymarketMakerAmount),

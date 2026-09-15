@@ -9,12 +9,11 @@ interface Props {
   market: MarketViewModel;
   state: CreateFormState;
   estimates: SwapEstimates;
+  wouldCross: boolean;
 }
 
-export function RecapPanel({ market, state, estimates }: Props) {
-  const currentSideProbability =
-    state.side === "YES" ? market.yesProbability : 1 - market.yesProbability;
-  const sentence = describeSentence(state, market.question, currentSideProbability);
+export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
+  const sentence = describeSentence(state, market.question, wouldCross);
   const expiryLabel =
     state.expiry === "7d"
       ? "in 7 days"
@@ -24,12 +23,7 @@ export function RecapPanel({ market, state, estimates }: Props) {
 
   const fromSymbol = state.fromToken?.symbol ?? "—";
   const toSymbol = state.toToken?.symbol ?? "—";
-  // The Polymarket BUY limit fires when the price *falls* to the threshold.
-  // If the user picked a threshold at or above the current price, the order
-  // would fill immediately — flag that explicitly instead of pretending it'll
-  // wait for the price to "rise" to the line (it won't; it'll fire on placement).
-  const fireImmediately = state.threshold >= currentSideProbability;
-  const triggerVerb = fireImmediately ? "fires immediately at" : "drops to";
+  const triggerVerb = wouldCross ? "fires immediately at" : "drops to";
 
   return (
     <div className="space-y-4">

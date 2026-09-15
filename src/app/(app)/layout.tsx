@@ -4,7 +4,11 @@ import { WalletModalProvider } from "@/components/modals/WalletModalProvider";
 import ClientWeb3Provider from "@/components/providers/ClientWeb3Provider";
 import { RuntimeConfigProvider } from "@/components/providers/RuntimeConfigProvider";
 import { UnavailableModal } from "@/components/modals/UnavailableModal";
-import { isDappMaintenanceMode, isOrderCreationDisabled } from "@/lib/runtimeFlags";
+import {
+  isDappMaintenanceMode,
+  isOrderCreationDisabled,
+  isPolymarketSentinelPostOnly,
+} from "@/lib/runtimeFlags";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isDappMaintenanceMode()) {
@@ -18,7 +22,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <PolymarketDataGate>
-      <RuntimeConfigProvider orderCreationDisabled={isOrderCreationDisabled()}>
+      <RuntimeConfigProvider
+        orderCreationDisabled={isOrderCreationDisabled()}
+        polymarketSentinelPostOnly={isPolymarketSentinelPostOnly()}
+      >
         <ClientWeb3Provider>
           <WalletModalProvider>
             <PageShell>{children}</PageShell>

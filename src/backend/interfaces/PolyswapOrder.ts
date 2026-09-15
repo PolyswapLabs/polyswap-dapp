@@ -126,6 +126,7 @@ export interface DatabasePolymarketSentinel {
   outcome_selected: string;
   price_cents: number;
   neg_risk: boolean;
+  post_only: boolean;
   epoch: number;
   polymarket_order_hash: string;
   polymarket_maker_amount: string;

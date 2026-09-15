@@ -7,7 +7,7 @@ export interface ClobPriceRequest {
   side: ClobSide;
 }
 
-export type ClobPricesResponse = Record<string, Record<ClobSide, string>>;
+export type ClobPricesResponse = Record<string, Partial<Record<ClobSide, string>>>;
 
 export async function fetchClobPrices(requests: ClobPriceRequest[]): Promise<ClobPricesResponse> {
   if (requests.length === 0) return {};
@@ -22,6 +22,22 @@ export async function fetchClobPrices(requests: ClobPriceRequest[]): Promise<Clo
     throw new Error("CLOB /prices returned non-object response");
   }
   return json as ClobPricesResponse;
+}
+
+export function getClobPrice(
+  prices: ClobPricesResponse,
+  tokenId: string | null | undefined,
+  side: ClobSide
+): number | null {
+  if (!tokenId) return null;
+  const price = Number(prices[tokenId]?.[side]);
+  return Number.isFinite(price) && price > 0 && price <= 1 ? price : null;
+}
+
+/** A BUY crosses against the SELL side, so SELL is the relevant live best ask. */
+export async function fetchClobBestAsk(tokenId: string): Promise<number | null> {
+  const prices = await fetchClobPrices([{ token_id: tokenId, side: "SELL" }]);
+  return getClobPrice(prices, tokenId, "SELL");
 }
 
 export interface ClobHistoryPoint {

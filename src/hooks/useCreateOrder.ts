@@ -79,25 +79,20 @@ export function useCreateOrder(): UseCreateOrderReturn {
 }
 
 /**
- * Polyswap places a Polymarket BUY limit at the threshold price. That BUY
- * only fills when the side's price *falls* to the threshold — so the only
- * valid configuration is `threshold < currentSideProbability`. When the
- * threshold is at or above current, the order would fill immediately on
- * placement; we surface that explicitly so the user can adjust.
+ * Describe the order using the live order-book result supplied by the create
+ * flow. A displayed probability is not enough to infer immediate execution.
  */
 export function describeSentence(
   state: CreateFormState,
   marketTitle: string,
-  currentSideProbability?: number
+  wouldCross = false
 ): string {
   const pct = Math.round(state.threshold * 100);
-  const fireImmediately =
-    currentSideProbability !== undefined && state.threshold >= currentSideProbability;
   const amount = state.amountIn || "0";
   const fromSymbol = state.fromToken?.symbol ?? "—";
   const toSymbol = state.toToken?.symbol ?? "—";
-  if (fireImmediately) {
-    return `Threshold ${pct}% is at or above the current price — the swap of ${amount} ${fromSymbol} for ${toSymbol} would fire immediately.`;
+  if (wouldCross) {
+    return `This ${pct}% threshold crosses the live order book — the swap of ${amount} ${fromSymbol} for ${toSymbol} would fire immediately.`;
   }
   return `If "${marketTitle}" drops to ${pct}%, swap ${amount} ${fromSymbol} for ${toSymbol}.`;
 }

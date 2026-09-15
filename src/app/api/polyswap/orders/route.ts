@@ -16,10 +16,12 @@ import { getOrCreateSentinel } from "../../../../backend/services/polymarketSent
 import { type PolyswapOrderData } from "../../../../backend/interfaces/PolyswapOrder";
 import { getPostHogClient } from "../../../../lib/posthog-server";
 import { createLogger } from "../../../../backend/logger";
-import { isOrderCreationDisabled } from "@/lib/runtimeFlags";
+import { isOrderCreationDisabled, isPolymarketSentinelPostOnly } from "@/lib/runtimeFlags";
 import type { DatabasePolymarketSentinel } from "@/backend/interfaces/PolyswapOrder";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
+import { fetchClobBestAsk } from "@/services/polymarket";
+import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
 
 const log = createLogger("api-orders");
 const apiError = createApiErrorResponder("api-orders");
@@ -407,12 +409,47 @@ export async function POST(request: NextRequest) {
       return apiError({ status: 500, error: "Market data is incomplete" });
     }
 
+    const tokenID = clobTokenIds[outcomeIndex];
+    if (tokenID === undefined) {
+      return apiError({ status: 500, error: "Selected outcome has no Polymarket token ID" });
+    }
+
+    const postOnly = isPolymarketSentinelPostOnly();
+    if (postOnly) {
+      let bestAsk: number | null;
+      try {
+        bestAsk = await fetchClobBestAsk(tokenID);
+      } catch (error) {
+        return apiError({
+          status: 503,
+          error: "Polymarket order book unavailable",
+          message: "The live Polymarket order book could not be checked. Please try again.",
+          code: "ORDER_BOOK_UNAVAILABLE",
+          cause: error,
+        });
+      }
+
+      const postOnlyCheck = checkPostOnlyBuy(betPercentage, bestAsk);
+      if (postOnlyCheck.status === "unavailable") {
+        return apiError({
+          status: 503,
+          error: "Polymarket order book unavailable",
+          message: "The live Polymarket order book returned an invalid price. Please try again.",
+          code: "ORDER_BOOK_UNAVAILABLE",
+        });
+      }
+      if (postOnlyCheck.status === "crosses") {
+        return apiError({
+          status: 409,
+          error: "Order crosses the live book",
+          message: postOnlyCrossingMessage(postOnlyCheck),
+          code: "POST_ONLY_WOULD_CROSS",
+        });
+      }
+    }
+
     let sentinel: DatabasePolymarketSentinel;
     try {
-      const tokenID = clobTokenIds[outcomeIndex];
-      if (tokenID === undefined) {
-        throw new Error("Selected outcome has no Polymarket token ID");
-      }
       log.info(
         `preparing sentinel: market=${marketId} outcome=${selectedOutcome} ` +
           `tokenID=${tokenID} price=${betPercentage / 100} negRisk=${market.neg_risk}`
@@ -423,6 +460,7 @@ export async function POST(request: NextRequest) {
         outcomeSelected: selectedOutcome,
         priceCents: betPercentage,
         negRisk: market.neg_risk,
+        postOnly,
         expiration: deadline,
       });
       log.info(

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { erc20Abi, isAddress, type Address, type Hash, type Hex } from "viem";
 import { usePublicClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { useWalletModal } from "@/components/modals/WalletModalProvider";
 import { fmtUSD } from "@/lib/format";
 import { useRuntimeConfig } from "@/components/providers/RuntimeConfigProvider";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
 
 interface Props {
   marketId: string;
@@ -83,7 +84,7 @@ export function CreatePage({ marketId }: Props) {
   const publicClient = usePublicClient();
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { orderCreationDisabled } = useRuntimeConfig();
+  const { orderCreationDisabled, polymarketSentinelPostOnly } = useRuntimeConfig();
 
   const [signOpen, setSignOpen] = useState(false);
   const [calls, setCalls] = useState<SafeCall[] | null>(null);
@@ -94,19 +95,43 @@ export function CreatePage({ marketId }: Props) {
   const orderIdRef = useRef<number | null>(null);
 
   const isConnected = Boolean(safeAddress);
+  const selectedBestAsk = state.side === "YES" ? market?.yesBestAsk : market?.noBestAsk;
+  const postOnlyCheck = checkPostOnlyBuy(Math.round(state.threshold * 100), selectedBestAsk);
+  const postOnlyBlocked = polymarketSentinelPostOnly && postOnlyCheck.status !== "rests";
+  const wouldCross = polymarketSentinelPostOnly && postOnlyCheck.status === "crosses";
   const creationPausedMessage =
     "Order creation is temporarily blocked by the administrator. Existing orders are unaffected.";
   const reviewDisabled =
-    orderCreationDisabled || !derived.isValid || isPreparingTx || estimates.isQuoteError;
+    orderCreationDisabled ||
+    postOnlyBlocked ||
+    !derived.isValid ||
+    isPreparingTx ||
+    estimates.isQuoteError;
   const reviewLabel = orderCreationDisabled
     ? "Order creation paused"
     : isPreparingTx
       ? "Preparing…"
       : "Review and sign";
 
+  // A backend crossing error is tied to the previous side/threshold. Clear it
+  // as soon as the user adjusts either value and let the live guard take over.
+  useEffect(() => {
+    setSigningError(null);
+  }, [state.side, state.threshold]);
+
   const handleReview = async () => {
     if (orderCreationDisabled) {
       setSigningError(creationPausedMessage);
+      return;
+    }
+    if (polymarketSentinelPostOnly && postOnlyCheck.status === "crosses") {
+      setSigningError(postOnlyCrossingMessage(postOnlyCheck));
+      return;
+    }
+    if (polymarketSentinelPostOnly && postOnlyCheck.status === "unavailable") {
+      setSigningError(
+        "The live Polymarket order book is unavailable. Please try again before signing."
+      );
       return;
     }
     if (!isConnected || !walletReady || !safeAddress) {
@@ -227,14 +252,8 @@ export function CreatePage({ marketId }: Props) {
 
   const modalSummary = useMemo(() => {
     if (!market) return undefined;
-    const currentSideProbability =
-      state.side === "YES" ? market.yesProbability : 1 - market.yesProbability;
-    return (
-      <span className="italic">
-        {describeSentence(state, market.question, currentSideProbability)}
-      </span>
-    );
-  }, [market, state]);
+    return <span className="italic">{describeSentence(state, market.question, wouldCross)}</span>;
+  }, [market, state, wouldCross]);
 
   if (isLoading) {
     return <DetailSkeleton />;
@@ -280,6 +299,8 @@ export function CreatePage({ marketId }: Props) {
             state={state}
             derived={derived}
             estimates={estimates}
+            postOnlyEnabled={polymarketSentinelPostOnly}
+            postOnlyCheck={postOnlyCheck}
             set={set}
           />
 
@@ -315,7 +336,12 @@ export function CreatePage({ marketId }: Props) {
 
         <aside className="lg:col-span-5">
           <div className="lg:sticky lg:top-6">
-            <RecapPanel market={market} state={state} estimates={estimates} />
+            <RecapPanel
+              market={market}
+              state={state}
+              estimates={estimates}
+              wouldCross={wouldCross}
+            />
           </div>
         </aside>
       </div>

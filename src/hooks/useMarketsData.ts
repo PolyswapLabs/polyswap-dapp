@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   fetchClobPriceHistory,
   fetchClobPrices,
+  getClobPrice,
   type ClobHistoryPoint,
   type ClobPriceRequest,
   type ClobPricesResponse,
@@ -31,6 +32,10 @@ export interface ApiMarket {
   type: "binary" | "multi-choice";
   yesOdds?: number;
   noOdds?: number;
+  /** Lowest live ask for the YES token, as a 0..100 percentage. */
+  yesBestAsk?: number;
+  /** Lowest live ask for the NO token, as a 0..100 percentage. */
+  noBestAsk?: number;
   /** Token id mapped to the displayed YES probability (for fetching history). */
   yesTokenId?: string;
   /** Token id for the NO side — paired with `yesTokenId` for binary markets. */
@@ -98,6 +103,14 @@ function midpointPercent(prices: ClobPricesResponse, tokenId: string | undefined
   return Number((((buy + sell) / 2) * 100).toFixed(2));
 }
 
+function bestAskPercent(
+  prices: ClobPricesResponse,
+  tokenId: string | undefined
+): number | undefined {
+  const ask = getClobPrice(prices, tokenId, "SELL");
+  return ask === null ? undefined : ask * 100;
+}
+
 function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket {
   const outcomes = lean.outcomes;
   const clobTokenIds = lean.clob_token_ids;
@@ -123,6 +136,8 @@ function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket 
       type: "binary",
       yesOdds: midpointPercent(prices, clobTokenIds[yesIdx]),
       noOdds: midpointPercent(prices, clobTokenIds[noIdx]),
+      yesBestAsk: bestAskPercent(prices, clobTokenIds[yesIdx]),
+      noBestAsk: bestAskPercent(prices, clobTokenIds[noIdx]),
       yesTokenId: clobTokenIds[yesIdx],
       noTokenId: clobTokenIds[noIdx],
       slug: lean.slug,
@@ -142,6 +157,8 @@ function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket 
       type: "binary",
       yesOdds: midpointPercent(prices, clobTokenIds[0]),
       noOdds: midpointPercent(prices, clobTokenIds[1]),
+      yesBestAsk: bestAskPercent(prices, clobTokenIds[0]),
+      noBestAsk: bestAskPercent(prices, clobTokenIds[1]),
       yesTokenId: clobTokenIds[0],
       noTokenId: clobTokenIds[1],
       slug: lean.slug,
@@ -186,6 +203,8 @@ export function toViewModel(api: ApiMarket): MarketViewModel | null {
     category,
     question: api.title,
     yesProbability,
+    yesBestAsk: api.yesBestAsk === undefined ? null : api.yesBestAsk / 100,
+    noBestAsk: api.noBestAsk === undefined ? null : api.noBestAsk / 100,
     volume24h: api.volume,
     endsAt: api.endDate,
   };

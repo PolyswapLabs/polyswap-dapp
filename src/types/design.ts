@@ -56,6 +56,10 @@ export interface MarketViewModel {
   yesTokenId: string | null;
   /** CLOB token id for the NO side. Needed when the user picked NO, to chart the right curve. */
   noTokenId: string | null;
+  /** Lowest live ask for a BUY of the YES outcome. */
+  yesBestAsk: number | null;
+  /** Lowest live ask for a BUY of the NO outcome. */
+  noBestAsk: number | null;
   category: MarketCategory;
   question: string;
   yesProbability: number;

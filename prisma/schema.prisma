@@ -136,6 +136,7 @@ model PolymarketSentinel {
   outcomeSelected        String    @map("outcome_selected") @db.VarChar(256)
   priceCents             Int       @map("price_cents")
   negRisk                Boolean   @default(false) @map("neg_risk")
+  postOnly               Boolean   @default(true) @map("post_only")
   epoch                  Int       @default(1)
   polymarketOrderHash    String    @unique @map("polymarket_order_hash") @db.VarChar(66)
   polymarketMakerAmount  Decimal   @map("polymarket_maker_amount") @db.Decimal(78, 0)
