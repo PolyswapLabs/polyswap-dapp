@@ -38,6 +38,7 @@ export function SwapRow({ order }: Props) {
   const sparkData = useRealHistory ? priceHistory.map((p) => p.p) : order.spark;
   const sparkTimestamps = useRealHistory ? priceHistory.map((p) => p.t) : undefined;
   const currentOdds = sparkData[sparkData.length - 1] ?? 0;
+  const marketQuestion = market?.question ?? order.nickname;
 
   if (dataPending) {
     return <SwapRowSkeleton href={`/dashboard/${order.id}`} order={order} />;
@@ -58,11 +59,11 @@ export function SwapRow({ order }: Props) {
         />
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <p className="truncate font-serif text-lg leading-tight">{order.nickname}</p>
+            <p className="truncate font-serif text-lg leading-tight">{marketQuestion}</p>
             <Status kind={order.status} />
           </div>
           <p className="mt-1 truncate text-xs text-ink-3">
-            Fires when {order.side} drops to {Math.round(order.threshold * 100)}%
+            {order.nickname}
             {order.status === "waiting" && ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
           </p>
         </div>
@@ -112,11 +113,11 @@ export function SwapRow({ order }: Props) {
             className="shrink-0"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-serif text-base leading-tight">{order.nickname}</p>
+            <p className="line-clamp-2 font-serif text-base leading-tight">{marketQuestion}</p>
             <p className="mt-1 text-xs text-ink-3">
-              {order.status === "waiting"
-                ? `${fmtPointsAway(currentOdds, order.threshold)} away`
-                : `Threshold ${Math.round(order.threshold * 100)}%`}
+              {order.nickname}
+              {order.status === "waiting" &&
+                ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
             </p>
           </div>
         </div>
@@ -150,9 +151,8 @@ export function SwapRow({ order }: Props) {
 
 /**
  * Sized to the real SwapRow grid so the swap-in causes no layout shift. Keeps
- * stable bits (nickname, status, token logos, amount) so the user sees the
- * row's identity immediately; only the data-dependent visuals (dial, chart,
- * "X% / Y%" badge) shimmer until the per-market queries resolve.
+ * stable bits (status, token logos, amount) remain visible while the
+ * market-dependent question, dial, chart and odds badge load.
  */
 function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel }) {
   return (
@@ -161,7 +161,7 @@ function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel 
         <Shimmer className="h-12 w-12 rounded-full" />
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <p className="truncate font-serif text-lg leading-tight">{order.nickname}</p>
+            <Shimmer className="h-5 w-64 max-w-full" />
             <Status kind={order.status} />
           </div>
           <Shimmer className="mt-2 h-3 w-40" />
@@ -188,7 +188,7 @@ function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel 
         <div className="flex items-start gap-3">
           <Shimmer className="h-11 w-11 shrink-0 rounded-full" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-serif text-base leading-tight">{order.nickname}</p>
+            <Shimmer className="h-9 w-full" />
             <Shimmer className="mt-2 h-3 w-28" />
           </div>
         </div>

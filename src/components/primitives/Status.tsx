@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 import type { SwapStatus } from "@/types/design";
 
 const status = cva(
-  "inline-flex items-center gap-1.5 px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.1em] border border-ink",
+  "inline-flex min-h-6 items-center gap-1.5 border border-ink px-2.5 py-1 text-[11px] leading-none font-semibold tracking-[0.1em]",
   {
     variants: {
       kind: {

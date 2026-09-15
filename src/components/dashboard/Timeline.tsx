@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
-import { fmtDate } from "@/lib/format";
+import { fmtDateTime, fmtDuration } from "@/lib/format";
 import type { OrderViewModel } from "@/hooks/useOrders";
 
 interface Step {
@@ -18,19 +18,27 @@ function buildSteps(order: OrderViewModel): Step[] {
   const isFilled = order.status === "done";
   const isCancelled = order.status === "cancelled";
   const isExpired = order.status === "expired";
+  const triggerHit = order.gateOpenedAt !== null || isFilled;
 
   const steps: Step[] = [
     {
       Icon: Icon.plus,
       label: "You set up this swap",
-      caption: fmtDate(order.startTime),
+      caption: fmtDateTime(order.startTime),
       state: "past",
     },
     {
       Icon: Icon.timer,
       label: "Watching the odds",
-      caption: isWaiting ? "in progress" : isFilled ? "completed" : "stopped",
-      state: isWaiting ? "current" : "past",
+      caption:
+        triggerHit && order.gateOpenedAt
+          ? fmtDuration(order.gateOpenedAt.getTime() - order.startTime.getTime())
+          : isWaiting
+            ? "in progress"
+            : isFilled
+              ? "completed · duration unavailable"
+              : "stopped",
+      state: isWaiting && !triggerHit ? "current" : "past",
     },
   ];
 
@@ -51,17 +59,25 @@ function buildSteps(order: OrderViewModel): Step[] {
   } else {
     steps.push({
       Icon: Icon.zap,
-      label: isFilled ? "Trigger hit" : "Trigger not hit yet",
-      caption: isFilled
-        ? "swap fired"
+      label: triggerHit ? "Trigger hit" : "Trigger not hit yet",
+      caption: triggerHit
+        ? order.gateOpenedAt
+          ? fmtDateTime(order.gateOpenedAt)
+          : "Trigger confirmed · time unavailable"
         : `when ${order.side} drops to ${Math.round(order.threshold * 100)}%`,
-      state: isFilled ? "past" : "future",
+      state: triggerHit ? "past" : "future",
     });
     steps.push({
       Icon: Icon.check,
       label: isFilled ? "Tokens are in your wallet" : "Tokens land in your wallet",
-      caption: isFilled ? "completed" : "once it fires",
-      state: isFilled ? "past" : "future",
+      caption: isFilled
+        ? order.filledAt
+          ? fmtDateTime(order.filledAt)
+          : "Settlement confirmed · time unavailable"
+        : triggerHit
+          ? "Settlement pending"
+          : "once it fires",
+      state: isFilled ? "past" : triggerHit ? "current" : "future",
     });
   }
 

@@ -182,6 +182,7 @@ export function SwapDetailPage({ orderId }: Props) {
   const low = Math.min(...chartData);
 
   const executedAtSec = order.filledAt ? order.filledAt.getTime() / 1000 : undefined;
+  const marketQuestion = market?.question;
 
   return (
     <div className="space-y-8 py-8 lg:py-10">
@@ -192,17 +193,29 @@ export function SwapDetailPage({ orderId }: Props) {
         >
           <Icon.arrowLeft size={12} aria-hidden /> Back to my swaps
         </Link>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <h1 className="font-serif text-2xl leading-tight sm:text-3xl lg:text-[40px]">
-                {order.nickname}
-              </h1>
-              <Status kind={order.status} />
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-3">
+              {expectingRealData && marketQ.isPending ? (
+                <Shimmer className="h-16 max-w-3xl flex-1 sm:h-20" />
+              ) : (
+                <h1 className="max-w-4xl text-balance font-serif text-2xl leading-tight sm:text-3xl lg:text-[40px]">
+                  {marketQuestion ?? order.nickname}
+                </h1>
+              )}
+              <span className="mt-1 shrink-0">
+                <Status
+                  kind={order.status}
+                  className="min-h-8 px-3 text-xs sm:min-h-9 sm:px-4 sm:text-[13px]"
+                />
+              </span>
             </div>
             <p className="mt-2 text-xs text-ink-3 sm:text-sm">
-              Fires when {order.side} drops to {Math.round(order.threshold * 100)}% · expires{" "}
-              {fmtDate(order.endTime)}
+              {marketQuestion ? <>{order.nickname} · </> : null}
+              <span className="num">
+                {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
+              </span>{" "}
+              · expires {fmtDate(order.endTime)}
             </p>
             {order.phase === "errored" && order.lastErrorReason && (
               <p className="mt-2 border border-no bg-no/10 px-3 py-2 text-xs text-no">
@@ -356,12 +369,11 @@ export function SwapDetailPage({ orderId }: Props) {
             {market && (
               <section aria-label="Market" className="border border-ink bg-paper p-5">
                 <p className="eyebrow mb-3">Market</p>
-                <p className="font-serif text-base leading-snug">{market.question}</p>
                 <a
                   href={`https://polymarket.com/event/${market.eventSlug ?? market.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group mt-3 inline-flex items-center gap-2 text-sm hover:underline"
+                  className="group inline-flex items-center gap-2 text-sm hover:underline"
                 >
                   <PolymarketIcon size={16} className="text-ink" />
                   View on Polymarket

@@ -53,6 +53,33 @@ export function fmtDate(date: string | number | Date): string {
   });
 }
 
+export function fmtDateTime(date: string | number | Date): string {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function fmtDuration(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds)) return "—";
+
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1_000));
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  return `${seconds}s`;
+}
+
 export function fmtPointsAway(current: number, threshold: number): string {
   const pts = Math.abs((threshold - current) * 100);
   return `${pts.toFixed(1)} pts`;
