@@ -6,6 +6,7 @@ import { CategoryIcon, Icon } from "@/components/icons";
 import { useMarketPriceHistory } from "@/hooks/useMarketsData";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import type { MarketViewModel } from "@/types/design";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface Props {
   market: MarketViewModel;
@@ -15,6 +16,7 @@ interface Props {
    * keeps the row visually consistent with the filter the user clicked.
    */
   displayCategory?: MarketViewModel["category"];
+  source: "browse" | "search";
 }
 
 /**
@@ -23,7 +25,7 @@ interface Props {
  * title morphs into the detail page heading via the View Transitions API
  * (where supported — falls back to immediate navigation).
  */
-export function MarketRow({ market, displayCategory }: Props) {
+export function MarketRow({ market, displayCategory, source }: Props) {
   const yesValue = market.yesProbability * 100;
   const yesPct = yesValue % 1 === 0 ? yesValue.toFixed(0) : yesValue.toFixed(1);
   const category = displayCategory ?? market.category;
@@ -35,6 +37,13 @@ export function MarketRow({ market, displayCategory }: Props) {
   return (
     <TransitionLink
       href={`/markets/${market.id}`}
+      onClick={() =>
+        capturePostHogEvent("market_clicked", {
+          market_id: market.id,
+          category: market.category,
+          source,
+        })
+      }
       className="group relative block border-b border-rule-soft bg-paper hover:bg-paper-2 before:absolute before:left-0 before:top-0 before:h-full before:w-0 before:bg-accent before:transition-[width] before:duration-200 before:ease-out before:content-[''] hover:before:w-1"
       data-testid="market-row"
     >

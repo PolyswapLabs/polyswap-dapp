@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { WalletModal } from "./WalletModal";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface WalletModalCtx {
   open: () => void;
@@ -13,7 +14,10 @@ const Ctx = createContext<WalletModalCtx | null>(null);
 
 export function WalletModalProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setOpen] = useState(false);
-  const open = useCallback(() => setOpen(true), []);
+  const open = useCallback(() => {
+    if (!isOpen) capturePostHogEvent("wallet_connection_started");
+    setOpen(true);
+  }, [isOpen]);
   const close = useCallback(() => setOpen(false), []);
   const value = useMemo(() => ({ open, close, isOpen }), [open, close, isOpen]);
 

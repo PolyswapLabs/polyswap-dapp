@@ -6,6 +6,7 @@ import { Modal, Button } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface Props {
   open: boolean;
@@ -35,6 +36,22 @@ function describe(c: Connector): { label: string; blurb: string } {
 export function WalletModal({ open, onClose, onConnected }: Props) {
   const { connect, connectors, isPending, error, variables } = useConnect();
   const { isConnected } = useWalletConnection();
+
+  const handleConnect = (connector: Connector) => {
+    const properties = { connector: connector.id };
+    capturePostHogEvent("wallet_connection_attempted", properties);
+    connect(
+      { connector },
+      {
+        onSuccess: () => capturePostHogEvent("wallet_connected", properties),
+        onError: (connectionError) =>
+          capturePostHogEvent("wallet_connection_failed", {
+            ...properties,
+            error_name: connectionError.name,
+          }),
+      }
+    );
+  };
 
   const list = useMemo<ConnectorView[]>(
     () =>
@@ -73,7 +90,7 @@ export function WalletModal({ open, onClose, onConnected }: Props) {
               <li key={connector.uid}>
                 <button
                   type="button"
-                  onClick={() => connect({ connector })}
+                  onClick={() => handleConnect(connector)}
                   disabled={isPending}
                   className={cn(
                     "flex w-full items-start justify-between gap-4 border border-ink bg-paper-2 px-4 py-3 text-left",

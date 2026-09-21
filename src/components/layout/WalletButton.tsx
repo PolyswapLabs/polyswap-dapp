@@ -5,6 +5,7 @@ import { Icon } from "@/components/icons";
 import { Button } from "@/components/primitives";
 import { cn } from "@/lib/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface Props {
   onConnect: () => void;
@@ -63,6 +64,7 @@ export function WalletButton({ onConnect, className }: Props) {
             <button
               type="button"
               onClick={() => {
+                capturePostHogEvent("wallet_disconnected");
                 disconnect();
                 setOpen(false);
               }}

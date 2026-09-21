@@ -8,7 +8,7 @@ import posthog from "posthog-js";
 import { isProductionEnvironment } from "@/lib/env";
 
 function PostHogIdentity() {
-  const { address, isConnected } = useAccount();
+  const { address, connector, isConnected } = useAccount();
   const previousAddress = useRef<string | undefined>(undefined);
   const posthogProjectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
@@ -22,12 +22,15 @@ function PostHogIdentity() {
         posthog.reset();
       }
       posthog.identify(currentAddress);
+      if (connector?.id === "safe" && previousAddress.current !== currentAddress) {
+        posthog.capture("wallet_connected", { connector: "safe", connection_source: "safe_app" });
+      }
     } else if (previousAddress.current) {
       posthog.reset();
     }
 
     previousAddress.current = currentAddress;
-  }, [address, isConnected, posthogHost, posthogProjectToken]);
+  }, [address, connector?.id, isConnected, posthogHost, posthogProjectToken]);
 
   return null;
 }

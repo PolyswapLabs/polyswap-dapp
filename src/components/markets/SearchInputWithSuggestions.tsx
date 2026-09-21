@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useSearchSuggestions } from "@/hooks/useMarketsData";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface Props {
   value: string;
@@ -57,16 +58,22 @@ export function SearchInputWithSuggestions({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const submit = (next: string) => {
+  const submit = (next: string, method: "typed" | "suggestion" = "typed") => {
     setOpen(false);
     setHighlight(-1);
     if (next === value) return;
+    if (next.trim()) {
+      capturePostHogEvent("market_searched", {
+        method,
+        query_length: next.trim().length,
+      });
+    }
     onSubmit(next);
   };
 
   const pickSuggestion = (tag: string) => {
     setLocal(tag);
-    submit(tag);
+    submit(tag, "suggestion");
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

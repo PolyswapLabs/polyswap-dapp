@@ -1,22 +1,31 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
 import { Button, DetailSkeleton, Tag, Tape, Dial } from "@/components/primitives";
 import { CategoryIcon, Icon, PolymarketIcon } from "@/components/icons";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface Props {
   identifier: string;
 }
 
 export function MarketDetail({ identifier }: Props) {
+  const lastTrackedMarket = useRef<string | null>(null);
   // `track: true` opts this fetch into server-side view counting — handled
   // inside GET /api/markets/[slug] when `?track=1` is set. Keeps tracking
   // tied to the existing market lookup instead of a dedicated /view route.
   const { data, isLoading, isError, error } = useMarket(identifier, { track: true });
   const { data: history = [] } = useMarketPriceHistory(data?.yesTokenId, 60);
+
+  useEffect(() => {
+    if (!data || lastTrackedMarket.current === data.id) return;
+    lastTrackedMarket.current = data.id;
+    capturePostHogEvent("market_viewed", { market_id: data.id, category: data.category });
+  }, [data]);
 
   if (isLoading) {
     return <DetailSkeleton />;

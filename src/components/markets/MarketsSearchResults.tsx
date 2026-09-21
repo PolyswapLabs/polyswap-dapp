@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SearchInputWithSuggestions } from "./SearchInputWithSuggestions";
 import { MarketRow } from "./MarketRow";
@@ -11,6 +11,7 @@ import { TransitionLink } from "@/components/layout";
 import { Icon } from "@/components/icons";
 import { useMarketsPage } from "@/hooks/useMarketsData";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 const PAGE_SIZE = 20;
 
@@ -29,6 +30,7 @@ export function MarketsSearchResults() {
 
   const [query, setQuery] = useState(initialQ);
   const [page, setPage] = useState(initialPage);
+  const lastTrackedView = useRef<string | null>(null);
 
   useEffect(() => {
     setQuery(params.get("q") ?? "");
@@ -54,13 +56,25 @@ export function MarketsSearchResults() {
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
+  const listKey = `${query}-${page}`;
+
+  useEffect(() => {
+    if (!query.trim() || !data || isLoading || isError || lastTrackedView.current === listKey) {
+      return;
+    }
+    lastTrackedView.current = listKey;
+    capturePostHogEvent("market_list_viewed", {
+      source: "search",
+      page,
+      query_length: query.trim().length,
+      result_count: total,
+    });
+  }, [data, isLoading, isError, listKey, page, query, total]);
 
   const handleQuerySubmit = (next: string) => {
     setQuery(next);
     setPage(1);
   };
-
-  const listKey = `${query}-${page}`;
 
   return (
     <div>
@@ -126,7 +140,7 @@ export function MarketsSearchResults() {
               <MotionList key={listKey} className="-mx-4 sm:mx-0">
                 {items.map((m) => (
                   <MotionItem key={m.id}>
-                    <MarketRow market={m} />
+                    <MarketRow market={m} source="search" />
                   </MotionItem>
                 ))}
               </MotionList>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CategoryFilter, type CategoryFilterValue } from "./CategoryFilter";
 import { SearchInputWithSuggestions } from "./SearchInputWithSuggestions";
@@ -11,6 +11,7 @@ import { MotionList, MotionItem } from "@/components/primitives";
 import { useMarketsPage } from "@/hooks/useMarketsData";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { type MarketCategory } from "@/types/design";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 const PAGE_SIZE = 20;
 
@@ -18,6 +19,7 @@ export function MarketsList() {
   const router = useRouter();
   const [category, setCategory] = useState<CategoryFilterValue>("All");
   const [page, setPage] = useState(1);
+  const lastTrackedView = useRef<string | null>(null);
 
   const searchCat: MarketCategory | null = category === "All" ? null : category;
 
@@ -29,8 +31,22 @@ export function MarketsList() {
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
+  const listKey = `${category}-${page}`;
+
+  useEffect(() => {
+    if (!data || isLoading || isError || lastTrackedView.current === listKey) return;
+    lastTrackedView.current = listKey;
+    capturePostHogEvent("market_list_viewed", {
+      source: "browse",
+      category,
+      page,
+      result_count: total,
+    });
+  }, [data, isLoading, isError, listKey, category, page, total]);
 
   const handleCategoryChange = (next: CategoryFilterValue) => {
+    if (next === category) return;
+    capturePostHogEvent("market_category_selected", { category: next });
     setCategory(next);
     setPage(1);
   };
@@ -41,8 +57,6 @@ export function MarketsList() {
       router.push(`/markets/search?q=${encodeURIComponent(trimmed)}`);
     }
   };
-
-  const listKey = `${category}-${page}`;
 
   return (
     <div>
@@ -88,7 +102,7 @@ export function MarketsList() {
           <MotionList key={listKey} className="-mx-4 sm:mx-0">
             {items.map((m) => (
               <MotionItem key={m.id}>
-                <MarketRow market={m} displayCategory={searchCat ?? undefined} />
+                <MarketRow market={m} displayCategory={searchCat ?? undefined} source="browse" />
               </MotionItem>
             ))}
           </MotionList>
