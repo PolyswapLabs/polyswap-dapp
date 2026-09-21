@@ -1,4 +1,5 @@
 import { CreatePage } from "@/components/create";
+import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ marketId: string }>;
@@ -6,6 +7,7 @@ interface Props {
 
 export const metadata = {
   title: "Set up a swap · Polyswap",
+  robots: PRIVATE_PAGE_ROBOTS,
 };
 
 export default async function CreateRoutePage({ params }: Props) {

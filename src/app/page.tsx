@@ -11,6 +11,14 @@ import {
   PullQuote,
 } from "@/components/landing";
 import { Reveal } from "@/components/primitives";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata = publicPageMetadata({
+  title: "Polyswap | Polymarket-triggered token swaps on Polygon",
+  description:
+    "Set a token swap on Polygon to execute when Polymarket odds cross your chosen threshold. Your tokens stay in your wallet until the trigger fires.",
+  path: "/",
+});
 
 export default function HomePage() {
   return (

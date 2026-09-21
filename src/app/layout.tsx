@@ -3,6 +3,7 @@ import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/cn";
 import { ConsoleSignature } from "@/components/layout";
+import { SITE_URL } from "@/lib/seo";
 
 const sans = Inter_Tight({
   subsets: ["latin"],
@@ -27,9 +28,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Polyswap — swaps that wait",
-  description:
-    "Set a swap on Polygon and let it sit. It only fires when a Polymarket question crosses the threshold you choose. Your funds stay in your wallet until then.",
+  metadataBase: new URL(SITE_URL),
   icons: {
     icon: [{ url: "/favicon.ico", sizes: "any" }],
     apple: "/favicon.ico",
