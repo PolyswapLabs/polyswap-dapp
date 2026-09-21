@@ -10,4 +10,15 @@ export async function register() {
   }
 }
 
-export const onRequestError = Sentry.captureRequestError;
+export const onRequestError = async (...args: Parameters<typeof Sentry.captureRequestError>) => {
+  Sentry.captureRequestError(...args);
+
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  const { getPostHogClient } = await import("./lib/posthog-server");
+  const posthog = getPostHogClient();
+  const tracingDistinctId = args[1].headers["x-posthog-distinct-id"];
+  const distinctId = Array.isArray(tracingDistinctId) ? tracingDistinctId[0] : tracingDistinctId;
+  posthog.captureException(args[0], distinctId);
+  await posthog.flush();
+};

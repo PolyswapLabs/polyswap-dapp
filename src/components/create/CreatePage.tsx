@@ -23,6 +23,7 @@ import { fmtUSD } from "@/lib/format";
 import { useRuntimeConfig } from "@/components/providers/RuntimeConfigProvider";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
+import { capturePostHogEvent } from "@/lib/posthog-client";
 
 interface Props {
   marketId: string;
@@ -162,6 +163,14 @@ export function CreatePage({ marketId }: Props) {
       return;
     }
 
+    capturePostHogEvent("swap_review_started", {
+      market_id: rawMarket.id,
+      selected_outcome: state.side,
+      threshold_percentage: Math.round(state.threshold * 100),
+      expiry: state.expiry,
+      slippage_mode: state.slippagePct === "auto" ? "auto" : "custom",
+    });
+
     setSigningError(null);
     setIsPreparingTx(true);
     try {
@@ -205,6 +214,13 @@ export function CreatePage({ marketId }: Props) {
       });
 
       orderIdRef.current = order.orderId;
+      capturePostHogEvent("swap_draft_created", {
+        order_id: order.orderId,
+        market_id: rawMarket.id,
+        selected_outcome: state.side,
+        threshold_percentage: Math.round(state.threshold * 100),
+        expiry: state.expiry,
+      });
 
       const allowance = await publicClient.readContract({
         address: order.sellToken,
@@ -246,6 +262,7 @@ export function CreatePage({ marketId }: Props) {
     setSignOpen(false);
     const orderId = orderIdRef.current;
     if (orderId !== null) {
+      capturePostHogEvent("swap_creation_confirmed", { order_id: orderId });
       router.push(`/dashboard/${orderId}`);
     }
   };

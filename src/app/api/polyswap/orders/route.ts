@@ -13,7 +13,6 @@ import { buildFallbackHandlerSetupTx } from "../../../../backend/services/safeFa
 import { getClobAvailability } from "../../../../backend/services/polymarketStatusService";
 import { getOrCreateSentinel } from "../../../../backend/services/polymarketSentinelService";
 import { type PolyswapOrderData } from "../../../../backend/interfaces/PolyswapOrder";
-import { getPostHogClient } from "../../../../lib/posthog-server";
 import { createLogger } from "../../../../backend/logger";
 import { isOrderCreationDisabled, isPolymarketSentinelPostOnly } from "@/lib/runtimeFlags";
 import type { DatabasePolymarketSentinel } from "@/backend/interfaces/PolyswapOrder";
@@ -532,21 +531,6 @@ export async function POST(request: NextRequest) {
     } catch (dbError) {
       return apiError({ status: 500, error: "Failed to save order", cause: dbError });
     }
-
-    const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId: owner,
-      event: "server_order_created",
-      properties: {
-        order_id: orderId,
-        market_id: marketId,
-        sell_token: sellToken,
-        buy_token: buyToken,
-        selected_outcome: selectedOutcome,
-        bet_percentage: betPercentage,
-        owner,
-      },
-    });
 
     // --- Detect fresh Safes that haven't installed CoW's ExtensibleFallbackHandler
     // yet. The setup self-call is returned alongside the order bundle so the

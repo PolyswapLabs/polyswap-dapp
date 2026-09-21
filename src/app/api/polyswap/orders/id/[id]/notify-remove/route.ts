@@ -5,6 +5,7 @@ import { DatabaseService } from "@/backend/services/databaseService";
 import { verifySignature } from "@/backend/utils/signatureVerification";
 import { getPublicClient } from "@/backend/listener/blockchainProvider";
 import { createApiErrorResponder } from "@/lib/apiError";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const apiError = createApiErrorResponder("api-order-notify-remove");
 
@@ -122,6 +123,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     await DatabaseService.updateOrderStatusById(orderId, "canceled");
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: order.owner.toLowerCase(),
+      event: "swap_cancelled",
+      properties: { order_id: orderId },
+    });
+    await posthog.flush();
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return apiError({ status: 500, error: "Failed to finalise order removal", cause: error });

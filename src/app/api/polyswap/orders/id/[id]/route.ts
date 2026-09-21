@@ -4,6 +4,7 @@ import { verifySignature } from "@/backend/utils/signatureVerification";
 import { getPublicClient } from "@/backend/listener/blockchainProvider";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const apiError = createApiErrorResponder("api-order-id");
 
@@ -132,6 +133,15 @@ export async function DELETE(
     }
 
     await DatabaseService.deletePolyswapOrderById(orderId);
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: order.owner.toLowerCase(),
+      event: "swap_draft_cancelled",
+      properties: { order_id: orderId },
+    });
+    await posthog.flush();
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return apiError({ status: 500, error: "Failed to delete draft order", cause: error });
