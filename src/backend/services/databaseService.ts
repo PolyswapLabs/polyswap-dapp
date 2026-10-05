@@ -11,6 +11,8 @@ import { createLogger } from "../logger";
 const log = createLogger("db-service");
 import { type Market } from "../interfaces/Market";
 import { type DatabaseMarket } from "../interfaces/Database";
+import { RECOMMENDATION_POLICY } from "../../lib/marketRecommendations";
+import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "../../types/design";
 import {
   type PolyswapOrderData,
   type PolyswapOrderRecord,
@@ -30,8 +32,6 @@ export interface SearchMarketsOptions {
   limit?: number;
   offset?: number;
 }
-
-const INTEREST_MIN_VOLUME = 10_000;
 
 const INTEREST_CATEGORY_BOOSTS: Record<string, number> = {
   Economy: 1.1,
@@ -311,19 +311,10 @@ export class DatabaseService {
   }
 
   static async searchMarkets(opts: SearchMarketsOptions): Promise<DatabaseMarket[]> {
-    const { sort = "volume", limit = 50, offset = 0, category, q } = opts;
-
-    const filters: Prisma.Sql[] = [this.buildSearchWhere(opts)];
-    if (sort === "interest") {
-      if (!category) {
-        filters.push(Prisma.sql`end_date > NOW() + INTERVAL '48 hours'`);
-        filters.push(Prisma.sql`volume >= ${INTEREST_MIN_VOLUME}`);
-      }
-      if (!q) {
-        filters.push(Prisma.sql`question !~* ${INTEREST_NOISE_REGEX}`);
-      }
-    }
-    const where = Prisma.join(filters, " AND ");
+    const { sort = "volume", limit = 50, offset = 0, category } = opts;
+    // Search and its count share the same predicates. Editorial eligibility
+    // belongs exclusively to getRecommendationCandidates.
+    const where = this.buildSearchWhere(opts);
 
     const orderBy = this.buildOrderBy(sort, Boolean(category));
 
@@ -334,10 +325,52 @@ export class DatabaseService {
              updated_at AS "updatedAt"
       FROM markets
       WHERE ${where}
-      ORDER BY ${orderBy}
+      ORDER BY ${orderBy}, id ASC
       LIMIT ${limit} OFFSET ${offset}
     `;
     return rows.map(toMarketRow);
+  }
+
+  static async getRecommendationCandidates(category: MarketCategory | null): Promise<{
+    markets: DatabaseMarket[];
+    truncated: boolean;
+  }> {
+    const where = this.buildSearchWhere({
+      category: category ?? undefined,
+      categories: category ? undefined : [...CRYPTO_RELEVANT_CATEGORIES],
+      volumeMin: RECOMMENDATION_POLICY.volumeMin,
+      liquidityMin: RECOMMENDATION_POLICY.liquidityMin,
+    });
+    const orderBy = this.buildOrderBy("interest", Boolean(category));
+    const rows = await prisma.$queryRaw<PrismaMarket[]>`
+      WITH candidates AS (
+        SELECT *, ROW_NUMBER() OVER (
+          PARTITION BY CASE WHEN event_slug IS NULL OR event_slug = ''
+            THEN 'market:' || id ELSE 'event:' || event_slug END
+          ORDER BY ${orderBy}, id ASC
+        ) AS event_rank
+        FROM markets
+        WHERE ${where}
+          AND end_date > NOW() + ${RECOMMENDATION_POLICY.horizonHours} * INTERVAL '1 hour'
+          AND question !~* ${INTEREST_NOISE_REGEX}
+          AND (outcomes = '["Yes", "No"]'::jsonb OR outcomes = '["No", "Yes"]'::jsonb)
+          AND CARDINALITY(clob_token_ids) = 2
+          AND clob_token_ids[1] <> '' AND clob_token_ids[2] <> ''
+          AND clob_token_ids[1] <> clob_token_ids[2]
+      )
+      SELECT id, slug, event_slug AS "eventSlug", question, description, category,
+             tags, outcomes, volume, liquidity, end_date AS "endDate",
+             clob_token_ids AS "clobTokenIds", active, neg_risk AS "negRisk",
+             updated_at AS "updatedAt"
+      FROM candidates
+      WHERE event_rank <= ${RECOMMENDATION_POLICY.candidatesPerEvent}
+      ORDER BY ${orderBy}, id ASC
+      LIMIT ${RECOMMENDATION_POLICY.candidateLimit + 1}
+    `;
+    return {
+      markets: rows.slice(0, RECOMMENDATION_POLICY.candidateLimit).map(toMarketRow),
+      truncated: rows.length > RECOMMENDATION_POLICY.candidateLimit,
+    };
   }
 
   static async getMarketById(id: string): Promise<DatabaseMarket | null> {
@@ -1126,11 +1159,10 @@ export class DatabaseService {
   private static buildSearchWhere(opts: SearchMarketsOptions): Prisma.Sql {
     const { q, category, categories, volumeMin = 0, liquidityMin = 0 } = opts;
 
-    const fragments: Prisma.Sql[] = [
-      Prisma.sql`active = TRUE`,
-      Prisma.sql`volume >= ${volumeMin}`,
-      Prisma.sql`liquidity >= ${liquidityMin}`,
-    ];
+    const fragments: Prisma.Sql[] = [Prisma.sql`active = TRUE`];
+    // Default search includes markets with zero or unknown liquidity/activity.
+    if (volumeMin > 0) fragments.push(Prisma.sql`volume >= ${volumeMin}`);
+    if (liquidityMin > 0) fragments.push(Prisma.sql`liquidity >= ${liquidityMin}`);
 
     if (category) fragments.push(Prisma.sql`category = ${category}`);
     if (categories && categories.length > 0) {

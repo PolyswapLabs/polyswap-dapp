@@ -12,8 +12,8 @@ type Availability = { status: "checking" } | { status: "available" } | { status:
 /**
  * PolySwap only needs Polymarket's public market data before a visitor enters
  * the app. Use the exact data API it relies on instead of maintaining a local
- * country policy: a network, HTTP, or malformed-response failure all leave the
- * app unavailable. This also catches ISP-level blocks.
+ * country policy: network, malformed-response, and non-429 HTTP failures leave
+ * the app unavailable. Rate limiting permits the database recommendation fallback.
  */
 export function PolymarketDataGate({ children }: { children: React.ReactNode }) {
   const [attempt, setAttempt] = useState(0);
@@ -34,6 +34,10 @@ export function PolymarketDataGate({ children }: { children: React.ReactNode }) 
           signal: controller.signal,
         });
 
+        if (response.status === 429) {
+          if (current) setAvailability({ status: "available" });
+          return;
+        }
         if (!response.ok) throw new Error(`Polymarket data returned ${response.status}`);
 
         const payload: unknown = await response.json();
@@ -43,7 +47,7 @@ export function PolymarketDataGate({ children }: { children: React.ReactNode }) 
         setAvailability({ status: "available" });
       } catch {
         // Browser fetches intentionally hide the low-level cause of many ISP blocks.
-        // Treat every failed or malformed data request as unavailable.
+        // Other failed or malformed data requests remain unavailable.
         if (current) setAvailability({ status: "unverified" });
       } finally {
         window.clearTimeout(timeout);

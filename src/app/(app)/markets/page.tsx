@@ -1,4 +1,6 @@
 import { MarketsList } from "@/components/markets";
+import { Suspense } from "react";
+import { MarketsSkeleton } from "@/components/markets/MarketsSkeleton";
 import { publicPageMetadata } from "@/lib/seo";
 
 export const metadata = publicPageMetadata({
@@ -9,5 +11,9 @@ export const metadata = publicPageMetadata({
 });
 
 export default function MarketsPage() {
-  return <MarketsList />;
+  return (
+    <Suspense fallback={<MarketsSkeleton />}>
+      <MarketsList />
+    </Suspense>
+  );
 }

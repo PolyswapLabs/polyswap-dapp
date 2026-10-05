@@ -11,12 +11,16 @@ import {
 } from "@/services/polymarket";
 import { apiService, readApiErrorMessage } from "@/services/api";
 import {
-  CRYPTO_RELEVANT_CATEGORIES,
   MARKET_CATEGORIES,
   type MarketCategory,
   type MarketViewModel,
   type Side,
 } from "@/types/design";
+import {
+  RECOMMENDATION_POLICY,
+  type OddsRange,
+  type RecommendationPage,
+} from "@/lib/marketRecommendations";
 
 export interface MarketOption {
   text: string;
@@ -205,7 +209,8 @@ export function toViewModel(api: ApiMarket): MarketViewModel | null {
     yesProbability,
     yesBestAsk: api.yesBestAsk === undefined ? null : api.yesBestAsk / 100,
     noBestAsk: api.noBestAsk === undefined ? null : api.noBestAsk / 100,
-    volume24h: api.volume,
+    volume24h: null,
+    volumeTotal: api.volume,
     endsAt: api.endDate,
   };
 }
@@ -312,10 +317,6 @@ export function useMarketsPage({ page, pageSize, q, category }: UseMarketsPagePa
       searchAndHydrate({
         q: trimmed.length > 0 ? trimmed : undefined,
         category: category ?? undefined,
-        // When no specific category is selected and no search term, restrict
-        // to crypto-relevant tags so the default view stays on-topic.
-        categories:
-          category === null && trimmed.length === 0 ? CRYPTO_RELEVANT_CATEGORIES : undefined,
         sort: "interest",
         limit: pageSize,
         offset,
@@ -325,6 +326,65 @@ export function useMarketsPage({ page, pageSize, q, category }: UseMarketsPagePa
       items: items.map(toViewModel).filter((m): m is MarketViewModel => m !== null),
       total,
     }),
+  });
+}
+
+interface UseRecommendedMarketsParams extends OddsRange {
+  page: number;
+  pageSize: number;
+  category: MarketCategory | null;
+}
+
+export function useRecommendedMarkets({
+  page,
+  pageSize,
+  category,
+  oddsMin,
+  oddsMax,
+}: UseRecommendedMarketsParams) {
+  return useQuery({
+    queryKey: ["markets", "recommended", category, oddsMin, oddsMax, page, pageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        oddsMin: String(oddsMin),
+        oddsMax: String(oddsMax),
+        limit: String(pageSize),
+        offset: String((page - 1) * pageSize),
+      });
+      if (category) params.set("category", category);
+      const res = await fetch(`/api/markets/recommended?${params}`);
+      const payload: unknown = await res.json();
+      if (!res.ok) {
+        throw new Error(readApiErrorMessage(payload) ?? "Couldn’t load recommendations.");
+      }
+      const json = payload as { success: boolean; data: RecommendationPage };
+      if (!json.success) throw new Error("Couldn’t load recommendations.");
+      const data = json.data;
+      if (data.source === "database") {
+        const prices = data.markets.length
+          ? await fetchClobPrices(tokenPriceRequests(data.markets))
+          : {};
+        return {
+          ...data,
+          items: data.markets
+            .map((market) => toViewModel(mergeMarket(market, prices)))
+            .filter((market): market is MarketViewModel => market !== null),
+        };
+      }
+      return {
+        ...data,
+        items: data.markets.map(
+          (market): MarketViewModel => ({
+            ...market,
+            yesBestAsk: null,
+            noBestAsk: null,
+          })
+        ),
+      };
+    },
+    staleTime: RECOMMENDATION_POLICY.cacheMs,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -345,6 +405,8 @@ export function useMarketPriceHistory(tokenId: string | null | undefined, days =
     },
     enabled: typeof tokenId === "string" && tokenId.length > 0,
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => !/429/.test(error.message) && failureCount < 1,
   });
 }
 

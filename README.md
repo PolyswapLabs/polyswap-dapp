@@ -112,6 +112,45 @@ pnpm saveMarkets   # Fetch markets from Polymarket API to data.json
 pnpm db:import     # Import markets from data.json to database
 ```
 
+### Market Recommendations
+
+`GET /api/markets/recommended` reads the existing market index and enriches up to
+300 candidates with up to three concurrent Gamma requests of 100 IDs each.
+Gamma's ID filter has a 100-item maximum per request.
+Prices and daily metrics are cached only in server memory for two minutes; no
+database writes, migrations, or new refresh jobs are needed.
+
+Browse defaults to 10–90% YES odds, at least $10,000 lifetime volume, $5,000
+liquidity, $1,000 daily volume, a spread of at most 5 percentage points, and more
+than 48 hours remaining. Quality scoring combines daily activity, liquidity and
+spread, uncertainty, category/tag relevance, and time remaining. The database
+shortlist uses the existing interest ranking in All and each selected category. Sibling markets
+are deferred across 20-result blocks. `total` counts eligible recommendations in
+the shortlist, not the whole catalogue; `truncated` identifies a capped shortlist.
+
+The browse page keeps category selection and pagination, with fixed 10–90% YES
+odds. Old odds parameters in page URLs do not override that range. The API still
+accepts `category`, `oddsMin`, `oddsMax`, `limit`, and `offset`.
+Search uses `/api/markets/search` independently of recommendation thresholds.
+The browser still loads charts, limited to four simultaneous history requests.
+
+When any Gamma batch returns HTTP 429, the endpoint returns `source: "database"`
+and the existing database shortlist, filtered and ordered on the backend. The
+browser loads CLOB prices as it did for the previous list and labels stored
+volume as total volume. No odds, daily-volume, or spread filters are applied in
+this fallback because those values are not stored in the database. Gamma calls
+pause across all categories for at least two minutes, respecting a longer
+`Retry-After` header. After the cooldown, the next request rebuilds recommendations.
+Other Gamma failures still return an error rather than silently changing the feed.
+The browser's public-data availability check also permits HTTP 429 so it cannot
+hide the database fallback behind the unavailable dialog.
+
+Run the focused regression tests without database or network access:
+
+```bash
+node --import tsx --test tests/*.test.ts
+```
+
 ### Database Management
 
 ```bash

@@ -30,6 +30,8 @@ export function MarketRow({ market, displayCategory, source }: Props) {
   const yesPct = yesValue % 1 === 0 ? yesValue.toFixed(0) : yesValue.toFixed(1);
   const category = displayCategory ?? market.category;
   const titleVTName = `market-title-${market.id}`;
+  const volume = market.volume24h ?? market.volumeTotal;
+  const volumeLabel = market.volume24h === null ? "total vol" : "24h vol";
 
   const { data: history = [] } = useMarketPriceHistory(market.yesTokenId, 60);
   const sparkData = history.map((h) => h.p);
@@ -71,8 +73,8 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           <Tape data={sparkData} showThreshold={false} side="YES" width={160} height={42} animate />
         </div>
         <p className="text-right text-sm">
-          <span className="text-[11px] uppercase tracking-wide text-ink-3">vol </span>
-          <span className="num">{fmtUSD(market.volume24h, { compact: true })}</span>
+          <span className="text-[11px] uppercase tracking-wide text-ink-3">{volumeLabel} </span>
+          <span className="num">{fmtUSD(volume, { compact: true })}</span>
         </p>
         <span
           aria-hidden
@@ -90,8 +92,8 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             {category}
           </span>
           <span className="text-xs text-ink-3">
-            <span className="uppercase tracking-wide">vol </span>
-            <span className="num">{fmtUSD(market.volume24h, { compact: true })}</span>
+            <span className="uppercase tracking-wide">{volumeLabel} </span>
+            <span className="num">{fmtUSD(volume, { compact: true })}</span>
           </span>
         </div>
         <p

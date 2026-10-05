@@ -98,7 +98,10 @@ export function MarketDetail({ identifier }: Props) {
           {/* Stat strip */}
           <div className="grid grid-cols-3 border border-ink">
             <Stat label="Current YES odds" value={`${yesPct}%`} accent />
-            <Stat label="24h volume" value={fmtUSD(data.volume24h, { compact: true })} />
+            <Stat
+              label={data.volume24h === null ? "Total volume" : "24h volume"}
+              value={fmtUSD(data.volume24h ?? data.volumeTotal, { compact: true })}
+            />
             <Stat label="Resolves" value={fmtDate(data.endsAt)} />
           </div>
 

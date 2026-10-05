@@ -63,7 +63,10 @@ export interface MarketViewModel {
   category: MarketCategory;
   question: string;
   yesProbability: number;
-  volume24h: number;
+  /** Genuine daily volume, when supplied by recommendation enrichment. */
+  volume24h: number | null;
+  /** Lifetime volume from the existing market index. */
+  volumeTotal: number;
   endsAt: string;
 }
 

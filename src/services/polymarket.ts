@@ -47,6 +47,24 @@ export interface ClobHistoryPoint {
   p: number;
 }
 
+let activeHistoryRequests = 0;
+const historyWaiters: Array<() => void> = [];
+
+async function withHistorySlot<T>(request: () => Promise<T>): Promise<T> {
+  if (activeHistoryRequests >= 4) {
+    await new Promise<void>((resolve) => historyWaiters.push(resolve));
+  } else activeHistoryRequests += 1;
+  try {
+    return await request();
+  } finally {
+    const next = historyWaiters.shift();
+    if (next) {
+      // Transfer the occupied slot directly to the next waiter.
+      next();
+    } else activeHistoryRequests -= 1;
+  }
+}
+
 /**
  * Real trade history for a single CLOB token, as Polymarket's web charts use.
  * `interval=max` is the only one that consistently returns data; we slice
@@ -54,8 +72,12 @@ export interface ClobHistoryPoint {
  */
 export async function fetchClobPriceHistory(tokenId: string): Promise<ClobHistoryPoint[]> {
   if (!tokenId) return [];
+  return withHistorySlot(() => fetchHistory(tokenId));
+}
+
+async function fetchHistory(tokenId: string): Promise<ClobHistoryPoint[]> {
   const url = `${CLOB_BASE}/prices-history?market=${encodeURIComponent(tokenId)}&interval=max`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`CLOB /prices-history failed: ${res.status}`);
   const json: unknown = await res.json();
   if (
