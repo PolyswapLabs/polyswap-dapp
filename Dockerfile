@@ -29,9 +29,16 @@ COPY --chown=node:node package.json tsconfig.json sentry.server.config.ts ./
 COPY --chown=node:node src/abi ./src/abi
 COPY --chown=node:node src/backend ./src/backend
 COPY --chown=node:node src/lib/env.ts ./src/lib/env.ts
+COPY --chown=node:node src/lib/marketRecommendations.ts ./src/lib/marketRecommendations.ts
 COPY --chown=node:node src/lib/rpc ./src/lib/rpc
+COPY --chown=node:node src/types/design.ts ./src/types/design.ts
 
 USER node
+
+# Resolve the database service's runtime imports before publishing the image.
+# Prisma creates its client lazily; this placeholder does not connect to a DB.
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
+    ./node_modules/.bin/tsx -e 'import("./src/backend/services/databaseService.ts").then(() => console.log("Listener database imports OK"))'
 
 STOPSIGNAL SIGTERM
 
