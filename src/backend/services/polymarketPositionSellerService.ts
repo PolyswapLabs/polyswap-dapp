@@ -484,21 +484,18 @@ export class PolymarketPositionSellerService {
         try {
           // Skip if no shares to sell
           if (position.size <= 0) {
-            log.info(`Skipping ${position.outcome}: No shares`);
             skippedCount++;
             continue;
           }
 
           // Skip if price is zero (can't sell) - but only if we got price from API
           if (position.curPrice <= 0 && position.fromAPI) {
-            log.info(`Skipping ${position.outcome}: Price is zero`);
             skippedCount++;
             continue;
           }
 
           // Skip if there's already an open SELL order for this token (from CLOB API)
           if (tokensWithOpenSellOrders.has(position.asset)) {
-            log.info(`Skipping ${position.outcome}: Already has open SELL order`);
             skippedCount++;
             continue;
           }
