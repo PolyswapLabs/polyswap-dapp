@@ -16,11 +16,28 @@ import { AssetType } from "@polymarket/clob-client-v2";
 import { getPolymarketOrderService } from "./polymarketOrderService";
 import { DatabaseService } from "./databaseService";
 import { createLogger } from "../logger";
+import { getRetryAt, sleep } from "../utils/httpRetry";
 
 const log = createLogger("position-seller");
 
 // Polymarket Data API endpoint for positions
 const POSITIONS_API_URL = "https://data-api.polymarket.com/positions";
+const POSITIONS_MAX_ATTEMPTS = 3;
+const POSITIONS_RETRY_BASE_MS = 1_000;
+const POSITIONS_MAX_INLINE_RETRY_MS = 10_000;
+const POSITIONS_RATE_LIMIT_COOLDOWN_MS = 60_000;
+
+class PositionsRateLimitError extends Error {
+  constructor(
+    readonly retryAt: number,
+    responseBody: string
+  ) {
+    super(
+      `Positions API rate limited; retry after ${new Date(retryAt).toISOString()}` +
+        (responseBody ? `; body=${responseBody}` : "")
+    );
+  }
+}
 
 // Polymarket V2 contract addresses on Polygon (cutover 2026-04-28).
 // See: https://docs.polymarket.com/resources/contracts
@@ -109,6 +126,7 @@ export class PolymarketPositionSellerService {
   private static publicClient: PublicClient | null = null;
   private static walletClient: WalletClient | null = null;
   private static ctfApproved = false;
+  private static positionsBlockedUntil = 0;
 
   /**
    * Initialize the service and derive owner address from private key
@@ -380,22 +398,49 @@ export class PolymarketPositionSellerService {
       throw new Error("Owner address not initialized");
     }
 
-    try {
+    for (let attempt = 1; attempt <= POSITIONS_MAX_ATTEMPTS; attempt++) {
       const url = `${POSITIONS_API_URL}?user=${this.ownerAddress}`;
       const response = await fetch(url, { method: "GET" });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error(`API error: ${errorText}`);
-        throw new Error(`Failed to fetch positions: ${response.status}`);
+      if (response.ok) {
+        const payload: unknown = await response.json();
+        if (!Array.isArray(payload)) throw new Error("Positions API returned an invalid response");
+        return payload as PolymarketPosition[];
       }
 
-      const positions: PolymarketPosition[] = await response.json();
-      return positions;
-    } catch (error) {
-      log.error("Error fetching positions:", error);
-      throw error;
+      const responseBody = (await response.text()).slice(0, 1_000);
+      if (response.status !== 429) {
+        throw new Error(
+          `Positions API returned HTTP ${response.status} ${response.statusText}` +
+            (responseBody ? `; body=${responseBody}` : "")
+        );
+      }
+
+      const now = Date.now();
+      const retryAt = getRetryAt(
+        response.headers.get("retry-after"),
+        now,
+        POSITIONS_RETRY_BASE_MS * 2 ** (attempt - 1)
+      );
+      this.positionsBlockedUntil = Math.max(this.positionsBlockedUntil, retryAt);
+      const delayMs = this.positionsBlockedUntil - now;
+
+      if (attempt < POSITIONS_MAX_ATTEMPTS && delayMs <= POSITIONS_MAX_INLINE_RETRY_MS) {
+        log.debug(
+          `Positions API rate limited (attempt ${attempt}/${POSITIONS_MAX_ATTEMPTS}); retrying in ${delayMs}ms`
+        );
+        await sleep(delayMs);
+        continue;
+      }
+
+      this.positionsBlockedUntil = Math.max(
+        this.positionsBlockedUntil,
+        now + POSITIONS_RATE_LIMIT_COOLDOWN_MS
+      );
+      throw new PositionsRateLimitError(this.positionsBlockedUntil, responseBody);
     }
+
+    throw new Error("Positions API retry loop exhausted unexpectedly");
   }
 
   /**
@@ -444,6 +489,13 @@ export class PolymarketPositionSellerService {
     const startTime = Date.now();
 
     try {
+      if (this.positionsBlockedUntil > Date.now()) {
+        log.debug(
+          `Positions API cooldown active until ${new Date(this.positionsBlockedUntil).toISOString()}; skipping pass`
+        );
+        return;
+      }
+
       log.info("Checking for positions to sell...");
 
       // Initialize the Polymarket order service first
@@ -454,12 +506,12 @@ export class PolymarketPositionSellerService {
         throw new Error("Polymarket service is not ready");
       }
 
-      // Get tokens that already have open SELL orders (from CLOB API, not database)
-      const tokensWithOpenSellOrders = await this.getOpenSellOrderTokenIds();
-
       // Fetch current positions from Polymarket API
       const positions = await this.fetchPositions();
       log.info(`Positions API returned ${positions.length} position(s)`);
+
+      // Get tokens that already have open SELL orders (from CLOB API, not database)
+      const tokensWithOpenSellOrders = await this.getOpenSellOrderTokenIds();
 
       // Also scan on-chain for CTF token balances that might not be in the API yet
       // This catches recently filled orders that haven't been indexed
@@ -585,7 +637,11 @@ export class PolymarketPositionSellerService {
         `Completed: ${soldCount} sold, ${skippedCount} skipped, ${errorCount} errors (${duration.toFixed(1)}s)`
       );
     } catch (error) {
-      log.error("Error in checkAndSellPositions:", error);
+      if (error instanceof PositionsRateLimitError) {
+        log.warn(error.message);
+      } else {
+        log.error("Error in checkAndSellPositions:", error);
+      }
     } finally {
       this.isSelling = false;
     }

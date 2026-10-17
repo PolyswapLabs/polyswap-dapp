@@ -10,6 +10,7 @@ import {
   type RecommendedMarket,
 } from "../../lib/marketRecommendations";
 import { createLogger } from "../logger";
+import { getRetryAt } from "../utils/httpRetry";
 
 const log = createLogger("market-recommendations");
 
@@ -77,13 +78,8 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     });
     if (response.status === 429) {
       const timestamp = now();
-      const retryAfter = response.headers.get("retry-after");
-      const seconds = retryAfter === null ? NaN : Number(retryAfter);
-      const retryAt = Number.isFinite(seconds)
-        ? timestamp + seconds * 1_000
-        : Date.parse(retryAfter ?? "");
       throw new GammaRateLimitError(
-        Math.max(timestamp + RECOMMENDATION_POLICY.cacheMs, Number.isFinite(retryAt) ? retryAt : 0)
+        getRetryAt(response.headers.get("retry-after"), timestamp, RECOMMENDATION_POLICY.cacheMs)
       );
     }
     if (!response.ok) {
