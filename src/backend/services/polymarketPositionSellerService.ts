@@ -59,6 +59,8 @@ export class PolymarketPositionSellerService {
       if (!client || !inventory) throw new Error("Position seller is not initialized");
       const positions = await inventory.read({
         onApiError: (error) => log.warn("Position API unavailable; scanning both ledgers:", error),
+        onScanError: (error, protocolVersion) =>
+          log.warn(`Position transfer scan failed (${protocolVersion ?? "block number"}):`, error),
       });
       const openSells = new Set<string>(
         (await service.getOpenOrders())

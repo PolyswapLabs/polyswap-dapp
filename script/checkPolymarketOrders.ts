@@ -24,7 +24,10 @@ for (const order of await service.getOpenOrders()) {
     `${order.side} ${order.assetId}: ${order.sizeMatched}/${order.originalSize} shares at ${order.price}; ${order.status}`
   );
 }
-for (const position of await new PolymarketInventory(client, owner).read()) {
+for (const position of await new PolymarketInventory(client, owner).read({
+  onScanError: (error, protocolVersion) =>
+    log.warn(`Position transfer scan failed (${protocolVersion ?? "block number"}):`, error),
+})) {
   log.info(
     `${position.protocolVersion} ${position.assetId}: ${sharesFromBalance(position.balance)} shares; ${position.metadata?.title ?? "unindexed"}`
   );

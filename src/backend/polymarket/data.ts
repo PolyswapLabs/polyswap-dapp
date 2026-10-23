@@ -18,17 +18,25 @@ export class PositionsRateLimitError extends Error {
   }
 }
 
+function parsePositionDecimal(value: unknown, field: string): number {
+  const normalized =
+    typeof value === "string" && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value)
+      ? Number(value)
+      : value;
+  if (typeof normalized !== "number" || !Number.isFinite(normalized) || normalized < 0) {
+    throw new Error(`Invalid position ${field}`);
+  }
+  return normalized;
+}
+
 export function parsePosition(value: unknown): PolymarketPosition {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Invalid Data API position");
   }
   const row = value as Record<string, unknown>;
   assertAssetId(row.token_id);
-  for (const key of ["current_size", "current_price"]) {
-    if (typeof row[key] !== "number" || !Number.isFinite(row[key]) || Number(row[key]) < 0) {
-      throw new Error(`Invalid position ${key}`);
-    }
-  }
+  const size = parsePositionDecimal(row.current_size, "current_size");
+  const currentPrice = parsePositionDecimal(row.current_price, "current_price");
   if (
     typeof row.condition_id !== "string" ||
     typeof row.negative_risk !== "boolean" ||
@@ -39,8 +47,8 @@ export function parsePosition(value: unknown): PolymarketPosition {
   return {
     assetId: row.token_id,
     conditionId: row.condition_id,
-    size: row.current_size as number,
-    currentPrice: row.current_price as number,
+    size,
+    currentPrice,
     title: typeof row.title === "string" ? row.title : "",
     outcome: typeof row.outcome === "string" ? row.outcome : "",
     negRisk: row.negative_risk,

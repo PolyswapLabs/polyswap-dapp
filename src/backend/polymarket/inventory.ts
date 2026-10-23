@@ -39,7 +39,11 @@ export class PolymarketInventory {
   }
 
   async read(
-    options: { onApiError?: (error: unknown) => void; lookbackBlocks?: bigint } = {}
+    options: {
+      onApiError?: (error: unknown) => void;
+      onScanError?: (error: unknown, protocolVersion?: ProtocolVersion) => void;
+      lookbackBlocks?: bigint;
+    } = {}
   ): Promise<InventoryPosition[]> {
     let positions: PolymarketPosition[];
     try {
@@ -50,35 +54,52 @@ export class PolymarketInventory {
       positions = [];
     }
     const metadata = new Map(positions.map((position) => [position.assetId, position]));
-    const currentBlock = await this.client.getBlockNumber();
+    const currentBlock = await this.client.getBlockNumber().catch((error: unknown) => {
+      options.onScanError?.(error);
+      return undefined;
+    });
     const lookback = options.lookbackBlocks ?? 2000n;
-    const fromBlock = currentBlock > lookback ? currentBlock - lookback : 0n;
+    const fromBlock =
+      currentBlock !== undefined && currentBlock > lookback ? currentBlock - lookback : 0n;
     const inventories = await Promise.all(
       PROTOCOL_VERSIONS.map(async (protocolVersion) => {
         const ledger = getTradingConfig({ protocolVersion, negRisk: false }).ledger;
-        const [single, batch] = await Promise.all([
-          this.client.getLogs({
-            address: ledger,
-            event: TRANSFER_SINGLE,
-            args: { to: this.owner },
-            fromBlock,
-            toBlock: currentBlock,
-          }),
-          this.client.getLogs({
-            address: ledger,
-            event: TRANSFER_BATCH,
-            args: { to: this.owner },
-            fromBlock,
-            toBlock: currentBlock,
-          }),
-        ]);
         // API IDs are checked in both ledgers; a market's current version cannot
         // identify the ledger of an existing holding after a position migration.
         const ids = new Set(metadata.keys());
-        for (const log of single) {
-          if (typeof log.args.id === "bigint") ids.add(log.args.id.toString());
+        if (currentBlock !== undefined) {
+          const [single, batch] = await Promise.allSettled([
+            this.client.getLogs({
+              address: ledger,
+              event: TRANSFER_SINGLE,
+              args: { to: this.owner },
+              fromBlock,
+              toBlock: currentBlock,
+            }),
+            this.client.getLogs({
+              address: ledger,
+              event: TRANSFER_BATCH,
+              args: { to: this.owner },
+              fromBlock,
+              toBlock: currentBlock,
+            }),
+          ]);
+          // Supplementary discovery must not discard API inventory or successful
+          // scans in this ledger or the other ledger when one log request fails.
+          if (single.status === "fulfilled") {
+            for (const log of single.value) {
+              if (typeof log.args.id === "bigint") ids.add(log.args.id.toString());
+            }
+          } else {
+            options.onScanError?.(single.reason, protocolVersion);
+          }
+          if (batch.status === "fulfilled") {
+            for (const log of batch.value)
+              for (const id of log.args.ids ?? []) ids.add(id.toString());
+          } else {
+            options.onScanError?.(batch.reason, protocolVersion);
+          }
         }
-        for (const log of batch) for (const id of log.args.ids ?? []) ids.add(id.toString());
         const result: InventoryPosition[] = [];
         // Bound RPC concurrency for large portfolios.
         const assets = [...ids];

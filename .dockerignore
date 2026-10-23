@@ -19,6 +19,8 @@
 !src/backend/**
 !src/lib/
 !src/lib/env.ts
+!src/lib/polymarket/
+!src/lib/polymarket/**
 !src/lib/marketRecommendations.ts
 !src/lib/rpc/
 !src/lib/rpc/**
