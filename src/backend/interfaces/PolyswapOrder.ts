@@ -1,3 +1,5 @@
+import type { ProtocolVersion } from "../../lib/polymarket/protocol";
+
 export interface PolyswapOrderData {
   sellToken: string; // hex address
   buyToken: string; // hex address
@@ -126,6 +128,9 @@ export interface DatabasePolymarketSentinel {
   outcome_selected: string;
   price_cents: number;
   neg_risk: boolean;
+  protocol_version: ProtocolVersion;
+  exchange_address: string | null;
+  signed_order_format: string;
   post_only: boolean;
   epoch: number;
   polymarket_order_hash: string;
@@ -145,6 +150,7 @@ export interface DatabasePolymarketSentinel {
 export interface SoldPosition {
   id: number;
   asset_id: string; // Polymarket token ID
+  protocol_version: ProtocolVersion | null;
   condition_id: string;
   size: number;
   sell_price: number;
@@ -158,8 +164,9 @@ export interface SoldPosition {
 // Input interface for recording a sold position
 export interface SoldPositionInput {
   assetId: string;
+  protocolVersion: ProtocolVersion;
   conditionId: string;
-  size: number;
+  size: number | string;
   sellPrice: number;
   currentPrice: number;
   orderId: string;

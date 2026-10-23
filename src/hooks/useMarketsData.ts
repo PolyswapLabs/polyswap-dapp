@@ -1,5 +1,6 @@
 "use client";
 
+import { getTradingAssetIds, type ProtocolVersion } from "@/lib/polymarket/protocol";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchClobPriceHistory,
@@ -49,6 +50,8 @@ export interface ApiMarket {
   slug: string;
   eventSlug?: string;
   clobTokenIds: string[];
+  protocolVersion: ProtocolVersion | null;
+  positionIds: string[];
   description?: string;
 }
 
@@ -65,6 +68,9 @@ interface SearchMarket {
   liquidity: number;
   end_date: string | null;
   clob_token_ids: string[];
+  protocol_version: ProtocolVersion | null;
+  position_ids: string[];
+  condition_id: string | null;
   active: boolean;
 }
 
@@ -117,7 +123,12 @@ function bestAskPercent(
 
 function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket {
   const outcomes = lean.outcomes;
-  const clobTokenIds = lean.clob_token_ids;
+  const clobTokenIds = getTradingAssetIds({
+    protocolVersion: lean.protocol_version,
+    clobTokenIds: lean.clob_token_ids,
+    positionIds: lean.position_ids,
+    outcomes: lean.outcomes,
+  });
   const endDate = lean.end_date ?? "";
   const category = lean.category ?? "";
   const description = lean.description ?? undefined;
@@ -146,7 +157,10 @@ function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket 
       noTokenId: clobTokenIds[noIdx],
       slug: lean.slug,
       eventSlug: lean.event_slug ?? undefined,
-      clobTokenIds,
+      clobTokenIds: lean.clob_token_ids,
+      protocolVersion: lean.protocol_version,
+      positionIds: lean.position_ids,
+      conditionId: lean.condition_id ?? undefined,
       description,
     };
   }
@@ -167,7 +181,10 @@ function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket 
       noTokenId: clobTokenIds[1],
       slug: lean.slug,
       eventSlug: lean.event_slug ?? undefined,
-      clobTokenIds,
+      clobTokenIds: lean.clob_token_ids,
+      protocolVersion: lean.protocol_version,
+      positionIds: lean.position_ids,
+      conditionId: lean.condition_id ?? undefined,
       description,
     };
   }
@@ -186,7 +203,10 @@ function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket 
     options,
     slug: lean.slug,
     eventSlug: lean.event_slug ?? undefined,
-    clobTokenIds,
+    clobTokenIds: lean.clob_token_ids,
+    protocolVersion: lean.protocol_version,
+    positionIds: lean.position_ids,
+    conditionId: lean.condition_id ?? undefined,
     description,
   };
 }
@@ -220,7 +240,12 @@ const STALE = 60_000;
 function tokenPriceRequests(markets: SearchMarket[]): ClobPriceRequest[] {
   const requests: ClobPriceRequest[] = [];
   for (const m of markets) {
-    for (const tokenId of m.clob_token_ids) {
+    for (const tokenId of getTradingAssetIds({
+      protocolVersion: m.protocol_version,
+      outcomes: m.outcomes,
+      clobTokenIds: m.clob_token_ids,
+      positionIds: m.position_ids,
+    })) {
       requests.push({ token_id: tokenId, side: "BUY" });
       requests.push({ token_id: tokenId, side: "SELL" });
     }
@@ -295,6 +320,9 @@ async function fetchSingleMarket(
     liquidity: Number(lean.liquidity) || 0,
     end_date: endDate,
     clob_token_ids: lean.clob_token_ids,
+    protocol_version: lean.protocol_version,
+    position_ids: lean.position_ids,
+    condition_id: lean.condition_id,
     active: lean.active,
   };
   const prices = await fetchClobPrices(tokenPriceRequests([search]));

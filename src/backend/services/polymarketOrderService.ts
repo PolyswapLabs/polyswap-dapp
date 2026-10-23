@@ -1,612 +1,384 @@
+import { updateBalanceAllowance } from "@polymarket/client/actions";
 import {
-  type ApiKeyCreds,
-  ClobClient,
-  Side,
-  OrderType,
   AssetType,
-  SignatureTypeV2,
+  createSecureClient,
+  forkEnvironmentConfig,
+  OrderSide,
+  type ApiKeyCreds,
+  type EvmAddress,
   type OpenOrder,
+  type SecureClient,
   type SignedOrder,
-  isV2Order,
-} from "@polymarket/clob-client-v2";
+} from "@polymarket/client";
+import { signerFrom } from "@polymarket/client/viem";
 import {
   createPublicClient,
   createWalletClient,
-  hashTypedData,
-  isAddress,
   erc20Abi,
-  formatUnits,
+  erc1155Abi,
+  maxUint256,
+  recoverAddress,
   type Address,
   type Hex,
   type PublicClient,
   type WalletClient,
 } from "viem";
-import { resilientHttp } from "@/lib/rpc/resilientHttp";
 import { polygon } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
-import { createLogger } from "../logger";
+import { resilientHttp } from "../../lib/rpc/resilientHttp";
+import { assertAssetId } from "../../lib/polymarket/protocol";
+import {
+  getPolymarketContracts,
+  getTradingConfig,
+  type TradingContext,
+} from "../polymarket/config";
+import {
+  computePolymarketOrderHash,
+  ORDER_STATUS_ABI,
+  parseStoredSignedOrder,
+  type SignedOrderFormat,
+} from "../polymarket/orders";
 
-const log = createLogger("polymarket-order");
-
-export interface PolymarketOrderConfig {
+export interface PolymarketOrderConfig extends TradingContext {
   tokenID: string;
   price: number;
   side: "BUY" | "SELL";
-  size: number;
-  feeRateBps?: number;
+  size: number | string;
   expiration?: number;
-  negRisk?: boolean;
-}
-
-export interface PolymarketMarketOrderConfig {
-  side: "BUY" | "SELL";
-  tokenID: string;
-  amount: number; // For BUY: amount in USD, for SELL: amount in shares
-  feeRateBps?: number;
-  price?: number; // Optional price limit for market orders
+  postOnly?: boolean;
 }
 
 export interface PreparedGTDOrder {
   signedOrder: SignedOrder;
+  signedOrderFormat: SignedOrderFormat;
+  exchangeAddress: Address;
   makerAmount: string;
   polymarketOrderHash: Hex;
   expiration: number;
 }
 
-// V2 collateral is pUSD (a 1:1 wrapper around USDC.e), not USDC.e directly.
-const PUSD_DEFAULT: Address = "0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB";
-const CTF_EXCHANGE_V2_DEFAULT: Address = "0xE111180000d2663C0091e4f400237545B87B996B";
-const NEG_RISK_CTF_EXCHANGE_V2_DEFAULT: Address = "0xe2222d279d744050d28e00520010520000310F59";
-
-// V2 GTD orders require a safety buffer between `now` and the requested expiration,
-// otherwise the CLOB rejects them as "already expired".
-const GTD_SAFETY_BUFFER_SECONDS = 60;
-
-const POLYGON_CHAIN_ID = 137;
-// How many times to regenerate the order (fresh salt) if its hash already has on-chain status.
-const MAX_SALT_ATTEMPTS = 3;
-
-// EIP-712 Order struct of the V2 CTF Exchange; the plain digest over it is the orderID getOrderStatus keys on.
-const ORDER_STRUCT_V2 = [
-  { name: "salt", type: "uint256" },
-  { name: "maker", type: "address" },
-  { name: "signer", type: "address" },
-  { name: "tokenId", type: "uint256" },
-  { name: "makerAmount", type: "uint256" },
-  { name: "takerAmount", type: "uint256" },
-  { name: "side", type: "uint8" },
-  { name: "signatureType", type: "uint8" },
-  { name: "timestamp", type: "uint256" },
-  { name: "metadata", type: "bytes32" },
-  { name: "builder", type: "bytes32" },
-] as const;
-
-const ORDER_STATUS_ABI = [
-  {
-    type: "function",
-    name: "getOrderStatus",
-    stateMutability: "view",
-    inputs: [{ type: "bytes32", name: "orderHash" }],
-    outputs: [
-      {
-        type: "tuple",
-        components: [
-          { name: "isFilledOrCancelled", type: "bool" },
-          { name: "remaining", type: "uint256" },
-        ],
-      },
-    ],
-  },
-] as const;
-
-// Compute a V2 order's hash off-chain (== the CLOB orderID) so we can check getOrderStatus before posting.
-export function computeV2OrderHash(order: SignedOrder, exchange: Address): Hex {
-  if (!isV2Order(order)) {
-    throw new Error("expected a V2 signed order");
-  }
-  return hashTypedData({
-    domain: {
-      name: "Polymarket CTF Exchange",
-      version: "2",
-      chainId: POLYGON_CHAIN_ID,
-      verifyingContract: exchange,
-    },
-    types: { Order: ORDER_STRUCT_V2 },
-    primaryType: "Order",
-    message: {
-      salt: BigInt(order.salt),
-      maker: order.maker as Address,
-      signer: order.signer as Address,
-      tokenId: BigInt(order.tokenId),
-      makerAmount: BigInt(order.makerAmount),
-      takerAmount: BigInt(order.takerAmount),
-      side: order.side === Side.BUY ? 0 : 1,
-      signatureType: Number(order.signatureType),
-      timestamp: BigInt(order.timestamp),
-      metadata: order.metadata as Hex,
-      builder: order.builder as Hex,
-    },
-  });
-}
-
-function parseStoredSignedOrder(value: unknown): SignedOrder {
-  if (value === null || typeof value !== "object") {
-    throw new Error("stored Polymarket order is not an object");
-  }
-  const order = value as Record<string, unknown>;
-  const stringFields = [
-    "salt",
-    "maker",
-    "signer",
-    "tokenId",
-    "makerAmount",
-    "takerAmount",
-    "timestamp",
-    "metadata",
-    "builder",
-    "expiration",
-    "signature",
-  ] as const;
-  if (stringFields.some((field) => typeof order[field] !== "string")) {
-    throw new Error("stored Polymarket order is missing a signed V2 field");
-  }
-  if (order.side !== Side.BUY && order.side !== Side.SELL) {
-    throw new Error("stored Polymarket order has an invalid side");
-  }
-  if (typeof order.signatureType !== "number") {
-    throw new Error("stored Polymarket order has an invalid signature type");
-  }
-  return value as SignedOrder;
-}
-
-interface ReadyClients {
-  clobClient: ClobClient;
+export interface ReadyClients {
+  clobClient: SecureClient;
   publicClient: PublicClient;
   walletClient: WalletClient;
   ownerAddress: Address;
 }
 
-let polymarketOrderServiceInstance: PolymarketOrderService | null = null;
-let initializationPromise: Promise<void> | null = null;
+const MAX_FEE_ABI = [
+  {
+    type: "function",
+    name: "MAX_FEE_RATE",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
 
+/** One boundary for SDK types, exchange selection, approvals and signed order IO. */
 export class PolymarketOrderService {
-  private ready: ReadyClients | null = null;
+  private static instance: PolymarketOrderService | null = null;
+  private initialization: Promise<void> | null = null;
 
-  private readonly PUSD: Address = (process.env.PUSD_ADDRESS as Address) ?? PUSD_DEFAULT;
-  private readonly CTF_EXCHANGE: Address =
-    (process.env.CTF_EXCHANGE_V2_ADDRESS as Address) ?? CTF_EXCHANGE_V2_DEFAULT;
-  private readonly NEG_RISK_CTF_EXCHANGE: Address =
-    (process.env.NEG_RISK_CTF_EXCHANGE_V2_ADDRESS as Address) ?? NEG_RISK_CTF_EXCHANGE_V2_DEFAULT;
+  constructor(private ready: ReadyClients | null = null) {}
 
-  private constructor() {
-    /* singleton — see getInstance() */
+  static getInstance(): PolymarketOrderService {
+    return (this.instance ??= new PolymarketOrderService());
   }
 
-  public static getInstance(): PolymarketOrderService {
-    if (!polymarketOrderServiceInstance) {
-      polymarketOrderServiceInstance = new PolymarketOrderService();
-    }
-    return polymarketOrderServiceInstance;
-  }
-
-  public async initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     if (this.ready) return;
-    if (initializationPromise) return initializationPromise;
-
-    initializationPromise = this.performInitialization();
-    try {
-      await initializationPromise;
-    } catch (error) {
-      initializationPromise = null;
+    this.initialization ??= this.performInitialization().catch((error) => {
+      this.initialization = null;
       throw error;
-    }
+    });
+    await this.initialization;
   }
 
   private async performInitialization(): Promise<void> {
-    const host = process.env.CLOB_API_URL ?? "https://clob.polymarket.com";
-    const chainId = Number(process.env.CHAIN_ID ?? polygon.id);
-    const rpcUrl = process.env.RPC_URL ?? "https://polygon-rpc.com";
-
+    if (Number(process.env.CHAIN_ID ?? 137) !== 137) {
+      throw new Error("Polymarket trading requires Polygon chain 137");
+    }
     const pk = process.env.PK;
-    if (!pk) {
-      throw new Error("Private key (PK) is not set in environment variables");
-    }
-    const privateKey: Hex = (pk.startsWith("0x") ? pk : `0x${pk}`) as Hex;
-
-    const account = privateKeyToAccount(privateKey);
-
-    const publicClient = createPublicClient({
-      chain: polygon,
-      transport: resilientHttp(rpcUrl),
-    });
-    const walletClient = createWalletClient({
-      account,
-      chain: polygon,
-      transport: resilientHttp(rpcUrl),
-    });
-
-    const creds: ApiKeyCreds = {
-      key: process.env.CLOB_API_KEY ?? "",
-      secret: process.env.CLOB_SECRET ?? "",
-      passphrase: process.env.CLOB_PASS_PHRASE ?? "",
+    if (!pk) throw new Error("Private key (PK) is not configured");
+    const account = privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as Hex);
+    const transport = resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org");
+    const publicClient = createPublicClient({ chain: polygon, transport });
+    const walletClient = createWalletClient({ account, chain: polygon, transport });
+    const credentials = {
+      key: process.env.CLOB_API_KEY,
+      secret: process.env.CLOB_SECRET,
+      passphrase: process.env.CLOB_PASS_PHRASE,
     };
-    if (!creds.key || !creds.secret || !creds.passphrase) {
-      throw new Error("CLOB API credentials are not fully set in environment variables");
+    if (!credentials.key || !credentials.secret || !credentials.passphrase) {
+      throw new Error("CLOB credentials are not configured");
     }
-
-    const clobClient = new ClobClient({
-      host,
-      chain: chainId,
-      signer: walletClient,
-      creds,
-      signatureType: SignatureTypeV2.EOA,
+    const contracts = getPolymarketContracts();
+    const clobClient = await createSecureClient({
+      wallet: account.address,
+      signer: signerFrom(walletClient),
+      credentials: credentials as ApiKeyCreds,
+      environment: forkEnvironmentConfig({
+        name: "polyswap-polygon",
+        rpc: process.env.RPC_URL ?? "https://polygon.drpc.org",
+        clob: { rest: process.env.CLOB_API_URL ?? "https://clob.polymarket.com" },
+        contracts: {
+          collateralToken: contracts.collateral as EvmAddress,
+          conditionalTokens: contracts.ctf as EvmAddress,
+          standardExchange: contracts.ctfExchange as EvmAddress,
+          negRiskExchange: contracts.negRiskExchange as EvmAddress,
+          exchangeV3: contracts.exchangeV3 as EvmAddress,
+          positionManager: contracts.positionManager as EvmAddress,
+        },
+      }),
     });
-
-    try {
-      await publicClient.getBlockNumber();
-    } catch (networkError) {
-      log.error("failed to connect to Polygon network:", networkError);
-      throw new Error(`Failed to connect to Polygon network: ${networkError}`);
-    }
-
-    this.ready = {
-      clobClient,
-      publicClient,
-      walletClient,
-      ownerAddress: account.address,
-    };
+    this.ready = { clobClient, publicClient, walletClient, ownerAddress: account.address };
   }
 
-  /**
-   * Returns the initialized clients, throwing if `initialize()` hasn't completed.
-   * Callers should destructure what they need rather than reaching through `this`.
-   */
   private getReady(): ReadyClients {
-    if (!this.ready) {
-      throw new Error("PolymarketOrderService not initialized. Call initialize() first.");
-    }
+    if (!this.ready) throw new Error("PolymarketOrderService is not initialized");
     return this.ready;
   }
 
-  /**
-   * Check if the token allowance is sufficient for the required amount.
-   * Reads on-chain via viem; spender is typically the V2 CTF Exchange contract.
-   */
-  private async checkAllowance(
-    token: Address,
-    requiredAmount: bigint,
-    spender: Address
-  ): Promise<boolean> {
-    const { publicClient, ownerAddress } = this.getReady();
-    if (!isAddress(token)) {
-      throw new Error(`Invalid token address: ${token}`);
-    }
-
-    const currentAllowance = await publicClient.readContract({
-      address: token,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [ownerAddress, spender],
-    });
-
-    return currentAllowance >= requiredAmount;
+  getClient(): SecureClient | null {
+    return this.ready?.clobClient ?? null;
   }
-
-  private async getTokenDecimals(token: Address): Promise<number> {
-    const { publicClient } = this.getReady();
-    if (!isAddress(token)) {
-      throw new Error(`Invalid token address: ${token}`);
-    }
-
-    return publicClient.readContract({
-      address: token,
-      abi: erc20Abi,
-      functionName: "decimals",
-    });
+  isReady(): boolean {
+    return this.ready !== null;
   }
 
   async cancelAllOrders() {
-    const { clobClient } = this.getReady();
-    return clobClient.cancelAll();
+    return this.getReady().clobClient.cancelAll();
   }
-
   async cancelOrder(orderId: string) {
-    const { clobClient } = this.getReady();
-    return clobClient.cancelOrder({ orderID: orderId });
+    return this.getReady().clobClient.cancelOrder({ orderId });
+  }
+  async getOrder(orderId: string) {
+    return this.getReady().clobClient.fetchOrder({ orderId });
   }
 
-  async getOrder(id: string) {
-    const { clobClient } = this.getReady();
-    return clobClient.getOrder(id);
+  async getOpenOrders(params: { market?: string; assetId?: string } = {}): Promise<OpenOrder[]> {
+    const orders: OpenOrder[] = [];
+    for await (const page of this.getReady().clobClient.listOpenOrders({
+      market: params.market,
+      assetId: params.assetId,
+    })) {
+      orders.push(...page.items);
+    }
+    return orders;
   }
 
-  async getOnChainOrderStatus(orderHash: Hex, negRisk: boolean) {
-    const { publicClient } = this.getReady();
-    return publicClient.readContract({
-      address: negRisk ? this.NEG_RISK_CTF_EXCHANGE : this.CTF_EXCHANGE,
+  async getOnChainOrderStatus(orderHash: Hex, context: TradingContext) {
+    return this.getReady().publicClient.readContract({
+      address: getTradingConfig(context).exchange,
       abi: ORDER_STATUS_ABI,
       functionName: "getOrderStatus",
       args: [orderHash],
     });
   }
 
-  /**
-   * Get all open orders for the authenticated user.
-   */
-  async getOpenOrders(params: { market?: string; asset_id?: string } = {}): Promise<OpenOrder[]> {
-    const { clobClient } = this.getReady();
-    return clobClient.getOpenOrders(params);
-  }
-
-  /**
-   * Get all active BUY orders, optionally filtered by market.
-   */
-  async getActiveBuyOrders(marketId?: string): Promise<OpenOrder[]> {
-    const orders = await this.getOpenOrders(marketId ? { market: marketId } : {});
-    return orders.filter((order) => order.side === "BUY");
-  }
-
-  /**
-   * Create a Good Till Cancelled (GTC) order.
-   */
-  async postGTCOrder(config: PolymarketOrderConfig) {
-    const { clobClient } = this.getReady();
-
-    if (!(config.price > 0)) {
-      throw new Error("Price must be greater than 0");
-    }
-
-    // For BUY orders: ensure order notional (price * size) is at least $1.
-    // For SELL orders: use the exact size provided (no minimum).
-    let sizeToUse = config.size;
-    if (config.side === "BUY") {
-      const minSizeForOneDollar = Math.ceil((1 / config.price) * 1_000_000) / 1_000_000;
-      sizeToUse = config.size < minSizeForOneDollar ? minSizeForOneDollar : config.size;
-
-      const decimals = await this.getTokenDecimals(this.PUSD);
-      const priceBigInt = BigInt(Math.floor(config.price * 1_000_000));
-      const sizeBigInt = BigInt(Math.floor(sizeToUse * 1_000_000));
-      const decimalsMultiplier = BigInt(10) ** BigInt(decimals);
-      const requiredAmount =
-        (priceBigInt * sizeBigInt * decimalsMultiplier) / (1_000_000n * 1_000_000n);
-
-      const ok = await this.checkAllowance(this.PUSD, requiredAmount, this.CTF_EXCHANGE);
-      if (!ok) {
-        throw new Error("Insufficient allowance for pUSD");
-      }
-    }
-
-    try {
-      const response = await clobClient.createAndPostOrder(
-        {
-          tokenID: config.tokenID,
-          price: config.price,
-          side: config.side === "BUY" ? Side.BUY : Side.SELL,
-          size: sizeToUse,
-        },
-        { tickSize: "0.01", negRisk: config.negRisk },
-        OrderType.GTC
-      );
-      log.info(`GTC response: ${JSON.stringify(response)}`);
-      assertCLOBOrderAccepted(response, "GTC");
-      return { response };
-    } catch (error) {
-      const { message, details } = describeOrderError(error);
-      log.error("failed to create GTC order:", error);
-      throw new Error(`Failed to create GTC order: ${message}. Details: ${details}`);
-    }
-  }
-
-  /**
-   * Create a Good Till Date (GTD) order.
-   *
-   * V2 requires a 60-second safety buffer between `now` and the order's `expiration`,
-   * otherwise the CLOB rejects the order as already-expired (memory `3036`). We bump
-   * the caller-supplied expiration up to that floor when needed, never down.
-   */
-  async postGTDOrder(config: PolymarketOrderConfig & { expiration: number }) {
-    const prepared = await this.prepareGTDOrder(config);
-    const response = await this.postPreparedGTDOrder({
-      signedOrder: prepared.signedOrder,
-      expectedHash: prepared.polymarketOrderHash,
-      negRisk: Boolean(config.negRisk),
-      postOnly: false,
+  /** Called by the seller/explicit setup, never by read-only diagnostics. */
+  async ensureTradingApprovals(context: TradingContext): Promise<void> {
+    const { walletClient, publicClient, ownerAddress, clobClient } = this.getReady();
+    const { exchange, ledger } = getTradingConfig(context);
+    const account = walletClient.account;
+    if (!account) throw new Error("Approval wallet has no account");
+    const collateral = getPolymarketContracts().collateral;
+    const approved = await publicClient.readContract({
+      address: ledger,
+      abi: erc1155Abi,
+      functionName: "isApprovedForAll",
+      args: [ownerAddress, exchange],
     });
-    return {
-      response,
-      makerAmount: prepared.makerAmount,
-      polymarketOrderHash: prepared.polymarketOrderHash,
-    };
+    if (!approved) {
+      const hash = await walletClient.writeContract({
+        account,
+        chain: polygon,
+        address: ledger,
+        abi: erc1155Abi,
+        functionName: "setApprovalForAll",
+        args: [exchange, true],
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") throw new Error("Position approval reverted");
+    }
+    const allowance = await publicClient.readContract({
+      address: collateral,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [ownerAddress, exchange],
+    });
+    if (allowance !== maxUint256) {
+      const hash = await walletClient.writeContract({
+        account,
+        chain: polygon,
+        address: collateral,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [exchange, maxUint256],
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") throw new Error("Collateral approval reverted");
+    }
+    await updateBalanceAllowance(clobClient, { assetType: AssetType.COLLATERAL });
   }
 
-  /**
-   * Build and sign a GTD order without submitting it to the CLOB. The hash and
-   * maker amount can therefore be committed to the Safe conditional order
-   * before any operator collateral is exposed.
-   */
+  private async checkBuyAllowance(order: SignedOrder, context: TradingContext): Promise<void> {
+    const { publicClient, clobClient, ownerAddress } = this.getReady();
+    const exchange = getTradingConfig(context).exchange;
+    const amount = BigInt(order.makerAmount);
+    // V2 fees are extra collateral; use the exchange's enforceable fee ceiling.
+    const feeRate =
+      context.protocolVersion === "v2"
+        ? await publicClient.readContract({
+            address: exchange,
+            abi: MAX_FEE_ABI,
+            functionName: "MAX_FEE_RATE",
+          })
+        : 0n;
+    const required = amount + (amount * feeRate + 9_999n) / 10_000n;
+    const allowance = await publicClient.readContract({
+      address: getPolymarketContracts().collateral,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [ownerAddress, exchange],
+    });
+    if (allowance < required) {
+      throw new Error(`Insufficient pUSD allowance for ${exchange}, including the fee ceiling`);
+    }
+    await updateBalanceAllowance(clobClient, { assetType: AssetType.COLLATERAL });
+  }
+
+  private async validateSigner(order: SignedOrder, context: TradingContext): Promise<Hex> {
+    const { ownerAddress } = this.getReady();
+    const hash = computePolymarketOrderHash(order, context);
+    const signer = await recoverAddress({ hash, signature: order.signature as Hex });
+    if (
+      signer.toLowerCase() !== ownerAddress.toLowerCase() ||
+      order.maker.toLowerCase() !== ownerAddress.toLowerCase() ||
+      order.signer.toLowerCase() !== ownerAddress.toLowerCase()
+    ) {
+      throw new Error(
+        "Signed Polymarket order does not match the configured account, protocol and exchange"
+      );
+    }
+    return hash;
+  }
+
+  private async createOrder(config: PolymarketOrderConfig): Promise<SignedOrder> {
+    assertAssetId(config.tokenID);
+    getTradingConfig(config);
+    const requestedSize = Number(config.size);
+    if (
+      !Number.isFinite(config.price) ||
+      config.price <= 0 ||
+      config.price >= 1 ||
+      !Number.isFinite(requestedSize) ||
+      requestedSize <= 0
+    ) {
+      throw new Error("Invalid Polymarket price or size");
+    }
+    const { clobClient } = this.getReady();
+    const size =
+      config.side === "BUY"
+        ? Math.max(requestedSize, Math.ceil((1.01 / config.price) * 100) / 100)
+        : config.size;
+    return clobClient.createLimitOrder({
+      assetId: config.tokenID,
+      price: config.price,
+      size,
+      side: config.side === "BUY" ? OrderSide.BUY : OrderSide.SELL,
+      expiration: config.expiration,
+      postOnly: config.postOnly ?? false,
+    });
+  }
+
+  async postGTCOrder(config: PolymarketOrderConfig) {
+    const order = await this.createOrder(config);
+    await this.validateSigner(order, config);
+    if (config.side === "BUY") await this.checkBuyAllowance(order, config);
+    return { response: this.assertAccepted(await this.getReady().clobClient.postOrder(order)) };
+  }
+
   async prepareGTDOrder(
     config: PolymarketOrderConfig & { expiration: number }
   ): Promise<PreparedGTDOrder> {
-    const { clobClient, publicClient } = this.getReady();
-
-    if (!(config.price > 0)) {
-      throw new Error("Price must be greater than 0");
+    if (config.side !== "BUY") throw new Error("Sentinels must be BUY orders");
+    if (
+      !Number.isSafeInteger(config.expiration) ||
+      config.expiration < Math.floor(Date.now() / 1000) + 180
+    ) {
+      throw new Error("Polymarket deadline must be at least three minutes in the future");
     }
-
-    // The SDK rounds BUY size DOWN to 2 dp and the CLOB rejects marketable BUYs worth < $1; size up
-    // to the smallest 2-dp size clearing $1 (+1c cushion so exact-dollar prices survive the rounding).
-    const minSizeForOneDollar = Math.ceil((1.01 / config.price) * 100) / 100;
-    const sizeToUse = config.size < minSizeForOneDollar ? minSizeForOneDollar : config.size;
-
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const minExpiration = nowSeconds + GTD_SAFETY_BUFFER_SECONDS;
-    const expiration = Math.max(config.expiration, minExpiration);
-
-    const exchange = config.negRisk ? this.NEG_RISK_CTF_EXCHANGE : this.CTF_EXCHANGE;
-
-    try {
-      // Confirm the hash is clean on-chain before posting; a reused hash carries stale getOrderStatus
-      // that would poison the fill gate. Each createOrder yields a fresh salt, so retry on collision.
-      let signedOrder: SignedOrder | null = null;
-      let orderHash: Hex | null = null;
-      for (let attempt = 0; attempt < MAX_SALT_ATTEMPTS; attempt++) {
-        const candidate = await clobClient.createOrder(
-          {
-            tokenID: config.tokenID,
-            price: config.price,
-            side: config.side === "BUY" ? Side.BUY : Side.SELL,
-            size: sizeToUse,
-            expiration,
-          },
-          { tickSize: "0.01", negRisk: config.negRisk }
-        );
-        const hash = computeV2OrderHash(candidate, exchange);
-        const status = await publicClient.readContract({
-          address: exchange,
-          abi: ORDER_STATUS_ABI,
-          functionName: "getOrderStatus",
-          args: [hash],
-        });
-        if (status.remaining === 0n && status.isFilledOrCancelled === false) {
-          signedOrder = candidate;
-          orderHash = hash;
-          break;
-        }
-        log.warn(
-          `Polymarket order hash ${hash} already has on-chain status (filled=${status.isFilledOrCancelled}, remaining=${status.remaining}); regenerating salt (${attempt + 1}/${MAX_SALT_ATTEMPTS})`
-        );
+    // Expiry is never extended beyond the Safe's authorized deadline.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const signedOrder = await this.createOrder(config);
+      const hash = await this.validateSigner(signedOrder, config);
+      const status = await this.getOnChainOrderStatus(hash, config);
+      if (!status.filled && status.remaining === 0n) {
+        return {
+          signedOrder,
+          signedOrderFormat: "unified-v1",
+          exchangeAddress: getTradingConfig(config).exchange,
+          makerAmount: signedOrder.makerAmount,
+          polymarketOrderHash: hash,
+          expiration: signedOrder.expiration,
+        };
       }
-
-      if (!signedOrder || !orderHash) {
-        throw new Error(
-          `Could not obtain a clean Polymarket order hash after ${MAX_SALT_ATTEMPTS} attempts`
-        );
-      }
-
-      const makerAmount = isV2Order(signedOrder) ? signedOrder.makerAmount : null;
-      if (!makerAmount) {
-        throw new Error("signed order is missing makerAmount");
-      }
-
-      return { signedOrder, makerAmount, polymarketOrderHash: orderHash, expiration };
-    } catch (error) {
-      const { message, details } = describeOrderError(error);
-      log.error("failed to prepare GTD order:", error);
-      throw new Error(`Failed to prepare GTD order: ${message}. Details: ${details}`);
     }
+    throw new Error("Could not obtain an unused Polymarket order hash");
   }
 
-  /**
-   * Submit a previously prepared order after its matching Safe authorization
-   * has been confirmed. Sentinel activation is post-only so a threshold that
-   * already crosses the book is rejected instead of spending operator funds.
-   */
-  async postPreparedGTDOrder(input: {
-    signedOrder: unknown;
-    expectedHash: string;
-    negRisk: boolean;
-    postOnly?: boolean;
-  }): Promise<unknown> {
-    const { clobClient, publicClient } = this.getReady();
-    const signedOrder = parseStoredSignedOrder(input.signedOrder);
-    if (!isV2Order(signedOrder) || signedOrder.side !== Side.BUY) {
-      throw new Error("sentinel must be a V2 BUY order");
+  async postPreparedGTDOrder(
+    input: TradingContext & {
+      signedOrder: unknown;
+      signedOrderFormat: string;
+      expectedHash: string;
+      expectedMakerAmount: string;
+      expectedTokenId: string;
+      expectedExpiration: number;
+      postOnly: boolean;
     }
-
-    const exchange = input.negRisk ? this.NEG_RISK_CTF_EXCHANGE : this.CTF_EXCHANGE;
-    const computedHash = computeV2OrderHash(signedOrder, exchange);
-    if (computedHash.toLowerCase() !== input.expectedHash.toLowerCase()) {
-      throw new Error(
-        `stored sentinel hash mismatch: expected ${input.expectedHash}, computed ${computedHash}`
-      );
-    }
-
-    const status = await publicClient.readContract({
-      address: exchange,
-      abi: ORDER_STATUS_ABI,
-      functionName: "getOrderStatus",
-      args: [computedHash],
-    });
-    if (status.remaining !== 0n || status.isFilledOrCancelled) {
-      throw new Error(`sentinel ${computedHash} already has on-chain order status`);
-    }
-
-    const requiredAmount = BigInt(signedOrder.makerAmount);
-    await clobClient.getBalanceAllowance({ asset_type: AssetType.COLLATERAL });
-    const ok = await this.checkAllowance(this.PUSD, requiredAmount, exchange);
-    if (!ok) {
-      const decimals = await this.getTokenDecimals(this.PUSD);
-      throw new Error(
-        `Insufficient on-chain allowance for pUSD. Please approve ${formatUnits(requiredAmount, decimals)} pUSD for ${exchange}`
-      );
-    }
-
-    const response = await clobClient.postOrder(signedOrder, OrderType.GTD, input.postOnly ?? true);
-    log.info(`GTD sentinel response: ${JSON.stringify(response)}`);
-    assertCLOBOrderAccepted(response, "GTD");
-
-    const result = response as { orderID?: unknown; status?: unknown };
+  ) {
+    const order = parseStoredSignedOrder(
+      input.signedOrder,
+      input.signedOrderFormat,
+      input.postOnly
+    );
     if (
-      typeof result.orderID !== "string" ||
-      result.orderID.toLowerCase() !== computedHash.toLowerCase()
+      order.side !== OrderSide.BUY ||
+      order.tokenId !== input.expectedTokenId ||
+      order.makerAmount !== input.expectedMakerAmount ||
+      order.expiration !== input.expectedExpiration
     ) {
-      throw new Error(`CLOB returned an unexpected sentinel order ID for ${computedHash}`);
+      throw new Error("Stored sentinel commitments do not match the signed order");
     }
-    if ((input.postOnly ?? true) && result.status !== "live") {
-      throw new Error(
-        `post-only sentinel did not rest on the book (status=${String(result.status)})`
-      );
+    if (order.expiration <= Math.floor(Date.now() / 1000)) {
+      throw new Error("Sentinel expired before submission");
+    }
+    const hash = await this.validateSigner(order, input);
+    if (hash.toLowerCase() !== input.expectedHash.toLowerCase()) {
+      throw new Error("Stored sentinel hash mismatch");
+    }
+    const status = await this.getOnChainOrderStatus(hash, input);
+    if (status.filled || status.remaining !== 0n) {
+      throw new Error("Sentinel already has on-chain order status");
+    }
+    await this.checkBuyAllowance(order, input);
+    const response = this.assertAccepted(await this.getReady().clobClient.postOrder(order));
+    if (response.orderId.toLowerCase() !== hash.toLowerCase()) {
+      throw new Error("CLOB returned an unexpected sentinel order ID");
+    }
+    if (input.postOnly && response.status !== "live") {
+      throw new Error(`Post-only sentinel did not rest on the book: ${response.status}`);
     }
     return response;
   }
 
-  getClient(): ClobClient | null {
-    return this.ready?.clobClient ?? null;
-  }
-
-  isReady(): boolean {
-    return this.ready !== null;
+  private assertAccepted(response: Awaited<ReturnType<SecureClient["postOrder"]>>) {
+    if (!response.ok) throw new Error(`Polymarket order rejected: ${response.message}`);
+    if (!response.orderId) throw new Error("CLOB returned no order ID");
+    return response;
   }
 }
 
-export const getPolymarketOrderService = (): PolymarketOrderService =>
-  PolymarketOrderService.getInstance();
-
-/**
- * V2 CLOB returns OrderResponse soft-failures ({ success: false, errorMsg, orderID: "" })
- * without throwing. Surface the real reason instead of letting an empty orderID propagate
- * as a generic "no order ID" error.
- */
-function assertCLOBOrderAccepted(response: unknown, kind: "GTC" | "GTD"): void {
-  if (!response || typeof response !== "object") {
-    throw new Error(`${kind} order: empty response from CLOB`);
-  }
-  const r = response as { success?: unknown; errorMsg?: unknown; orderID?: unknown };
-  if (r.success === false) {
-    const reason =
-      typeof r.errorMsg === "string" && r.errorMsg.length > 0 ? r.errorMsg : "rejected";
-    throw new Error(`${kind} order rejected by CLOB: ${reason}`);
-  }
-  if (typeof r.orderID !== "string" || r.orderID.length === 0) {
-    throw new Error(`${kind} order: CLOB returned no orderID (raw: ${JSON.stringify(response)})`);
-  }
-}
-
-/**
- * Extract a human-readable message + structured details from a clob-client error.
- * Errors thrown by the SDK may be axios-shaped (response.data) or plain Error.
- */
-function describeOrderError(error: unknown): { message: string; details: string } {
-  if (error instanceof Error) {
-    const maybeAxios = error as Error & {
-      response?: { data?: unknown };
-      stack?: string;
-    };
-    const detailsObj = maybeAxios.response?.data ?? maybeAxios.stack ?? "No additional details";
-    return {
-      message: error.message,
-      details: typeof detailsObj === "string" ? detailsObj : JSON.stringify(detailsObj),
-    };
-  }
-  return { message: String(error), details: "No additional details" };
-}
+export const getPolymarketOrderService = () => PolymarketOrderService.getInstance();

@@ -93,6 +93,7 @@ async function classifySingleOrderNotAuthed(
 const ZERO_BYTES32: Hex = `0x${"00".repeat(32)}` as Hex;
 
 let timer: NodeJS.Timeout | null = null;
+let isRunning = false;
 
 const ORDER_DATA_TUPLE = [
   { type: "address" },
@@ -160,7 +161,11 @@ async function checkOne(order: DatabasePolyswapOrder): Promise<void> {
 
   if (order.sentinel_id !== null && order.transaction_hash) {
     try {
-      await activateSentinel(order.sentinel_id, order.transaction_hash);
+      await activateSentinel(order.sentinel_id, order.transaction_hash, {
+        handler: order.handler,
+        polymarketOrderHash: order.polymarket_order_hash,
+        makerAmount: order.polymarket_maker_amount,
+      });
     } catch (error) {
       log.warn(`sentinel activation retry failed for order ${order.id}`, error);
       return;
@@ -364,9 +369,25 @@ export async function runOrderHealthCheck(): Promise<void> {
   }
 }
 
+async function runScheduledOrderHealthCheck(): Promise<void> {
+  if (isRunning) {
+    log.warn("previous check is still running; skipping this tick");
+    return;
+  }
+
+  isRunning = true;
+  try {
+    await runOrderHealthCheck();
+  } catch (err) {
+    log.error("order health check failed; will retry on the next tick", err);
+  } finally {
+    isRunning = false;
+  }
+}
+
 export function startOrderHealthCheck(intervalSeconds = 60): void {
   if (timer) return;
-  timer = setInterval(() => void runOrderHealthCheck(), intervalSeconds * 1000);
+  timer = setInterval(() => void runScheduledOrderHealthCheck(), intervalSeconds * 1000);
   log.debug(`every ${intervalSeconds}s`);
 }
 

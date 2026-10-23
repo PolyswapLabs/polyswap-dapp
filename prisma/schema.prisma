@@ -21,29 +21,32 @@ datasource db {
 }
 
 model Market {
-  id           String                   @id @db.VarChar(80)
-  slug         String                   @unique @db.VarChar(255)
-  eventSlug    String?                  @map("event_slug") @db.VarChar(255)
-  question     String
-  description  String?
-  category     String?                  @db.VarChar(64)
-  tags         String[]                 @default([])
-  outcomes     Json                     @default("[]")
-  volume       Decimal?                 @default(0) @db.Decimal(30, 6)
-  liquidity    Decimal?                 @default(0) @db.Decimal(30, 6)
-  endDate      DateTime?                @map("end_date") @db.Timestamptz
-  clobTokenIds String[]                 @default([]) @map("clob_token_ids")
-  active       Boolean?                 @default(true)
+  id              String                   @id @db.VarChar(80)
+  slug            String                   @unique @db.VarChar(255)
+  eventSlug       String?                  @map("event_slug") @db.VarChar(255)
+  question        String
+  description     String?
+  category        String?                  @db.VarChar(64)
+  tags            String[]                 @default([])
+  outcomes        Json                     @default("[]")
+  volume          Decimal?                 @default(0) @db.Decimal(30, 6)
+  liquidity       Decimal?                 @default(0) @db.Decimal(30, 6)
+  endDate         DateTime?                @map("end_date") @db.Timestamptz
+  clobTokenIds    String[]                 @default([]) @map("clob_token_ids")
+  protocolVersion String?                  @map("protocol_version") @db.VarChar(2)
+  positionIds     String[]                 @default([]) @map("position_ids")
+  conditionId     String?                  @map("condition_id") @db.VarChar(66)
+  active          Boolean?                 @default(true)
   // Lifetime user-visits count, incremented every time the market detail page
   // is opened. Feeds the "interest" sort as a slight popularity boost.
-  viewCount    Int                      @default(0) @map("view_count")
+  viewCount       Int                      @default(0) @map("view_count")
   // NegRisk markets settle through `0xe2222d…` (NegRiskCtfExchange) instead of
   // the standard `0xE111180000…`. The on-chain Polyswap handler must point at
   // the matching exchange or `verify()` will never observe the fill.
-  negRisk      Boolean                  @default(false) @map("neg_risk")
-  updatedAt    DateTime?                @default(now()) @map("updated_at") @db.Timestamptz
+  negRisk         Boolean                  @default(false) @map("neg_risk")
+  updatedAt       DateTime?                @default(now()) @map("updated_at") @db.Timestamptz
   /// Generated tsvector — defined in migration SQL, not synthesised by Prisma.
-  searchVec    Unsupported("tsvector")? @map("search_vec")
+  searchVec       Unsupported("tsvector")? @map("search_vec")
 
   orders    PolyswapOrder[]
   sentinels PolymarketSentinel[]
@@ -106,7 +109,7 @@ model PolyswapOrder {
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime  @default(now()) @map("updated_at") @db.Timestamptz
 
-  market   Market?              @relation(fields: [marketId], references: [id], onDelete: SetNull, map: "fk_market")
+  market   Market?             @relation(fields: [marketId], references: [id], onDelete: SetNull, map: "fk_market")
   sentinel PolymarketSentinel? @relation(fields: [sentinelId], references: [id], onDelete: SetNull, map: "fk_polyswap_order_sentinel")
 
   @@index([orderHash], map: "idx_polyswap_orders_order_hash")
@@ -130,46 +133,50 @@ model PolyswapOrder {
 /// is prepared before Safe authorization, but it is not posted to the CLOB
 /// until a matching server-created conditional order is confirmed on-chain.
 model PolymarketSentinel {
-  id                     Int       @id @default(autoincrement())
-  marketId               String    @map("market_id") @db.VarChar(80)
-  tokenId                String    @map("token_id") @db.VarChar(100)
-  outcomeSelected        String    @map("outcome_selected") @db.VarChar(256)
-  priceCents             Int       @map("price_cents")
-  negRisk                Boolean   @default(false) @map("neg_risk")
-  postOnly               Boolean   @default(true) @map("post_only")
-  epoch                  Int       @default(1)
-  polymarketOrderHash    String    @unique @map("polymarket_order_hash") @db.VarChar(66)
-  polymarketMakerAmount  Decimal   @map("polymarket_maker_amount") @db.Decimal(78, 0)
-  signedOrder            Json      @map("signed_order")
-  expiration             DateTime  @db.Timestamptz
-  status                 String    @default("prepared") @db.VarChar(20)
-  activationTxHash       String?   @map("activation_tx_hash") @db.VarChar(66)
-  lastError              String?   @map("last_error")
-  activatedAt            DateTime? @map("activated_at") @db.Timestamptz
-  filledAt               DateTime? @map("filled_at") @db.Timestamptz
-  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt              DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+  id                    Int       @id @default(autoincrement())
+  marketId              String    @map("market_id") @db.VarChar(80)
+  tokenId               String    @map("token_id") @db.VarChar(100)
+  outcomeSelected       String    @map("outcome_selected") @db.VarChar(256)
+  priceCents            Int       @map("price_cents")
+  negRisk               Boolean   @default(false) @map("neg_risk")
+  protocolVersion       String    @default("v1") @map("protocol_version") @db.VarChar(2)
+  exchangeAddress       String?   @map("exchange_address") @db.VarChar(42)
+  signedOrderFormat     String    @default("clob-v2") @map("signed_order_format") @db.VarChar(20)
+  postOnly              Boolean   @default(true) @map("post_only")
+  epoch                 Int       @default(1)
+  polymarketOrderHash   String    @unique @map("polymarket_order_hash") @db.VarChar(66)
+  polymarketMakerAmount Decimal   @map("polymarket_maker_amount") @db.Decimal(78, 0)
+  signedOrder           Json      @map("signed_order")
+  expiration            DateTime  @db.Timestamptz
+  status                String    @default("prepared") @db.VarChar(20)
+  activationTxHash      String?   @map("activation_tx_hash") @db.VarChar(66)
+  lastError             String?   @map("last_error")
+  activatedAt           DateTime? @map("activated_at") @db.Timestamptz
+  filledAt              DateTime? @map("filled_at") @db.Timestamptz
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @default(now()) @map("updated_at") @db.Timestamptz
 
   market Market          @relation(fields: [marketId], references: [id], onDelete: Cascade, map: "fk_sentinel_market")
   orders PolyswapOrder[]
 
-  @@unique([marketId, tokenId, priceCents, epoch], map: "uq_sentinel_bucket_epoch")
-  @@index([marketId, tokenId, priceCents, status], map: "idx_sentinel_reuse")
+  @@unique([marketId, protocolVersion, tokenId, priceCents, epoch], map: "uq_sentinel_bucket_epoch")
+  @@index([marketId, protocolVersion, tokenId, priceCents, status], map: "idx_sentinel_reuse")
   @@index([status], map: "idx_sentinel_status")
   @@map("polymarket_sentinels")
 }
 
 model SoldPosition {
-  id           Int      @id @default(autoincrement())
-  assetId      String   @map("asset_id") @db.VarChar(100)
-  conditionId  String   @map("condition_id") @db.VarChar(66)
-  size         Decimal  @db.Decimal(20, 6)
-  sellPrice    Decimal  @map("sell_price") @db.Decimal(10, 6)
-  currentPrice Decimal  @map("current_price") @db.Decimal(10, 6)
-  orderId      String   @map("order_id") @db.VarChar(100)
-  marketTitle  String?  @map("market_title")
-  outcome      String?  @db.VarChar(100)
-  soldAt       DateTime @default(now()) @map("sold_at") @db.Timestamptz
+  id              Int      @id @default(autoincrement())
+  assetId         String   @map("asset_id") @db.VarChar(100)
+  protocolVersion String?  @map("protocol_version") @db.VarChar(2)
+  conditionId     String   @map("condition_id") @db.VarChar(66)
+  size            Decimal  @db.Decimal(20, 6)
+  sellPrice       Decimal  @map("sell_price") @db.Decimal(10, 6)
+  currentPrice    Decimal  @map("current_price") @db.Decimal(10, 6)
+  orderId         String   @map("order_id") @db.VarChar(100)
+  marketTitle     String?  @map("market_title")
+  outcome         String?  @db.VarChar(100)
+  soldAt          DateTime @default(now()) @map("sold_at") @db.Timestamptz
 
   @@index([assetId], map: "idx_sold_positions_asset_id")
   @@index([conditionId], map: "idx_sold_positions_condition_id")

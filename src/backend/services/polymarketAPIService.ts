@@ -1,3 +1,10 @@
+import {
+  getTradingAssetIds,
+  parseProtocolVersion,
+  parseStringArray,
+  PROTOCOL_VERSIONS,
+  type ProtocolVersion,
+} from "../../lib/polymarket/protocol";
 import { type Market } from "../interfaces/Market";
 import { createLogger } from "../logger";
 
@@ -16,6 +23,10 @@ interface GammaApiMarket {
   liquidityClob?: number;
   endDate?: string;
   clobTokenIds?: string;
+  positionIds?: string[];
+  version?: string;
+  conditionId?: string;
+  resolutionStatus?: string;
   active?: boolean;
   negRisk?: boolean;
   closed?: boolean;
@@ -32,10 +43,16 @@ interface GammaApiEvent {
   markets?: GammaApiMarket[];
 }
 
+interface GammaKeysetResponse {
+  events: GammaApiEvent[];
+  next_cursor: string | null;
+}
+
 export interface GetOpenMarketsOptions {
   endDateMin?: string;
   limit?: number;
   maxNb?: number;
+  versions?: readonly ProtocolVersion[];
 }
 
 const CANONICAL_CATEGORIES: readonly string[] = [
@@ -80,7 +97,8 @@ export class PolymarketAPIService {
       }
       const raw = (await res.json()) as GammaApiMarket;
       return {
-        closed: raw.closed ?? false,
+        closed:
+          raw.closed === true || (raw.version === "v2" && raw.resolutionStatus === "resolved"),
         active: raw.active ?? true,
         acceptingOrders: raw.acceptingOrders ?? null,
       };
@@ -96,37 +114,72 @@ export class PolymarketAPIService {
     return status?.closed === true;
   }
 
-  // Uses /events because /markets does not return tag labels.
+  // Uses cursor-based /events/keyset because /markets does not return tag labels
+  // and Gamma rejects deep offset pagination on /events.
   static async getOpenMarkets(options: GetOpenMarketsOptions = {}): Promise<Market[]> {
-    const { endDateMin, maxNb, limit: pageLimit = 500 } = options;
+    const versions = options.versions ?? PROTOCOL_VERSIONS;
+    versions.forEach(parseProtocolVersion);
+    const results = await Promise.allSettled(
+      versions.map((version) => this.getOpenMarketsForVersion(version, options))
+    );
+    const markets = new Map<string, Market>();
+    const failures: unknown[] = [];
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        for (const market of result.value) markets.set(market.id, market);
+      } else failures.push(result.reason);
+    }
+    if (failures.length) {
+      throw new AggregateError(failures, "Could not sync both Polymarket protocols");
+    }
+    const all = [...markets.values()];
+    return options.maxNb ? all.slice(0, options.maxNb) : all;
+  }
+
+  private static async getOpenMarketsForVersion(
+    version: ProtocolVersion,
+    options: GetOpenMarketsOptions
+  ): Promise<Market[]> {
+    const { endDateMin, maxNb, limit: requestedPageLimit = 100 } = options;
+    const pageLimit = Math.min(Math.max(1, requestedPageLimit), 100);
     const allMarkets: Market[] = [];
-    let offset = 0;
+    let cursor: string | null = null;
+    const seenCursors = new Set<string>();
 
     try {
       do {
-        const url = new URL(`${this.BASE_URL}/events`);
+        const url = new URL(`${this.BASE_URL}/events/keyset`);
+        url.searchParams.set("version", version);
         url.searchParams.set("active", "true");
         url.searchParams.set("closed", "false");
         if (endDateMin) {
           url.searchParams.set("end_date_min", endDateMin);
         }
         url.searchParams.set("limit", pageLimit.toString());
-        url.searchParams.set("offset", offset.toString());
+        if (cursor) url.searchParams.set("after_cursor", cursor);
 
         const response = await fetch(url.toString());
         if (!response.ok) {
-          throw new Error(`Gamma API error: ${response.status}`);
+          const responseBody = (await response.text()).slice(0, 1_000);
+          throw new Error(
+            `Gamma API error: ${response.status} ${response.statusText}; ` +
+              `url=${url.toString()}; body=${responseBody || "<empty>"}`
+          );
         }
 
         const raw: unknown = await response.json();
-        if (!Array.isArray(raw)) {
+        if (
+          raw === null ||
+          typeof raw !== "object" ||
+          !Array.isArray((raw as { events?: unknown }).events)
+        ) {
           throw new Error(`Unexpected Gamma response: ${JSON.stringify(raw)}`);
         }
-        const page = raw as GammaApiEvent[];
+        const page = raw as GammaKeysetResponse;
 
-        if (page.length === 0) break;
+        if (page.events.length === 0) break;
 
-        for (const event of page) {
+        for (const event of page.events) {
           const tags = (event.tags ?? [])
             .map((t) => t.label)
             .filter((l): l is string => typeof l === "string" && l.length > 0);
@@ -138,15 +191,24 @@ export class PolymarketAPIService {
           }
         }
 
-        offset += page.length;
-
         if (maxNb && allMarkets.length >= maxNb) break;
+
+        const nextCursor =
+          typeof page.next_cursor === "string" && page.next_cursor.length > 0
+            ? page.next_cursor
+            : null;
+        if (!nextCursor) break;
+        if (seenCursors.has(nextCursor)) {
+          throw new Error("Gamma keyset pagination returned the same cursor twice");
+        }
+        seenCursors.add(nextCursor);
+        cursor = nextCursor;
 
         await new Promise((resolve) => setTimeout(resolve, 50));
       } while (true);
     } catch (error) {
       log.error("failed to fetch markets from Gamma:", error);
-      if (allMarkets.length === 0) throw error;
+      throw error;
     }
 
     if (maxNb && allMarkets.length > maxNb) {
@@ -161,7 +223,9 @@ export class PolymarketAPIService {
     category: string | null,
     eventSlug: string | null
   ): Market | null {
-    if (!raw.id || !raw.slug || !raw.question) return null;
+    if (!raw.id || !raw.slug || !raw.question || raw.closed === true || raw.active === false) {
+      return null;
+    }
 
     const volume =
       raw.volumeNum !== undefined
@@ -179,24 +243,16 @@ export class PolymarketAPIService {
             ? raw.liquidity
             : parseFloat(raw.liquidity ?? "0") || 0;
 
-    let clobTokenIds: string[] = [];
-    if (raw.clobTokenIds) {
-      try {
-        const parsed: unknown = JSON.parse(raw.clobTokenIds);
-        clobTokenIds = Array.isArray(parsed) ? (parsed as string[]) : [];
-      } catch {
-        clobTokenIds = [];
-      }
-    }
-
-    let outcomes: string[] = [];
-    if (raw.outcomes) {
-      try {
-        const parsed: unknown = JSON.parse(raw.outcomes);
-        outcomes = Array.isArray(parsed) ? (parsed as string[]) : [];
-      } catch {
-        outcomes = [];
-      }
+    let protocolVersion: ProtocolVersion;
+    const clobTokenIds = parseStringArray(raw.clobTokenIds);
+    const positionIds = parseStringArray(raw.positionIds);
+    const outcomes = parseStringArray(raw.outcomes);
+    try {
+      protocolVersion = parseProtocolVersion(raw.version);
+      getTradingAssetIds({ protocolVersion, clobTokenIds, positionIds, outcomes });
+    } catch (error) {
+      log.warn(`Skipping unsupported market ${raw.id}: ${String(error)}`);
+      return null;
     }
 
     return {
@@ -212,6 +268,9 @@ export class PolymarketAPIService {
       liquidity,
       endDate: raw.endDate ? new Date(raw.endDate) : null,
       clobTokenIds,
+      protocolVersion,
+      positionIds,
+      conditionId: raw.conditionId ?? null,
       active: raw.active ?? true,
       negRisk: raw.negRisk ?? false,
     };

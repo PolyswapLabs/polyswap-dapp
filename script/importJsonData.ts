@@ -1,3 +1,4 @@
+import { parseProtocolVersion, parseStringArray } from "../src/lib/polymarket/protocol";
 import { promises as fs } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -24,6 +25,9 @@ interface SerializedMarket {
   liquidity?: number;
   endDate?: string | null;
   clobTokenIds?: string[];
+  protocolVersion?: string;
+  positionIds?: string[];
+  conditionId?: string;
   active?: boolean;
   negRisk?: boolean;
 }
@@ -43,7 +47,10 @@ function reviveMarket(raw: SerializedMarket): Market | null {
     volume: typeof raw.volume === "number" ? raw.volume : 0,
     liquidity: typeof raw.liquidity === "number" ? raw.liquidity : 0,
     endDate: raw.endDate ? new Date(raw.endDate) : null,
-    clobTokenIds: Array.isArray(raw.clobTokenIds) ? raw.clobTokenIds : [],
+    clobTokenIds: parseStringArray(raw.clobTokenIds),
+    protocolVersion: raw.protocolVersion ? parseProtocolVersion(raw.protocolVersion) : null,
+    positionIds: parseStringArray(raw.positionIds),
+    conditionId: raw.conditionId ?? null,
     active: raw.active ?? true,
     negRisk: raw.negRisk ?? false,
   };

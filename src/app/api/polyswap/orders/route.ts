@@ -1,3 +1,5 @@
+import { getTradingAssetIds, parseProtocolVersion } from "@/lib/polymarket/protocol";
+import { getPolyswapHandlerAddress } from "@/backend/polymarket/config";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   encodeFunctionData,
@@ -384,9 +386,29 @@ export async function POST(request: NextRequest) {
       return apiError({ status: 400, error: "deadline must be after startDate" });
     }
 
-    const clobTokenIds: string[] = market.clob_token_ids ?? [];
-    if (clobTokenIds.length === 0) {
-      return apiError({ status: 400, error: "Market has no CLOB token IDs" });
+    let protocolVersion;
+    let tradingIds: string[];
+    try {
+      protocolVersion = parseProtocolVersion(market.protocol_version);
+      tradingIds = getTradingAssetIds({
+        protocolVersion,
+        clobTokenIds: market.clob_token_ids,
+        positionIds: market.position_ids,
+        outcomes: market.outcomes,
+      });
+      getPolyswapHandlerAddress({ protocolVersion, negRisk: market.neg_risk });
+    } catch (error) {
+      return apiError({
+        status: 503,
+        error: "Market trading integration is not ready",
+        cause: error,
+      });
+    }
+    if (Math.floor(deadline.getTime() / 1000) < Math.floor(Date.now() / 1000) + 180) {
+      return apiError({
+        status: 400,
+        error: "deadline must be at least three minutes in the future",
+      });
     }
 
     const outcomes: string[] = Array.isArray(market.outcomes) ? market.outcomes : [];
@@ -402,11 +424,11 @@ export async function POST(request: NextRequest) {
         message: `'${selectedOutcome}' is not valid. Valid outcomes: ${outcomes.join(", ")}`,
       });
     }
-    if (outcomeIndex >= clobTokenIds.length) {
+    if (outcomeIndex >= tradingIds.length) {
       return apiError({ status: 500, error: "Market data is incomplete" });
     }
 
-    const tokenID = clobTokenIds[outcomeIndex];
+    const tokenID = tradingIds[outcomeIndex];
     if (tokenID === undefined) {
       return apiError({ status: 500, error: "Selected outcome has no Polymarket token ID" });
     }
@@ -457,6 +479,7 @@ export async function POST(request: NextRequest) {
         outcomeSelected: selectedOutcome,
         priceCents: betPercentage,
         negRisk: market.neg_risk,
+        protocolVersion,
         postOnly,
         expiration: deadline,
       });
@@ -497,6 +520,7 @@ export async function POST(request: NextRequest) {
 
     const params = TransactionEncodingService.createConditionalOrderParams(orderData, {
       negRisk: market.neg_risk,
+      protocolVersion,
     });
     const createCalldata = TransactionEncodingService.encodeCreateWithContextCallData(params);
     const orderHash = TransactionEncodingService.calculateOrderHash(params);

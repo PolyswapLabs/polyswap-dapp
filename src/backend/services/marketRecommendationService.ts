@@ -10,6 +10,7 @@ import {
   type RecommendedMarket,
 } from "../../lib/marketRecommendations";
 import { createLogger } from "../logger";
+import { getRetryAt } from "../utils/httpRetry";
 
 const log = createLogger("market-recommendations");
 
@@ -66,6 +67,8 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     );
     for (const market of markets) url.searchParams.append("id", market.id);
     url.searchParams.set("limit", String(RECOMMENDATION_POLICY.gammaBatchSize));
+    url.searchParams.append("version", "v1");
+    url.searchParams.append("version", "v2");
     url.searchParams.set("active", "true");
     url.searchParams.set("closed", "false");
     // No redirects or retries: one HTTP attempt per 100-market batch.
@@ -77,13 +80,8 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     });
     if (response.status === 429) {
       const timestamp = now();
-      const retryAfter = response.headers.get("retry-after");
-      const seconds = retryAfter === null ? NaN : Number(retryAfter);
-      const retryAt = Number.isFinite(seconds)
-        ? timestamp + seconds * 1_000
-        : Date.parse(retryAfter ?? "");
       throw new GammaRateLimitError(
-        Math.max(timestamp + RECOMMENDATION_POLICY.cacheMs, Number.isFinite(retryAt) ? retryAt : 0)
+        getRetryAt(response.headers.get("retry-after"), timestamp, RECOMMENDATION_POLICY.cacheMs)
       );
     }
     if (!response.ok) {
@@ -114,6 +112,9 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
         liquidity: market.liquidity,
         end_date: market.end_date?.toISOString() ?? null,
         clob_token_ids: market.clob_token_ids,
+        protocol_version: market.protocol_version,
+        position_ids: market.position_ids,
+        condition_id: market.condition_id,
         active: market.active,
         neg_risk: market.neg_risk,
       })),

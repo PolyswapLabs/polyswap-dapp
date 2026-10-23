@@ -1,3 +1,4 @@
+import { getPolyswapHandlerAddress, type TradingContext } from "../polymarket/config";
 import {
   encodeAbiParameters,
   encodeFunctionData,
@@ -40,18 +41,6 @@ const SAFE_SET_FALLBACK_HANDLER_ABI = [
 ] as const;
 
 const CHAIN_ID = parseInt(process.env.CHAIN_ID ?? "137");
-
-function getPolyswapHandlerAddress(negRisk: boolean): Address {
-  const envName = negRisk ? "NEXT_PUBLIC_POLYSWAP_HANDLER_NEGRISK" : "NEXT_PUBLIC_POLYSWAP_HANDLER";
-  const addr = process.env[envName];
-  if (!addr) {
-    throw new Error(
-      `${envName} env var is required but not set. ` +
-        "An empty handler address would produce silently broken calldata."
-    );
-  }
-  return getAddress(addr);
-}
 
 // Normalise a hex string to a valid bytes32 Hex value.
 // On-chain the polymarketOrderHash and appData are bytes32 slots, so they
@@ -124,7 +113,7 @@ export class TransactionEncodingService {
 
   static createConditionalOrderParams(
     orderData: PolyswapOrderData,
-    options: { negRisk: boolean; salt?: string }
+    options: TradingContext & { salt?: string }
   ): ConditionalOrderParams {
     const orderSalt =
       options.salt ??
@@ -138,7 +127,7 @@ export class TransactionEncodingService {
     const staticInput = this.encodePolyswapOrderData(orderData);
 
     return {
-      handler: getPolyswapHandlerAddress(options.negRisk),
+      handler: getPolyswapHandlerAddress(options),
       salt: orderSalt,
       staticInput,
     };
@@ -159,7 +148,7 @@ export class TransactionEncodingService {
 
   static createTransaction(
     orderData: PolyswapOrderData,
-    options: { negRisk: boolean; salt?: string }
+    options: TradingContext & { salt?: string }
   ): TransactionData {
     const params = this.createConditionalOrderParams(orderData, options);
     const callData = this.encodeCreateWithContextCallData(params);

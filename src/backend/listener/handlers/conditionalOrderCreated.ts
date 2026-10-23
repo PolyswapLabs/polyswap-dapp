@@ -1,3 +1,4 @@
+import { getAcceptedPolyswapHandlers } from "../../polymarket/config";
 import { randomUUID } from "node:crypto";
 import Sentry from "@sentry/nextjs";
 import { decodeEventLog, type Log, type Hex, type Address } from "viem";
@@ -101,17 +102,13 @@ async function processConditionalOrderCreated(
   eventLog: Log,
   options: { allowTrading?: boolean } = {}
 ): Promise<void> {
-  const standardHandler = process.env.NEXT_PUBLIC_POLYSWAP_HANDLER;
-  const negRiskHandler = process.env.NEXT_PUBLIC_POLYSWAP_HANDLER_NEGRISK;
-  if (!standardHandler && !negRiskHandler) {
+  const ownHandlers = new Set(
+    getAcceptedPolyswapHandlers().map((address) => address.toLowerCase())
+  );
+  if (ownHandlers.size === 0) {
     log.error("no Polyswap handler configured; skipping event");
     return;
   }
-  const ownHandlers = new Set(
-    [standardHandler, negRiskHandler]
-      .filter((h): h is string => Boolean(h))
-      .map((h) => h.toLowerCase())
-  );
 
   const decoded = decodeLog(eventLog);
   if (!decoded) return;
@@ -188,7 +185,11 @@ async function processConditionalOrderCreated(
 
   if (persisted.serverCreated && persisted.sentinelId !== null && options.allowTrading === true) {
     try {
-      await activateSentinel(persisted.sentinelId, eventLog.transactionHash);
+      await activateSentinel(persisted.sentinelId, eventLog.transactionHash, {
+        handler: decoded.params.handler,
+        polymarketOrderHash: data.polymarketOrderHash,
+        makerAmount: data.polymarketMakerAmount,
+      });
     } catch (err) {
       // The sentinel remains prepared and can be retried by the health check.
       log.error(`sentinel activation failed for order ${orderHash}:`, err);

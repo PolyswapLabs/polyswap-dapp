@@ -29,13 +29,15 @@ export const getApiDocs = () => {
           Market: {
             type: "object",
             properties: {
-              condition_id: { type: "string" },
               question: { type: "string" },
               slug: { type: "string" },
               category: { type: "string" },
               volume: { type: "number" },
               liquidity: { type: "number" },
               clob_token_ids: { type: "array", items: { type: "string" } },
+              protocol_version: { type: "string", enum: ["v1", "v2"], nullable: true },
+              position_ids: { type: "array", items: { type: "string" } },
+              condition_id: { type: "string", nullable: true },
               options: { type: "array", items: { type: "string" } },
               image: { type: "string" },
               end_date_iso: { type: "string", format: "date-time" },

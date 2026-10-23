@@ -9,6 +9,7 @@ const log = createLogger("draft-janitor");
 const STALE_AFTER_MS = 10 * 60 * 1000;
 
 let timer: NodeJS.Timeout | null = null;
+let isRunning = false;
 
 function requireComposableCow(): Address {
   const v = process.env.COMPOSABLE_COW;
@@ -56,9 +57,25 @@ export async function sweepStaleDrafts(): Promise<void> {
   }
 }
 
+async function runScheduledSweep(): Promise<void> {
+  if (isRunning) {
+    log.warn("previous sweep is still running; skipping this tick");
+    return;
+  }
+
+  isRunning = true;
+  try {
+    await sweepStaleDrafts();
+  } catch (err) {
+    log.error("sweep failed; will retry on the next tick", err);
+  } finally {
+    isRunning = false;
+  }
+}
+
 export function startDraftJanitor(intervalSeconds = 60): void {
   if (timer) return;
-  timer = setInterval(() => void sweepStaleDrafts(), intervalSeconds * 1000);
+  timer = setInterval(() => void runScheduledSweep(), intervalSeconds * 1000);
   log.debug(`sweep every ${intervalSeconds}s, stale > ${STALE_AFTER_MS / 60_000}min`);
 }
 

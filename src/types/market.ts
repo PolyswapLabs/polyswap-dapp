@@ -1,3 +1,4 @@
+import type { ProtocolVersion } from "../lib/polymarket/protocol";
 export interface MarketOption {
   id: string;
   label: string;
@@ -26,6 +27,8 @@ export interface Market {
   slug: string;
   eventSlug?: string; // Parent event slug for Polymarket links (used for multi-choice markets)
   clobTokenIds: string[];
+  protocolVersion: ProtocolVersion | null;
+  positionIds: string[];
   conditionId?: string;
 }
 

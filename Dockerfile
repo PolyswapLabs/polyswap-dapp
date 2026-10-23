@@ -29,6 +29,7 @@ COPY --chown=node:node package.json tsconfig.json sentry.server.config.ts ./
 COPY --chown=node:node src/abi ./src/abi
 COPY --chown=node:node src/backend ./src/backend
 COPY --chown=node:node src/lib/env.ts ./src/lib/env.ts
+COPY --chown=node:node src/lib/polymarket ./src/lib/polymarket
 COPY --chown=node:node src/lib/marketRecommendations.ts ./src/lib/marketRecommendations.ts
 COPY --chown=node:node src/lib/rpc ./src/lib/rpc
 COPY --chown=node:node src/types/design.ts ./src/types/design.ts
