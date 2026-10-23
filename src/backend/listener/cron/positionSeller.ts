@@ -2,7 +2,6 @@ import { PolymarketPositionSellerService } from "@/backend/services/polymarketPo
 
 /**
  * Start the periodic Polymarket position-sell sweep.
- * The underlying service is still ethers-based; Phase 8 migrates it.
  */
 export async function startPositionSeller(intervalMinutes = 5): Promise<void> {
   await PolymarketPositionSellerService.startSellRoutine(intervalMinutes);

@@ -1,3 +1,5 @@
+import type { ProtocolVersion } from "../../lib/polymarket/protocol";
+
 export interface Market {
   id: string;
   slug: string;
@@ -12,6 +14,9 @@ export interface Market {
   liquidity: number;
   endDate: Date | null;
   clobTokenIds: string[];
+  protocolVersion: ProtocolVersion | null;
+  positionIds: string[];
+  conditionId: string | null;
   active: boolean;
   negRisk: boolean;
 }

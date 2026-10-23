@@ -161,7 +161,11 @@ async function checkOne(order: DatabasePolyswapOrder): Promise<void> {
 
   if (order.sentinel_id !== null && order.transaction_hash) {
     try {
-      await activateSentinel(order.sentinel_id, order.transaction_hash);
+      await activateSentinel(order.sentinel_id, order.transaction_hash, {
+        handler: order.handler,
+        polymarketOrderHash: order.polymarket_order_hash,
+        makerAmount: order.polymarket_maker_amount,
+      });
     } catch (error) {
       log.warn(`sentinel activation retry failed for order ${order.id}`, error);
       return;

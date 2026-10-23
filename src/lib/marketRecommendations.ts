@@ -1,3 +1,4 @@
+import { getTradingAssetIds, parseProtocolVersion } from "./polymarket/protocol";
 import type { DatabaseMarket } from "../backend/interfaces/Database";
 import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "../types/design";
 
@@ -180,7 +181,26 @@ export function enrichRecommendation(
   const category = candidate.category as MarketCategory;
   if (!CRYPTO_RELEVANT_CATEGORIES.includes(category)) return { rejection: "category" };
   const outcomes = stringArray(gamma.outcomes);
-  const tokens = stringArray(gamma.clobTokenIds);
+  let tokens: string[];
+  let candidateTokens: string[];
+  try {
+    const version = parseProtocolVersion(gamma.version);
+    if (version !== candidate.protocol_version) return { rejection: "protocol_mismatch" };
+    tokens = getTradingAssetIds({
+      protocolVersion: version,
+      outcomes: gamma.outcomes,
+      clobTokenIds: gamma.clobTokenIds,
+      positionIds: gamma.positionIds,
+    });
+    candidateTokens = getTradingAssetIds({
+      protocolVersion: candidate.protocol_version,
+      outcomes: candidate.outcomes,
+      clobTokenIds: candidate.clob_token_ids,
+      positionIds: candidate.position_ids,
+    });
+  } catch {
+    return { rejection: "invalid_assets" };
+  }
   const prices = stringArray(gamma.outcomePrices);
   const yesIndex = outcomes?.indexOf("Yes") ?? -1;
   const noIndex = outcomes?.indexOf("No") ?? -1;
@@ -191,7 +211,7 @@ export function enrichRecommendation(
     tokens?.length !== 2 ||
     prices?.length !== 2 ||
     candidate.outcomes.length !== 2 ||
-    candidate.clob_token_ids.length !== 2 ||
+    candidateTokens.length !== 2 ||
     yesIndex < 0 ||
     noIndex < 0 ||
     dbYesIndex < 0 ||
@@ -199,8 +219,8 @@ export function enrichRecommendation(
     !tokens[yesIndex] ||
     !tokens[noIndex] ||
     tokens[yesIndex] === tokens[noIndex] ||
-    tokens[yesIndex] !== candidate.clob_token_ids[dbYesIndex] ||
-    tokens[noIndex] !== candidate.clob_token_ids[dbNoIndex]
+    tokens[yesIndex] !== candidateTokens[dbYesIndex] ||
+    tokens[noIndex] !== candidateTokens[dbNoIndex]
   ) {
     return { rejection: "outcome_mismatch" };
   }

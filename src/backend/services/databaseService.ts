@@ -1,3 +1,4 @@
+import { parseProtocolVersion, type ProtocolVersion } from "../../lib/polymarket/protocol";
 import {
   Prisma,
   type Market as PrismaMarket,
@@ -82,6 +83,9 @@ function toMarketRow(m: PrismaMarket): DatabaseMarket {
     liquidity: decimalToNumber(m.liquidity),
     end_date: m.endDate,
     clob_token_ids: m.clobTokenIds,
+    protocol_version: m.protocolVersion === null ? null : parseProtocolVersion(m.protocolVersion),
+    position_ids: m.positionIds,
+    condition_id: m.conditionId,
     active: m.active ?? true,
     neg_risk: m.negRisk,
     updated_at: m.updatedAt ?? undefined,
@@ -137,6 +141,9 @@ function toPolymarketSentinelRow(s: PrismaPolymarketSentinel): DatabasePolymarke
     outcome_selected: s.outcomeSelected,
     price_cents: s.priceCents,
     neg_risk: s.negRisk,
+    protocol_version: parseProtocolVersion(s.protocolVersion),
+    exchange_address: s.exchangeAddress,
+    signed_order_format: s.signedOrderFormat,
     post_only: s.postOnly,
     epoch: s.epoch,
     polymarket_order_hash: s.polymarketOrderHash,
@@ -157,6 +164,7 @@ function toSoldPositionRow(s: PrismaSoldPosition): SoldPosition {
   return {
     id: s.id,
     asset_id: s.assetId,
+    protocol_version: s.protocolVersion === null ? null : parseProtocolVersion(s.protocolVersion),
     condition_id: s.conditionId,
     size: decimalToNumber(s.size),
     sell_price: decimalToNumber(s.sellPrice),
@@ -182,6 +190,9 @@ export class DatabaseService {
       liquidity: new Prisma.Decimal(market.liquidity ?? 0),
       endDate: market.endDate ?? null,
       clobTokenIds: market.clobTokenIds,
+      protocolVersion: market.protocolVersion,
+      positionIds: market.positionIds,
+      conditionId: market.conditionId,
       active: market.active,
       negRisk: market.negRisk,
       updatedAt: new Date(),
@@ -300,7 +311,7 @@ export class DatabaseService {
     if (categories.length === 0) return {};
     const rows = await prisma.market.groupBy({
       by: ["category"],
-      where: { active: true, category: { in: categories } },
+      where: { active: true, protocolVersion: { in: ["v1", "v2"] }, category: { in: categories } },
       _count: { _all: true },
     });
     const out: Record<string, number> = Object.fromEntries(categories.map((c) => [c, 0]));
@@ -321,7 +332,8 @@ export class DatabaseService {
     const rows = await prisma.$queryRaw<PrismaMarket[]>`
       SELECT id, slug, event_slug AS "eventSlug", question, description, category,
              tags, outcomes, volume, liquidity, end_date AS "endDate",
-             clob_token_ids AS "clobTokenIds", active, neg_risk AS "negRisk",
+             clob_token_ids AS "clobTokenIds", protocol_version AS "protocolVersion",
+             position_ids AS "positionIds", condition_id AS "conditionId", active, neg_risk AS "negRisk",
              updated_at AS "updatedAt"
       FROM markets
       WHERE ${where}
@@ -354,13 +366,19 @@ export class DatabaseService {
           AND end_date > NOW() + ${RECOMMENDATION_POLICY.horizonHours} * INTERVAL '1 hour'
           AND question !~* ${INTEREST_NOISE_REGEX}
           AND (outcomes = '["Yes", "No"]'::jsonb OR outcomes = '["No", "Yes"]'::jsonb)
-          AND CARDINALITY(clob_token_ids) = 2
-          AND clob_token_ids[1] <> '' AND clob_token_ids[2] <> ''
-          AND clob_token_ids[1] <> clob_token_ids[2]
+          AND CASE protocol_version
+            WHEN 'v1' THEN CARDINALITY(clob_token_ids) = 2
+              AND clob_token_ids[1] ~ '^[0-9]+$' AND clob_token_ids[2] ~ '^[0-9]+$'
+              AND clob_token_ids[1] <> clob_token_ids[2]
+            WHEN 'v2' THEN CARDINALITY(position_ids) = 2
+              AND position_ids[1] ~ '^[0-9]+$' AND position_ids[2] ~ '^[0-9]+$'
+              AND position_ids[1] <> position_ids[2]
+            ELSE FALSE END
       )
       SELECT id, slug, event_slug AS "eventSlug", question, description, category,
              tags, outcomes, volume, liquidity, end_date AS "endDate",
-             clob_token_ids AS "clobTokenIds", active, neg_risk AS "negRisk",
+             clob_token_ids AS "clobTokenIds", protocol_version AS "protocolVersion",
+             position_ids AS "positionIds", condition_id AS "conditionId", active, neg_risk AS "negRisk",
              updated_at AS "updatedAt"
       FROM candidates
       WHERE event_rank <= ${RECOMMENDATION_POLICY.candidatesPerEvent}
@@ -403,6 +421,7 @@ export class DatabaseService {
 
   static async findReusableSentinel(input: {
     marketId: string;
+    protocolVersion: ProtocolVersion;
     tokenId: string;
     priceCents: number;
     postOnly: boolean;
@@ -411,6 +430,7 @@ export class DatabaseService {
     const row = await prisma.polymarketSentinel.findFirst({
       where: {
         marketId: input.marketId,
+        protocolVersion: input.protocolVersion,
         tokenId: input.tokenId,
         priceCents: input.priceCents,
         postOnly: input.postOnly,
@@ -424,12 +444,14 @@ export class DatabaseService {
 
   static async getNextSentinelEpoch(input: {
     marketId: string;
+    protocolVersion: ProtocolVersion;
     tokenId: string;
     priceCents: number;
   }): Promise<number> {
     const latest = await prisma.polymarketSentinel.findFirst({
       where: {
         marketId: input.marketId,
+        protocolVersion: input.protocolVersion,
         tokenId: input.tokenId,
         priceCents: input.priceCents,
       },
@@ -441,6 +463,7 @@ export class DatabaseService {
 
   static async createPreparedSentinel(input: {
     marketId: string;
+    protocolVersion: ProtocolVersion;
     tokenId: string;
     outcomeSelected: string;
     priceCents: number;
@@ -450,11 +473,14 @@ export class DatabaseService {
     polymarketOrderHash: string;
     polymarketMakerAmount: string;
     signedOrder: unknown;
+    exchangeAddress: string;
+    signedOrderFormat: string;
     expiration: Date;
   }): Promise<DatabasePolymarketSentinel> {
     const row = await prisma.polymarketSentinel.create({
       data: {
         marketId: input.marketId,
+        protocolVersion: input.protocolVersion,
         tokenId: input.tokenId,
         outcomeSelected: input.outcomeSelected,
         priceCents: input.priceCents,
@@ -464,6 +490,8 @@ export class DatabaseService {
         polymarketOrderHash: input.polymarketOrderHash,
         polymarketMakerAmount: new Prisma.Decimal(input.polymarketMakerAmount),
         signedOrder: input.signedOrder as Prisma.InputJsonValue,
+        exchangeAddress: input.exchangeAddress,
+        signedOrderFormat: input.signedOrderFormat,
         expiration: input.expiration,
         status: "prepared",
       },
@@ -1066,6 +1094,7 @@ export class DatabaseService {
     const created = await prisma.soldPosition.create({
       data: {
         assetId: input.assetId,
+        protocolVersion: input.protocolVersion,
         conditionId: input.conditionId,
         size: new Prisma.Decimal(input.size),
         sellPrice: new Prisma.Decimal(input.sellPrice),
@@ -1159,7 +1188,10 @@ export class DatabaseService {
   private static buildSearchWhere(opts: SearchMarketsOptions): Prisma.Sql {
     const { q, category, categories, volumeMin = 0, liquidityMin = 0 } = opts;
 
-    const fragments: Prisma.Sql[] = [Prisma.sql`active = TRUE`];
+    const fragments: Prisma.Sql[] = [
+      Prisma.sql`active = TRUE`,
+      Prisma.sql`protocol_version IN ('v1', 'v2')`,
+    ];
     // Default search includes markets with zero or unknown liquidity/activity.
     if (volumeMin > 0) fragments.push(Prisma.sql`volume >= ${volumeMin}`);
     if (liquidityMin > 0) fragments.push(Prisma.sql`liquidity >= ${liquidityMin}`);

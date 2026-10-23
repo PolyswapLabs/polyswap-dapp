@@ -67,6 +67,8 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     );
     for (const market of markets) url.searchParams.append("id", market.id);
     url.searchParams.set("limit", String(RECOMMENDATION_POLICY.gammaBatchSize));
+    url.searchParams.append("version", "v1");
+    url.searchParams.append("version", "v2");
     url.searchParams.set("active", "true");
     url.searchParams.set("closed", "false");
     // No redirects or retries: one HTTP attempt per 100-market batch.
@@ -110,6 +112,9 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
         liquidity: market.liquidity,
         end_date: market.end_date?.toISOString() ?? null,
         clob_token_ids: market.clob_token_ids,
+        protocol_version: market.protocol_version,
+        position_ids: market.position_ids,
+        condition_id: market.condition_id,
         active: market.active,
         neg_risk: market.neg_risk,
       })),
