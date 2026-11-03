@@ -11,6 +11,7 @@ import { createLogger } from "../logger";
 
 const log = createLogger("db-service");
 import { type Market } from "../interfaces/Market";
+import { type StoredMarket } from "./marketSyncDiff";
 import { type DatabaseMarket } from "../interfaces/Database";
 import { RECOMMENDATION_POLICY } from "../../lib/marketRecommendations";
 import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "../../types/design";
@@ -205,24 +206,75 @@ export class DatabaseService {
     });
   }
 
+  /** The stored fields market sync compares against Gamma. */
+  static async getMarketsForSync(ids: string[]): Promise<StoredMarket[]> {
+    return prisma.market.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        slug: true,
+        eventSlug: true,
+        question: true,
+        description: true,
+        category: true,
+        tags: true,
+        outcomes: true,
+        volume: true,
+        liquidity: true,
+        endDate: true,
+        clobTokenIds: true,
+        protocolVersion: true,
+        positionIds: true,
+        conditionId: true,
+        active: true,
+        negRisk: true,
+      },
+    });
+  }
+
+  /**
+   * Call before writing changed search text. Clearing first means any failure
+   * afterwards leaves a null vector for the next refresh to find, rather than
+   * an old vector that no later sync would detect.
+   */
+  static async invalidateSearchVectors(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await prisma.$executeRaw`UPDATE markets SET search_vec = NULL WHERE id = ANY(${ids}::text[])`;
+  }
+
   /**
    * Recomputes `markets.search_vec` (multi-field weighted tsvector) for rows
-   * touched in the last hour or where the column is NULL. Raw SQL is required
+   * where the column is NULL, one batch at a time. Raw SQL is required
    * because `searchVec Unsupported("tsvector")` is excluded from Prisma's
    * typed API, and Nile blocks both GENERATED columns and CREATE TRIGGER —
    * so the index has to be refreshed in application code after writes.
    */
-  static async refreshStaleSearchVectors(): Promise<number> {
-    const result = await prisma.$executeRaw`
-      UPDATE markets SET search_vec = (
-        setweight(to_tsvector('english', question), 'A') ||
-        setweight(to_tsvector('simple',  regexp_replace(tags::text, '[{},"]', ' ', 'g')), 'B') ||
-        setweight(to_tsvector('simple',  slug), 'C') ||
-        setweight(to_tsvector('english', coalesce(description, '')), 'D')
-      )
-      WHERE search_vec IS NULL OR updated_at >= NOW() - INTERVAL '1 hour'
-    `;
-    return Number(result);
+  static async refreshMissingSearchVectors(batchSize: number = 1000): Promise<number> {
+    let refreshed = 0;
+    // Walk by ID: a row that stays null must not be selected again in this run.
+    let cursor = "";
+    while (true) {
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM markets
+        WHERE search_vec IS NULL AND id > ${cursor}
+        ORDER BY id
+        LIMIT ${batchSize}
+      `;
+      const last = rows.at(-1);
+      if (!last) return refreshed;
+      const ids = rows.map((row) => row.id);
+      const result = await prisma.$executeRaw`
+        UPDATE markets SET search_vec = (
+          setweight(to_tsvector('english', question), 'A') ||
+          setweight(to_tsvector('simple',  regexp_replace(tags::text, '[{},"]', ' ', 'g')), 'B') ||
+          setweight(to_tsvector('simple',  slug), 'C') ||
+          setweight(to_tsvector('english', coalesce(description, '')), 'D')
+        )
+        WHERE id = ANY(${ids}::text[])
+      `;
+      refreshed += Number(result);
+      cursor = last.id;
+    }
   }
 
   /**

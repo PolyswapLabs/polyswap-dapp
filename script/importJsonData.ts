@@ -101,6 +101,8 @@ async function loadDataFromJson() {
           continue;
         }
         try {
+          // The next market sync rebuilds this row's search vector.
+          await DatabaseService.invalidateSearchVectors([lean.id]);
           await DatabaseService.upsertMarket(lean);
           successCount++;
         } catch (error) {
