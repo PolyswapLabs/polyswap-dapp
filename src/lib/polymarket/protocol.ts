@@ -50,3 +50,19 @@ export function getTradingAssetIds(market: MarketAssets): string[] {
   ids.forEach(assertAssetId);
   return ids;
 }
+
+/**
+ * For prices and history only. Rows cached before the protocol migration stay unclassified,
+ * but their CLOB IDs still identify them. Order creation must use getTradingAssetIds,
+ * which rejects these rows. Returns [] when the cached IDs are unusable.
+ */
+export function getDisplayAssetIds(market: MarketAssets): string[] {
+  if (market.protocolVersion !== null && market.protocolVersion !== undefined) {
+    return getTradingAssetIds(market);
+  }
+  try {
+    return getTradingAssetIds({ ...market, protocolVersion: "v1" });
+  } catch {
+    return [];
+  }
+}

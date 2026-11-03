@@ -1,6 +1,6 @@
 "use client";
 
-import { getTradingAssetIds, type ProtocolVersion } from "@/lib/polymarket/protocol";
+import { getDisplayAssetIds, type ProtocolVersion } from "@/lib/polymarket/protocol";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchClobPriceHistory,
@@ -121,9 +121,9 @@ function bestAskPercent(
   return ask === null ? undefined : ask * 100;
 }
 
-function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket {
+export function mergeMarket(lean: SearchMarket, prices: ClobPricesResponse): ApiMarket {
   const outcomes = lean.outcomes;
-  const clobTokenIds = getTradingAssetIds({
+  const clobTokenIds = getDisplayAssetIds({
     protocolVersion: lean.protocol_version,
     clobTokenIds: lean.clob_token_ids,
     positionIds: lean.position_ids,
@@ -237,10 +237,10 @@ export function toViewModel(api: ApiMarket): MarketViewModel | null {
 
 const STALE = 60_000;
 
-function tokenPriceRequests(markets: SearchMarket[]): ClobPriceRequest[] {
+export function tokenPriceRequests(markets: SearchMarket[]): ClobPriceRequest[] {
   const requests: ClobPriceRequest[] = [];
   for (const m of markets) {
-    for (const tokenId of getTradingAssetIds({
+    for (const tokenId of getDisplayAssetIds({
       protocolVersion: m.protocol_version,
       outcomes: m.outcomes,
       clobTokenIds: m.clob_token_ids,

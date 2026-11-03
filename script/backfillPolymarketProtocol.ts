@@ -26,10 +26,9 @@ let cursor: string | undefined;
 try {
   while (true) {
     const markets = await prisma.market.findMany({
-      where: { protocolVersion: null },
+      where: { protocolVersion: null, ...(cursor ? { id: { gt: cursor } } : {}) },
       orderBy: { id: "asc" },
       take: 100,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: { id: true },
     });
     if (!markets.length) break;
