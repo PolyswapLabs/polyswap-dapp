@@ -58,6 +58,11 @@ function configuredTimeoutMs(): number {
   return DEFAULT_TIMEOUT_MS;
 }
 
+/**
+ * KNOWN ISSUE: CoW rate limits AppData calls (429) and offers paid access, which we don't use.
+ * Orders then share this fallback, so identical orders (same owner, tokens, amounts and expiry)
+ * get the same order UID and only one can execute.
+ */
 function configuredDefaultAppData(): Hex {
   const configured = process.env.APP_DATA?.trim();
   if (!configured) return ZERO_BYTES32;
