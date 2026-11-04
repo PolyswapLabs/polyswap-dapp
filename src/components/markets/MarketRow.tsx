@@ -1,7 +1,11 @@
 "use client";
 
+import { useRef } from "react";
+import { useInView } from "motion/react";
+import { Tape } from "@/components/primitives";
 import { TransitionLink } from "@/components/layout";
 import { CategoryIcon, Icon } from "@/components/icons";
+import { useMarketPriceHistory } from "@/hooks/useMarketsData";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import type { MarketViewModel } from "@/types/design";
 import { capturePostHogEvent } from "@/lib/posthog-client";
@@ -17,20 +21,36 @@ interface Props {
   source: "browse" | "search";
 }
 
-function OddsMeter({ probability }: { probability: number }) {
-  const percentage = Math.max(0, Math.min(100, probability * 100));
+/**
+ * Fetches price history only once the chart enters the viewport. The layout
+ * hidden by CSS never intersects, so it doesn't fetch. Fixed height keeps the
+ * row from shifting when the chart appears.
+ */
+function MarketSparkline({
+  tokenId,
+  width,
+  height,
+  className,
+}: {
+  tokenId: string | null;
+  width: number;
+  height: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true });
+  const { data: history = [] } = useMarketPriceHistory(inView ? tokenId : null, 60);
+
   return (
-    <div
-      className="relative h-px w-full bg-rule before:absolute before:-top-[3px] before:left-0 before:h-[7px] before:w-px before:bg-ink-3 after:absolute after:-top-[3px] after:right-0 after:h-[7px] after:w-px after:bg-ink-3"
-      aria-hidden
-    >
-      <span
-        className="absolute -top-px left-0 h-[3px] bg-yes transition-[width] duration-300 ease-out"
-        style={{ width: `${percentage}%` }}
-      />
-      <span
-        className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 bg-yes"
-        style={{ left: `${percentage}%` }}
+    <div ref={ref} style={{ height }}>
+      <Tape
+        data={history.map((h) => h.p)}
+        showThreshold={false}
+        side="YES"
+        width={width}
+        height={height}
+        className={className}
+        animate
       />
     </div>
   );
@@ -84,7 +104,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           <p className="mt-0.5 text-[11px] text-ink-3">YES</p>
         </div>
         <div className="overflow-hidden">
-          <OddsMeter probability={market.yesProbability} />
+          <MarketSparkline tokenId={market.yesTokenId} width={160} height={42} />
         </div>
         <p className="text-right text-sm">
           <span className="text-[11px] uppercase tracking-wide text-ink-3">{volumeLabel} </span>
@@ -121,8 +141,13 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             <p className="num text-2xl font-semibold text-yes">{yesPct}%</p>
             <p className="text-[11px] text-ink-3">YES odds</p>
           </div>
-          <div className="min-w-0 flex-1 px-1">
-            <OddsMeter probability={market.yesProbability} />
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <MarketSparkline
+              tokenId={market.yesTokenId}
+              width={220}
+              height={48}
+              className="w-full"
+            />
           </div>
         </div>
         <p className="text-xs text-ink-3">Ends {fmtDate(market.endsAt)}</p>
