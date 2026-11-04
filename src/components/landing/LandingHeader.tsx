@@ -7,17 +7,18 @@ import { Button } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { MobileNav, type MobileNavLink } from "@/components/layout/MobileNav";
 
+// Root-relative anchors: this header is also used on /creators.
 const ANCHOR_LINKS: { href: string; label: string }[] = [
-  { href: "#how-it-works", label: "How it works" },
+  { href: "/#how-it-works", label: "How it works" },
   { href: "/markets", label: "Markets" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 const MOBILE_LINKS: MobileNavLink[] = [
-  { href: "#how-it-works", label: "How it works" },
+  { href: "/#how-it-works", label: "How it works" },
   { href: "/markets", label: "Browse markets" },
   { href: "/dashboard", label: "My swaps" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export function LandingHeader() {

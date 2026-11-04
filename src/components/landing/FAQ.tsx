@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
@@ -74,37 +74,33 @@ export function FAQ() {
                     <Icon.plus size={18} />
                   </motion.span>
                 </button>
-                <AnimatePresence initial={false}>
-                  {open && (
-                    <motion.div
-                      id={contentId}
-                      key="content"
-                      initial="collapsed"
-                      animate="open"
-                      exit="collapsed"
-                      variants={{
-                        open: { height: "auto", opacity: 1 },
-                        collapsed: { height: 0, opacity: 0 },
-                      }}
-                      transition={{
-                        height: { duration: 0.32, ease: EASE },
-                        opacity: { duration: 0.22, ease: EASE },
-                      }}
-                      style={{ overflow: "hidden" }}
-                    >
-                      <motion.p
-                        variants={{
-                          open: { y: 0 },
-                          collapsed: { y: -4 },
-                        }}
-                        transition={{ duration: 0.32, ease: EASE }}
-                        className="max-w-[720px] px-5 pb-5 text-sm leading-relaxed text-ink-2 lg:px-6 lg:text-[15px]"
-                      >
-                        {it.a}
-                      </motion.p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Always rendered so the answers are in the server HTML; collapsed visually. */}
+                <motion.div
+                  id={contentId}
+                  aria-hidden={!open}
+                  initial={false}
+                  animate={open ? "open" : "collapsed"}
+                  variants={{
+                    open: { height: "auto", opacity: 1 },
+                    collapsed: { height: 0, opacity: 0 },
+                  }}
+                  transition={{
+                    height: { duration: 0.32, ease: EASE },
+                    opacity: { duration: 0.22, ease: EASE },
+                  }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <motion.p
+                    variants={{
+                      open: { y: 0 },
+                      collapsed: { y: -4 },
+                    }}
+                    transition={{ duration: 0.32, ease: EASE }}
+                    className="max-w-[720px] px-5 pb-5 text-sm leading-relaxed text-ink-2 lg:px-6 lg:text-[15px]"
+                  >
+                    {it.a}
+                  </motion.p>
+                </motion.div>
               </div>
             );
           })}
