@@ -15,6 +15,7 @@ const log = createLogger("rpc");
 
 let cachedPublicClient: PublicClient | null = null;
 let cachedWebSocketClient: PublicClient | null = null;
+let webSocketGeneration = 0;
 let cachedWalletClient: WalletClient | null = null;
 
 export function getPublicClient(): PublicClient {
@@ -34,9 +35,28 @@ export function getWebSocketClient(): PublicClient {
   if (!wssUrl) throw new Error("WSS_RPC_URL is not set");
   cachedWebSocketClient = createPublicClient({
     chain: polygon,
-    transport: webSocket(wssUrl),
+    transport: webSocket(wssUrl, {
+      // webSocketSupervisor.ts owns reconnecting.
+      reconnect: false,
+      // viem shares sockets by these options. A distinct value keeps a replacement
+      // from joining the old socket while that one is still connecting or closing.
+      keepAlive: { interval: 30_000 + webSocketGeneration++ },
+    }),
   });
   return cachedWebSocketClient;
+}
+
+/** Forgets the socket. Never waits: closing one that is still connecting can take minutes. */
+export function closeWebSocketClient(): void {
+  const client = cachedWebSocketClient;
+  cachedWebSocketClient = null;
+  if (!client) return;
+  const { getRpcClient } = client.transport as unknown as {
+    getRpcClient: () => Promise<{ close: () => void }>;
+  };
+  void getRpcClient()
+    .then((rpcClient) => rpcClient.close())
+    .catch(() => log.debug("old socket was already gone"));
 }
 
 export function getWalletClient(): WalletClient {

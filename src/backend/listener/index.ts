@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { parseAbiItem, type Address, type Log } from "viem";
+import { parseAbiItem, type Address, type Log, type PublicClient } from "viem";
 import { testConnection } from "@/backend/db/database";
-import { getWebSocketClient } from "./blockchainProvider";
+import { closeWebSocketClient, getWebSocketClient } from "./blockchainProvider";
 import { handleConditionalOrderCreated } from "./handlers/conditionalOrderCreated";
-import { handleTrade } from "./handlers/trade";
+import { handleLiveTrade } from "./handlers/trade";
 import { handleLiveOrderInvalidated } from "./handlers/orderInvalidated";
 import { catchupHistoricalEvents } from "./startup/catchupHistoricalEvents";
 import { backfillOrderUids } from "./startup/backfillOrderUids";
@@ -16,10 +16,12 @@ const log = createLogger("listener");
 import {
   startPositionSeller,
   stopPositionSeller,
+  subscribePositionReceipts,
   triggerPositionSell,
 } from "./cron/positionSeller";
 import { startDraftJanitor, stopDraftJanitor } from "./cron/draftJanitor";
 import { startOrderHealthCheck, stopOrderHealthCheck } from "./cron/orderHealthCheck";
+import { startWebSocketSupervisor, stopWebSocketSupervisor } from "./webSocketSupervisor";
 
 // Canonical event signatures used by `watchEvent`. Using `parseAbiItem` keeps
 // the resulting `AbiEvent` value strongly typed (no cast required) and
@@ -88,64 +90,50 @@ function readPositiveInt(envName: string, fallback: number): number {
 }
 
 const MARKET_UPDATE_INTERVAL_MIN = readPositiveInt("MARKET_UPDATE_INTERVAL_MINUTES", 60);
-const POSITION_SELL_INTERVAL_MIN = readPositiveInt("POSITION_SELL_INTERVAL_MINUTES", 5);
+const POSITION_SELL_INTERVAL_MIN = readPositiveInt("POSITION_SELL_INTERVAL_MINUTES", 10);
 const DRAFT_JANITOR_INTERVAL_SEC = readPositiveInt("DRAFT_JANITOR_INTERVAL_SECONDS", 60);
 const ORDER_HEALTH_CHECK_INTERVAL_SEC = readPositiveInt("ORDER_HEALTH_CHECK_INTERVAL_SECONDS", 60);
 
-interface Subscriptions {
-  unsubscribeAll: () => void;
-}
-
-async function startListener(options: { allowTrading: boolean }): Promise<Subscriptions> {
-  await catchupHistoricalEvents(options);
-  await backfillOrderUids();
-
-  const ws = getWebSocketClient();
+function subscribeOrderEvents(
+  ws: PublicClient,
+  options: { allowTrading: boolean },
+  onError: (error: Error) => void
+): Array<() => void> {
   const composableCow = requireAddress("COMPOSABLE_COW");
   const gpv2 = requireAddress("GPV2SETTLEMENT");
 
-  const unsubCreated = ws.watchEvent({
-    address: composableCow,
-    event: CONDITIONAL_ORDER_CREATED_EVENT,
-    onLogs: (logs) => {
-      for (const log of logs) {
-        void handleConditionalOrderCreated(log as Log, options);
-      }
-    },
-  });
-
-  const unsubTrade = ws.watchEvent({
-    address: gpv2,
-    event: TRADE_EVENT,
-    onLogs: (logs) => {
-      for (const log of logs) {
-        // Update DB first, then nudge the position-seller for prompt offload.
-        void handleTrade(log as Log)
-          .then(() => triggerPositionSell())
-          .catch((err) => {
-            createLogger("trade").error("handler chain failed:", err);
-          });
-      }
-    },
-  });
-
-  const unsubInvalidated = ws.watchEvent({
-    address: gpv2,
-    event: ORDER_INVALIDATED_EVENT,
-    onLogs: (logs) => {
-      for (const log of logs) {
-        void handleLiveOrderInvalidated(log as Log);
-      }
-    },
-  });
-
-  return {
-    unsubscribeAll: () => {
-      unsubCreated();
-      unsubTrade();
-      unsubInvalidated();
-    },
-  };
+  return [
+    ws.watchEvent({
+      address: composableCow,
+      event: CONDITIONAL_ORDER_CREATED_EVENT,
+      onError,
+      onLogs: (logs) => {
+        for (const log of logs) {
+          void handleConditionalOrderCreated(log as Log, options);
+        }
+      },
+    }),
+    ws.watchEvent({
+      address: gpv2,
+      event: TRADE_EVENT,
+      onError,
+      onLogs: (logs) => {
+        for (const log of logs) {
+          void handleLiveTrade(log as Log, triggerPositionSell);
+        }
+      },
+    }),
+    ws.watchEvent({
+      address: gpv2,
+      event: ORDER_INVALIDATED_EVENT,
+      onError,
+      onLogs: (logs) => {
+        for (const log of logs) {
+          void handleLiveOrderInvalidated(log as Log);
+        }
+      },
+    }),
+  ];
 }
 
 async function main(): Promise<void> {
@@ -164,15 +152,16 @@ async function main(): Promise<void> {
     requireEnv(ORDER_PLACEMENT_ENV);
   }
 
+  const eventOptions = { allowTrading: !flags.listenerOnly };
+
   await testConnection();
   log.info(`log level ${getActiveLogLevel()}`);
   log.info("database connection verified");
 
-  let subs: Subscriptions | null = null;
-
   if (!flags.marketUpdateOnly) {
     log.info("starting (catch-up + WebSocket subscriptions)");
-    subs = await startListener({ allowTrading: !flags.listenerOnly });
+    await catchupHistoricalEvents(eventOptions);
+    await backfillOrderUids();
   }
 
   if (!flags.listenerOnly && !flags.marketUpdateOnly) {
@@ -186,6 +175,22 @@ async function main(): Promise<void> {
     startOrderHealthCheck(ORDER_HEALTH_CHECK_INTERVAL_SEC);
   }
 
+  if (!flags.marketUpdateOnly) {
+    const trading = !flags.listenerOnly;
+    startWebSocketSupervisor({
+      connect: getWebSocketClient,
+      disconnect: closeWebSocketClient,
+      subscribe: (ws, onError) => [
+        ...subscribeOrderEvents(ws, eventOptions, onError),
+        ...(trading ? subscribePositionReceipts(ws, onError) : []),
+      ],
+      recover: async () => {
+        if (trading) void triggerPositionSell();
+        await catchupHistoricalEvents(eventOptions);
+      },
+    });
+  }
+
   if (!flags.listenerOnly) {
     log.info(`starting market-sync cron every ${MARKET_UPDATE_INTERVAL_MIN}min`);
     startMarketSync(MARKET_UPDATE_INTERVAL_MIN);
@@ -193,7 +198,7 @@ async function main(): Promise<void> {
 
   const shutdown = (signal: string): void => {
     log.info(`received ${signal}, shutting down`);
-    subs?.unsubscribeAll();
+    stopWebSocketSupervisor();
     if (!flags.listenerOnly) stopMarketSync();
     if (!flags.listenerOnly && !flags.marketUpdateOnly) {
       stopPositionSeller();

@@ -199,8 +199,8 @@ To prevent the system from holding risk after Polymarket BUY orders are executed
 
 ### How It Works
 
-1. The service runs every X minutes (default: 5 minutes)
-2. It fetches all current positions from the Polymarket API
+1. A WebSocket subscription starts a sale as soon as shares reach the operator wallet, and a cron runs every X minutes as a backup (default: 10 minutes)
+2. It fetches current positions from the Polymarket API and recent transfers from the chain, skipping resolved markets
 3. For each position found, it creates a SELL order at 95% of current price for faster execution
 4. All sales are logged to the database for auditing
 
@@ -209,7 +209,7 @@ To prevent the system from holding risk after Polymarket BUY orders are executed
 Set the sell interval in your `.env` file:
 
 ```bash
-POSITION_SELL_INTERVAL_MINUTES=5  # Check and sell positions every 5 minutes (default)
+POSITION_SELL_INTERVAL_MINUTES=10  # Backup check for positions every 10 minutes (default)
 ```
 
 ## ⚙️ Environment Configuration
@@ -254,7 +254,7 @@ EXTENSIBLE_FALLBACK_HANDLER=0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5
 
 ```bash
 MARKET_UPDATE_INTERVAL_MINUTES=60    # Market data sync interval (default: 60)
-POSITION_SELL_INTERVAL_MINUTES=5     # Position auto-sell check interval (default: 5)
+POSITION_SELL_INTERVAL_MINUTES=10    # Position auto-sell backup interval (default: 10)
 AUTO_REMOVE_CLOSED_MARKETS=true      # Clean up closed markets automatically
 ```
 

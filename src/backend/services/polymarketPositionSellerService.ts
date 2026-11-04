@@ -16,6 +16,7 @@ const log = createLogger("position-seller");
 export class PolymarketPositionSellerService {
   private static sellInterval: NodeJS.Timeout | null = null;
   private static isSelling = false;
+  private static passRequested = false;
   private static ownerAddress: Address | null = null;
   private static inventory: PolymarketInventory | null = null;
   private static readonly data = new PolymarketDataClient();
@@ -47,9 +48,24 @@ export class PolymarketPositionSellerService {
     this.sellInterval = null;
   }
 
+  /** A request during a running pass gets one more pass, since that pass may have read too early. */
   static async checkAndSellPositions(): Promise<void> {
-    if (this.isSelling) return;
+    if (this.isSelling) {
+      this.passRequested = true;
+      return;
+    }
     this.isSelling = true;
+    try {
+      do {
+        this.passRequested = false;
+        await this.runSellPass();
+      } while (this.passRequested);
+    } finally {
+      this.isSelling = false;
+    }
+  }
+
+  private static async runSellPass(): Promise<void> {
     try {
       await this.initialize();
       const service = getPolymarketOrderService();
@@ -58,6 +74,7 @@ export class PolymarketPositionSellerService {
       const inventory = this.inventory;
       if (!client || !inventory) throw new Error("Position seller is not initialized");
       const positions = await inventory.read({
+        skipRedeemable: true,
         onApiError: (error) => log.warn("Position API unavailable; scanning both ledgers:", error),
         onScanError: (error, protocolVersion) =>
           log.warn(`Position transfer scan failed (${protocolVersion ?? "block number"}):`, error),
@@ -70,13 +87,7 @@ export class PolymarketPositionSellerService {
       const processed = new Set<string>();
       for (const position of positions) {
         const key = inventoryKey(position.protocolVersion, position.assetId);
-        if (
-          processed.has(key) ||
-          openSells.has(position.assetId) ||
-          position.metadata?.redeemable
-        ) {
-          continue;
-        }
+        if (processed.has(key) || openSells.has(position.assetId)) continue;
         processed.add(key);
         try {
           const negRisk =
@@ -136,8 +147,6 @@ export class PolymarketPositionSellerService {
       }
     } catch (error) {
       log.error("Position selling pass failed:", error);
-    } finally {
-      this.isSelling = false;
     }
   }
 

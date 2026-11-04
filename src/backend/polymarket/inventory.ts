@@ -10,12 +10,18 @@ export interface InventoryPosition {
   metadata?: PolymarketPosition;
 }
 
-const TRANSFER_SINGLE = parseAbiItem(
+export const TRANSFER_SINGLE = parseAbiItem(
   "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)"
 );
-const TRANSFER_BATCH = parseAbiItem(
+export const TRANSFER_BATCH = parseAbiItem(
   "event TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)"
 );
+
+export function getPositionLedgers(): Address[] {
+  return PROTOCOL_VERSIONS.map(
+    (protocolVersion) => getTradingConfig({ protocolVersion, negRisk: false }).ledger
+  );
+}
 
 export function inventoryKey(protocol: ProtocolVersion, assetId: string): string {
   return `${protocol}:${assetId}`;
@@ -43,6 +49,8 @@ export class PolymarketInventory {
       onApiError?: (error: unknown) => void;
       onScanError?: (error: unknown, protocolVersion?: ProtocolVersion) => void;
       lookbackBlocks?: bigint;
+      /** Resolved markets cannot be sold, so the seller spends no RPC calls on them. */
+      skipRedeemable?: boolean;
     } = {}
   ): Promise<InventoryPosition[]> {
     let positions: PolymarketPosition[];
@@ -54,6 +62,11 @@ export class PolymarketInventory {
       positions = [];
     }
     const metadata = new Map(positions.map((position) => [position.assetId, position]));
+    const skipped = new Set(
+      options.skipRedeemable
+        ? positions.filter((position) => position.redeemable).map((position) => position.assetId)
+        : []
+    );
     const currentBlock = await this.client.getBlockNumber().catch((error: unknown) => {
       options.onScanError?.(error);
       return undefined;
@@ -102,7 +115,7 @@ export class PolymarketInventory {
         }
         const result: InventoryPosition[] = [];
         // Bound RPC concurrency for large portfolios.
-        const assets = [...ids];
+        const assets = [...ids].filter((assetId) => !skipped.has(assetId));
         for (let offset = 0; offset < assets.length; offset += 10) {
           const balances = await Promise.all(
             assets.slice(offset, offset + 10).map(async (assetId) => ({

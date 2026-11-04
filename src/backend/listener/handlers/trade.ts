@@ -25,21 +25,22 @@ function decodeLog(log: Log): DecodedTrade | null {
   return decoded.args as unknown as DecodedTrade;
 }
 
-export async function handleTrade(eventLog: Log): Promise<void> {
+/** Returns whether the trade belongs to an order we track. */
+export async function handleTrade(eventLog: Log): Promise<boolean> {
   const decoded = decodeLog(eventLog);
-  if (!decoded) return;
+  if (!decoded) return false;
   if (
     eventLog.transactionHash === null ||
     eventLog.blockNumber === null ||
     eventLog.logIndex === null
   ) {
-    return;
+    return false;
   }
 
   const order = await DatabaseService.getPolyswapOrderByUid(decoded.orderUid);
   if (!order) {
     log.debug(`no tracked order for uid ${decoded.orderUid}; skipping`);
-    return;
+    return false;
   }
 
   await DatabaseService.updateOrderStatusById(order.id, "filled", {
@@ -52,4 +53,18 @@ export async function handleTrade(eventLog: Log): Promise<void> {
     feeAmount: decoded.feeAmount.toString(),
   });
   log.info(`order ${order.id} filled (uid ${decoded.orderUid})`);
+  return true;
+}
+
+/**
+ * For WebSocket events only: every CoW trade on Polygon arrives here, and only our
+ * own may start a sell. Catch-up must call handleTrade, so a failure stops it from
+ * saving a block past the event; a live failure is replayed by the next restart.
+ */
+export async function handleLiveTrade(eventLog: Log, sell: () => Promise<void>): Promise<void> {
+  try {
+    if (await handleTrade(eventLog)) await sell();
+  } catch (error) {
+    log.error("live event failed; the next restart replays it:", error);
+  }
 }
