@@ -144,30 +144,25 @@ export async function activateSentinel(
     await polymarket.initialize();
 
     // Recover cleanly if the process posted the sentinel but crashed before
-    // persisting its live status.
-    let existing: { id?: unknown; status?: unknown } | null = null;
-    try {
-      existing = await polymarket.getOrder(sentinel.polymarket_order_hash);
-    } catch (error) {
-      // Only a documented not-found may proceed to submission.
-      const status =
-        error && typeof error === "object"
-          ? ((error as { status?: unknown; statusCode?: unknown }).status ??
-            (error as { statusCode?: unknown }).statusCode)
-          : null;
-      if (status !== 404) throw error;
+    // persisting its status. A failed lookup throws, so an outage can't cause a post.
+    const chainStatus = await polymarket.getOnChainOrderStatus(
+      sentinel.polymarket_order_hash as Hex,
+      {
+        protocolVersion: sentinel.protocol_version,
+        negRisk: sentinel.neg_risk,
+        exchangeAddress: sentinel.exchange_address,
+      }
+    );
+    if (
+      chainStatus.filled ||
+      hasReachedFillGate(chainStatus, BigInt(sentinel.polymarket_maker_amount))
+    ) {
+      await DatabaseService.markSentinelFilled(sentinelId);
+      return;
     }
-    if (existing?.id?.toString().toLowerCase() === sentinel.polymarket_order_hash.toLowerCase()) {
-      const status = String(existing.status).toUpperCase();
-      if (status === "LIVE") {
-        await DatabaseService.markSentinelLive(sentinelId);
-        return;
-      }
-      if (status === "MATCHED" || status === "FILLED") {
-        await DatabaseService.markSentinelFilled(sentinelId);
-        return;
-      }
-      throw new Error(`Existing sentinel is ${status}`);
+    if (await polymarket.findOpenOrder(sentinel.polymarket_order_hash)) {
+      await DatabaseService.markSentinelLive(sentinelId);
+      return;
     }
 
     await polymarket.postPreparedGTDOrder({

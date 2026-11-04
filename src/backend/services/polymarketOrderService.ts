@@ -152,8 +152,18 @@ export class PolymarketOrderService {
   async cancelOrder(orderId: string) {
     return this.getReady().clobClient.cancelOrder({ orderId });
   }
-  async getOrder(orderId: string) {
-    return this.getReady().clobClient.fetchOrder({ orderId });
+
+  /**
+   * Avoids `fetchOrder`: the CLOB answers 200 null for unknown and matched orders, which the SDK
+   * rejects as an incompatible response.
+   */
+  async findOpenOrder(orderId: string): Promise<OpenOrder | null> {
+    const wanted = orderId.toLowerCase();
+    for await (const page of this.getReady().clobClient.listOpenOrders({ id: orderId })) {
+      const match = page.items.find((order) => order.id.toLowerCase() === wanted);
+      if (match) return match;
+    }
+    return null;
   }
 
   async getOpenOrders(params: { market?: string; assetId?: string } = {}): Promise<OpenOrder[]> {
