@@ -45,3 +45,16 @@ export async function handleOrderInvalidated(eventLog: Log): Promise<void> {
   });
   log.info(`order ${order.id} canceled (uid ${decoded.orderUid})`);
 }
+
+/**
+ * For WebSocket events only. Live events do not advance the saved block, so a
+ * failure here is replayed by the next restart's catch-up. Catch-up itself must
+ * call handleOrderInvalidated, or it could save a block past a failed event.
+ */
+export async function handleLiveOrderInvalidated(eventLog: Log): Promise<void> {
+  try {
+    await handleOrderInvalidated(eventLog);
+  } catch (error) {
+    log.error("live event failed; the next restart replays it:", error);
+  }
+}

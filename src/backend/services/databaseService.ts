@@ -177,6 +177,17 @@ function toSoldPositionRow(s: PrismaSoldPosition): SoldPosition {
   };
 }
 
+/** No cursor means the first batch: Nile delivers a bound empty string as NULL, matching nothing. */
+export function missingSearchVectorIdsQuery(cursor: string | null, batchSize: number): Prisma.Sql {
+  const afterCursor = cursor === null ? Prisma.empty : Prisma.sql`AND id > ${cursor}`;
+  return Prisma.sql`
+    SELECT id FROM markets
+    WHERE search_vec IS NULL ${afterCursor}
+    ORDER BY id
+    LIMIT ${batchSize}
+  `;
+}
+
 export class DatabaseService {
   static async upsertMarket(market: Market): Promise<void> {
     const data = {
@@ -252,14 +263,11 @@ export class DatabaseService {
   static async refreshMissingSearchVectors(batchSize: number = 1000): Promise<number> {
     let refreshed = 0;
     // Walk by ID: a row that stays null must not be selected again in this run.
-    let cursor = "";
+    let cursor: string | null = null;
     while (true) {
-      const rows = await prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM markets
-        WHERE search_vec IS NULL AND id > ${cursor}
-        ORDER BY id
-        LIMIT ${batchSize}
-      `;
+      const rows: { id: string }[] = await prisma.$queryRaw(
+        missingSearchVectorIdsQuery(cursor, batchSize)
+      );
       const last = rows.at(-1);
       if (!last) return refreshed;
       const ids = rows.map((row) => row.id);

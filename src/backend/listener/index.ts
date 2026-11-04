@@ -6,7 +6,7 @@ import { testConnection } from "@/backend/db/database";
 import { getWebSocketClient } from "./blockchainProvider";
 import { handleConditionalOrderCreated } from "./handlers/conditionalOrderCreated";
 import { handleTrade } from "./handlers/trade";
-import { handleOrderInvalidated } from "./handlers/orderInvalidated";
+import { handleLiveOrderInvalidated } from "./handlers/orderInvalidated";
 import { catchupHistoricalEvents } from "./startup/catchupHistoricalEvents";
 import { backfillOrderUids } from "./startup/backfillOrderUids";
 import { startMarketSync, stopMarketSync } from "./cron/marketSync";
@@ -134,7 +134,7 @@ async function startListener(options: { allowTrading: boolean }): Promise<Subscr
     event: ORDER_INVALIDATED_EVENT,
     onLogs: (logs) => {
       for (const log of logs) {
-        void handleOrderInvalidated(log as Log);
+        void handleLiveOrderInvalidated(log as Log);
       }
     },
   });
