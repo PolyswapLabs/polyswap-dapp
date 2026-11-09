@@ -49,7 +49,7 @@ export function MobileNav({ open, onClose, links, footer }: Props) {
       />
       <aside
         className={cn(
-          "absolute right-0 top-0 flex h-full w-[min(360px,86vw)] flex-col",
+          "absolute top-0 right-0 flex h-full w-[min(360px,86vw)] flex-col",
           "border-l border-ink bg-paper"
         )}
       >

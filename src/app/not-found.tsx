@@ -54,13 +54,13 @@ export default function NotFound() {
           <div className="hidden lg:col-span-5 lg:flex lg:justify-end">
             <div className="relative">
               <div className="border border-ink bg-paper-2 p-10">
-                <p className="num text-[120px] font-semibold leading-none tracking-tighter text-ink">
+                <p className="num text-[120px] leading-none font-semibold tracking-tighter text-ink">
                   404
                 </p>
                 <p className="eyebrow mt-4">Page not found</p>
                 <p className="mt-1 text-xs text-ink-3">no such issue in our records</p>
               </div>
-              <div className="absolute -right-4 -top-4">
+              <div className="absolute -top-4 -right-4">
                 <Stamp>Returned to sender</Stamp>
               </div>
             </div>

@@ -48,8 +48,8 @@ export function ThresholdSlider({ value, onChange, picks = DEFAULT_PICKS }: Prop
           "[&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:rounded-none",
           // Firefox thumb
           "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5",
-          "[&::-moz-range-thumb]:bg-accent [&::-moz-range-thumb]:border",
-          "[&::-moz-range-thumb]:border-ink [&::-moz-range-thumb]:cursor-grab",
+          "[&::-moz-range-thumb]:border [&::-moz-range-thumb]:bg-accent",
+          "[&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:border-ink",
           "[&::-moz-range-thumb]:rounded-none"
         )}
       />

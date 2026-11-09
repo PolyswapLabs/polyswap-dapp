@@ -199,7 +199,7 @@ export function SwapDetailPage({ orderId }: Props) {
               {expectingRealData && marketQ.isPending ? (
                 <Shimmer className="h-16 max-w-3xl flex-1 sm:h-20" />
               ) : (
-                <h1 className="max-w-4xl text-balance font-serif text-2xl leading-tight sm:text-3xl lg:text-[40px]">
+                <h1 className="max-w-4xl font-serif text-2xl leading-tight text-balance sm:text-3xl lg:text-[40px]">
                   {marketQuestion ?? order.nickname}
                 </h1>
               )}
@@ -282,7 +282,7 @@ export function SwapDetailPage({ orderId }: Props) {
                 {/* Vertical padding on top is generous so the execution-marker
                     icon (which floats above the chart top) isn't clipped by the
                     outer card. We deliberately don't use overflow-hidden here. */}
-                <div className="mt-5 flex gap-3 border border-rule-soft bg-paper-2 px-3 pb-3 pt-7">
+                <div className="mt-5 flex gap-3 border border-rule-soft bg-paper-2 px-3 pt-7 pb-3">
                   <div className="num flex shrink-0 flex-col justify-between py-1 text-[11px] text-ink-3">
                     <span>100%</span>
                     <span>75%</span>
@@ -491,7 +491,7 @@ function TrackerSkeleton({ threshold }: { threshold: number }) {
         <Shimmer className="h-9 w-32 shrink-0" />
       </div>
 
-      <div className="mt-5 flex gap-3 border border-rule-soft bg-paper-2 px-3 pb-3 pt-7">
+      <div className="mt-5 flex gap-3 border border-rule-soft bg-paper-2 px-3 pt-7 pb-3">
         <div className="num flex shrink-0 flex-col justify-between py-1 text-[11px] text-ink-3">
           <span>100%</span>
           <span>75%</span>

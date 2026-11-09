@@ -43,7 +43,7 @@ export function WalletButton({ onConnect, className }: Props) {
           "pointer-coarse:min-h-11"
         )}
       >
-        <span aria-hidden className="inline-block size-1.5 bg-yes pulse-dot" />
+        <span aria-hidden className="pulse-dot inline-block size-1.5 bg-yes" />
         {shortAddress}
         <Icon.chevronDown size={12} aria-hidden />
       </button>

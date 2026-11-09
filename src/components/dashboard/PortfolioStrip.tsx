@@ -129,11 +129,11 @@ export function PortfolioStrip({ orders }: Props) {
           key={m.label}
           className={`relative p-4 sm:p-5 ${
             i < metrics.length - 1
-              ? "border-b border-ink sm:[&:nth-child(odd)]:border-r sm:[&:nth-last-child(-n+2)]:border-b-0 lg:!border-b-0 lg:[&:not(:last-child)]:border-r"
+              ? "border-b border-ink lg:!border-b-0 lg:[&:not(:last-child)]:border-r sm:[&:nth-child(odd)]:border-r sm:[&:nth-last-child(-n+2)]:border-b-0"
               : ""
           }`}
         >
-          {m.badge && <span className="absolute right-3 top-3 z-10">{m.badge}</span>}
+          {m.badge && <span className="absolute top-3 right-3 z-10">{m.badge}</span>}
           <p className="eyebrow">{m.label}</p>
           {m.kind === "number" ? (
             <p className="num mt-2 truncate text-2xl font-semibold text-ink lg:text-3xl">

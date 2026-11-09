@@ -58,7 +58,7 @@ export function Masthead({ onConnectWallet }: Props) {
               className={cn(
                 "text-sm transition-colors",
                 isActive(l.href)
-                  ? "text-ink underline underline-offset-[6px] decoration-accent decoration-2"
+                  ? "text-ink underline decoration-accent decoration-2 underline-offset-[6px]"
                   : "text-ink-2 hover:text-ink"
               )}
             >

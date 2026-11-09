@@ -139,7 +139,7 @@ export function CreateForm({
                   set("amountIn", v);
                 }}
                 placeholder="0.00"
-                className="w-full border border-ink bg-paper-2 px-3 py-3 text-2xl font-mono tabular-nums outline-none focus:bg-paper sm:text-3xl"
+                className="w-full border border-ink bg-paper-2 px-3 py-3 font-mono text-2xl tabular-nums outline-none focus:bg-paper sm:text-3xl"
               />
             </label>
             {estimates.amountInUsd > 0 && (
@@ -159,7 +159,7 @@ export function CreateForm({
             ) : (
               <TokenPickerSkeleton loading={tokensLoading} />
             )}
-            <div className="mt-3 border border-ink bg-paper-2 px-3 py-3 text-2xl font-mono tabular-nums sm:text-3xl">
+            <div className="mt-3 border border-ink bg-paper-2 px-3 py-3 font-mono text-2xl tabular-nums sm:text-3xl">
               {estimates.amountOutEstimate > 0
                 ? fmtTokenAmount(estimates.amountOutEstimate)
                 : derived.amountInNumber > 0 && !estimates.isQuoteError

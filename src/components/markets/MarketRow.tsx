@@ -80,7 +80,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           source,
         })
       }
-      className="group relative block border-b border-rule-soft bg-paper hover:bg-paper-2 before:absolute before:left-0 before:top-0 before:h-full before:w-0 before:bg-accent before:transition-[width] before:duration-200 before:ease-out before:content-[''] hover:before:w-1"
+      className="group relative block border-b border-rule-soft bg-paper before:absolute before:top-0 before:left-0 before:h-full before:w-0 before:bg-accent before:transition-[width] before:duration-200 before:ease-out before:content-[''] hover:bg-paper-2 hover:before:w-1"
       data-testid="market-row"
     >
       {/* Desktop layout */}
@@ -107,7 +107,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           <MarketSparkline tokenId={market.yesTokenId} width={160} height={42} />
         </div>
         <p className="text-right text-sm">
-          <span className="text-[11px] uppercase tracking-wide text-ink-3">{volumeLabel} </span>
+          <span className="text-[11px] tracking-wide text-ink-3 uppercase">{volumeLabel} </span>
           <span className="num">{fmtUSD(volume, { compact: true })}</span>
         </p>
         <span
@@ -126,7 +126,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             {category}
           </span>
           <span className="text-xs text-ink-3">
-            <span className="uppercase tracking-wide">{volumeLabel} </span>
+            <span className="tracking-wide uppercase">{volumeLabel} </span>
             <span className="num">{fmtUSD(volume, { compact: true })}</span>
           </span>
         </div>

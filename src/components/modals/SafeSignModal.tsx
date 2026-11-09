@@ -141,7 +141,7 @@ export function SafeSignModal({
         {state.phase === "idle" && prePhase === "idle" && (
           <div className="space-y-5">
             {summary && (
-              <div className="border-b border-ink pb-4 font-serif text-lg italic leading-snug">
+              <div className="border-b border-ink pb-4 font-serif text-lg leading-snug italic">
                 {summary}
               </div>
             )}
@@ -347,7 +347,7 @@ function ErrorScreen({
       </div>
       <p className="text-sm text-ink-2">{body}</p>
       {detail && (
-        <p className="border border-rule-soft bg-paper-2 px-3 py-2 font-mono text-xs text-ink-3 break-all">
+        <p className="border border-rule-soft bg-paper-2 px-3 py-2 font-mono text-xs break-all text-ink-3">
           {detail}
         </p>
       )}

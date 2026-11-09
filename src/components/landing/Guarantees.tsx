@@ -33,7 +33,7 @@ export function Guarantees() {
           {ITEMS.map((it, i) => (
             <div
               key={it.title}
-              className={`p-6 sm:p-8 ${i === 0 ? "border-b border-ink sm:border-b-0 sm:border-r" : ""}`}
+              className={`p-6 sm:p-8 ${i === 0 ? "border-b border-ink sm:border-r sm:border-b-0" : ""}`}
             >
               <it.Ico size={28} aria-hidden />
               <h3 className="mt-4 font-serif text-xl lg:text-2xl">{it.title}</h3>

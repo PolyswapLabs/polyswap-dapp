@@ -8,7 +8,7 @@ const button = cva(
     "border border-ink",
     "font-medium",
     "transition-[transform,box-shadow] duration-100 ease-out",
-    "disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none",
+    "disabled:transform-none disabled:cursor-not-allowed disabled:opacity-40",
     "active:translate-x-0.5 active:translate-y-0.5",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink",
     "select-none",
@@ -16,12 +16,12 @@ const button = cva(
   {
     variants: {
       variant: {
-        ink: "bg-ink text-paper shadow-[4px_4px_0_0_var(--color-ink)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-ink)] active:shadow-none disabled:shadow-[4px_4px_0_0_var(--color-ink)] disabled:translate-x-0 disabled:translate-y-0",
+        ink: "bg-ink text-paper shadow-[4px_4px_0_0_var(--color-ink)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-ink)] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0_0_var(--color-ink)]",
         accent:
-          "bg-accent text-paper shadow-[4px_4px_0_0_var(--color-ink)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-ink)] active:shadow-none disabled:shadow-[4px_4px_0_0_var(--color-ink)] disabled:translate-x-0 disabled:translate-y-0",
+          "bg-accent text-paper shadow-[4px_4px_0_0_var(--color-ink)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-ink)] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0_0_var(--color-ink)]",
         paper: "bg-paper text-ink hover:bg-paper-3 active:translate-x-0 active:translate-y-0",
         ghost:
-          "bg-transparent border-transparent text-ink hover:underline underline-offset-4 active:translate-x-0 active:translate-y-0",
+          "border-transparent bg-transparent text-ink underline-offset-4 hover:underline active:translate-x-0 active:translate-y-0",
       },
       size: {
         // `pointer-coarse` bumps the height to 44px on touch devices so the

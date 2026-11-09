@@ -34,7 +34,7 @@ export function TokenGlyph({ symbol, size = 22, className }: Props) {
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center font-mono font-semibold text-paper border-[1.5px] border-ink",
+        "inline-flex items-center justify-center border-[1.5px] border-ink font-mono font-semibold text-paper",
         className
       )}
       style={{ width: size, height: size, background: bg, fontSize: size * 0.5 }}

@@ -56,7 +56,7 @@ export function Categories() {
               key={c.k}
               className={`p-6 sm:p-7 lg:p-8 ${
                 i < CATS.length - 1
-                  ? "border-b border-ink sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(3)]:border-b-0 sm:[&:nth-child(4)]:border-b-0 lg:!border-b-0 lg:[&:not(:last-child)]:border-r"
+                  ? "border-b border-ink lg:!border-b-0 lg:[&:not(:last-child)]:border-r sm:[&:nth-child(3)]:border-b-0 sm:[&:nth-child(4)]:border-b-0 sm:[&:nth-child(odd)]:border-r"
                   : ""
               }`}
             >

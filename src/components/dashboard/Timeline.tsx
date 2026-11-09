@@ -116,7 +116,7 @@ export function Timeline({ order }: { order: OrderViewModel }) {
               <motion.span
                 aria-hidden
                 className={cn(
-                  "absolute left-[15px] top-8 w-px origin-top",
+                  "absolute top-8 left-[15px] w-px origin-top",
                   step.state === "past" ? "bg-ink" : "bg-rule-soft"
                 )}
                 style={{ height: "calc(100% - 32px)" }}
@@ -134,7 +134,7 @@ export function Timeline({ order }: { order: OrderViewModel }) {
               className={cn(
                 "z-10 inline-flex size-8 shrink-0 items-center justify-center border border-ink",
                 step.state === "past" && "bg-yes text-paper",
-                step.state === "current" && "bg-accent pulse-dot text-paper",
+                step.state === "current" && "pulse-dot bg-accent text-paper",
                 step.state === "future" && "bg-paper text-ink-3"
               )}
             >

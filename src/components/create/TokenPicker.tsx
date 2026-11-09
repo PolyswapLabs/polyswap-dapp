@@ -175,7 +175,7 @@ export function TokenPicker({
                 <Icon.search
                   size={14}
                   aria-hidden
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
+                  className="absolute top-1/2 left-3 -translate-y-1/2 text-ink-3"
                 />
                 <input
                   autoFocus

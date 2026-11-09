@@ -11,7 +11,7 @@ export function Marquee({ items, className }: Props) {
     <div className={cn("overflow-hidden border-t border-b border-ink py-2", className)}>
       <div className="marq">
         {doubled.map((it, i) => (
-          <span key={i} className="text-[12px] uppercase tracking-[0.16em]">
+          <span key={i} className="text-[12px] tracking-[0.16em] uppercase">
             {it}
             <span className="mx-6 text-ink-3" aria-hidden>
               ·

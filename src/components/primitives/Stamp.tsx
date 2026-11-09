@@ -9,8 +9,8 @@ export function Stamp({ children, className }: Props) {
   return (
     <span
       className={cn(
-        "inline-block px-2.5 py-1 border-2 border-accent text-accent",
-        "text-[10px] font-bold uppercase tracking-[0.14em]",
+        "inline-block border-2 border-accent px-2.5 py-1 text-accent",
+        "text-[10px] font-bold tracking-[0.14em] uppercase",
         "-rotate-3",
         className
       )}

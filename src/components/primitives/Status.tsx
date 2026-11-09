@@ -43,7 +43,7 @@ export function Status({ kind, className }: Props) {
   const dot = dotColor[kind];
   return (
     <span className={cn(status({ kind }), className)}>
-      {dot && <span className={cn("inline-block h-1.5 w-1.5 pulse-dot", dot)} aria-hidden />}
+      {dot && <span className={cn("pulse-dot inline-block h-1.5 w-1.5", dot)} aria-hidden />}
       {label[kind]}
     </span>
   );
