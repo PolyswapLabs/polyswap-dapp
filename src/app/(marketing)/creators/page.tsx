@@ -1,4 +1,4 @@
-import { CreatorsPage } from "@/components/creators";
+import { CreatorsPage } from "@/components/creators/CreatorsPage";
 import { publicPageMetadata } from "@/lib/seo";
 
 export const metadata = publicPageMetadata({

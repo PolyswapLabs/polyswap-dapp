@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { buttonVariants } from "@/components/primitives";
+import { buttonVariants } from "@/components/primitives/Button";
 import { Reveal, RevealItem, RevealStack } from "./Reveal";
 import { Icon } from "@/components/icons";
 

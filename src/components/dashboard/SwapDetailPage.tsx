@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useAccount } from "wagmi";
-import { DetailSkeleton, PageMessage } from "@/components/primitives";
+import { DetailSkeleton } from "@/components/primitives/DetailSkeleton";
+import { PageMessage } from "@/components/primitives/PageBlocks";
 import { SafeSignModal } from "@/components/modals/SafeSignModal";
 import { useCancelSwap } from "@/hooks/useCancelSwap";
 import { useOrder } from "@/hooks/useOrders";

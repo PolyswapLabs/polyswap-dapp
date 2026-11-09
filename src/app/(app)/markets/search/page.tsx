@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { MarketsSearchResults } from "@/components/markets";
+import { MarketsSearchResults } from "@/components/markets/MarketsSearchResults";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
 
 export const metadata = {

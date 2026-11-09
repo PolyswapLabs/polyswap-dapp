@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useInView } from "motion/react";
 import { Tape } from "@/components/charts/Tape";
 import { marketTitleTransitionName } from "@/lib/links";
-import { TransitionLink } from "@/components/layout";
+import { TransitionLink } from "@/components/layout/TransitionLink";
 import { CategoryIcon, Icon } from "@/components/icons";
 import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { fmtUSD, fmtDate } from "@/lib/format";

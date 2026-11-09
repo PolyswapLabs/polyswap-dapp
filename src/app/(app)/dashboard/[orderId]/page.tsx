@@ -1,4 +1,4 @@
-import { SwapDetailPage } from "@/components/dashboard";
+import { SwapDetailPage } from "@/components/dashboard/SwapDetailPage";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
 
 interface Props {

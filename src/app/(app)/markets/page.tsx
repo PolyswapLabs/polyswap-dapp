@@ -1,4 +1,4 @@
-import { MarketsList } from "@/components/markets";
+import { MarketsList } from "@/components/markets/MarketsList";
 import { Suspense } from "react";
 import { MarketsSkeleton } from "@/components/markets/MarketsSkeleton";
 import { publicPageMetadata } from "@/lib/seo";

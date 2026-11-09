@@ -1,4 +1,4 @@
-import { Shimmer } from "@/components/primitives";
+import { Shimmer } from "@/components/primitives/Shimmer";
 
 /**
  * Three-row skeleton sized to the real SwapRow grid so reveal causes no layout shift.

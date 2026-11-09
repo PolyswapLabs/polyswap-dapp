@@ -1,4 +1,4 @@
-import { PageShell } from "@/components/layout";
+import { PageShell } from "@/components/layout/PageShell";
 import { PolymarketDataGate } from "@/components/providers/PolymarketDataGate";
 import { WalletModalProvider } from "@/components/modals/WalletModalProvider";
 import ClientWeb3Provider from "@/components/providers/ClientWeb3Provider";

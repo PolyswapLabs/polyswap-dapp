@@ -7,7 +7,7 @@ import { MarketRow } from "./MarketRow";
 import { MarketsSkeleton } from "./MarketsSkeleton";
 import { Pagination } from "./Pagination";
 import { MARKETS_PAGE_SIZE, MarketsEmptyState, MarketsPageHeader } from "./MarketsPageBlocks";
-import { MotionList, MotionItem } from "@/components/primitives";
+import { MotionList, MotionItem } from "@/components/primitives/MotionList";
 import { useRecommendedMarkets } from "@/hooks/markets/useMarkets";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/types/design";

@@ -1,6 +1,7 @@
 import { Dial } from "@/components/charts/Dial";
 import { Tape } from "@/components/charts/Tape";
-import { OddsAxis, Shimmer } from "@/components/primitives";
+import { OddsAxis } from "@/components/primitives/PageBlocks";
+import { Shimmer } from "@/components/primitives/Shimmer";
 import type { OrderOddsSeries } from "@/hooks/useOrderOddsSeries";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 import { fmtPct } from "@/lib/format";

@@ -2,7 +2,8 @@
 
 import { Icon } from "@/components/icons";
 import { TransitionLink } from "@/components/layout/TransitionLink";
-import { Button, Modal } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { Modal } from "@/components/primitives/Modal";
 
 interface Props {
   heading: string;

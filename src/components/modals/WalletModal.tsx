@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo } from "react";
 import { useConnect, type Connector } from "wagmi";
-import { Modal, Button, ErrorAlert } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { Modal } from "@/components/primitives/Modal";
+import { ErrorAlert } from "@/components/primitives/PageBlocks";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";

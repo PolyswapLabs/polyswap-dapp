@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { Button } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
 import { cn } from "@/lib/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { capturePostHogEvent } from "@/lib/posthog-client";

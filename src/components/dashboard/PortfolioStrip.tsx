@@ -1,6 +1,6 @@
 "use client";
 
-import { Stamp } from "@/components/primitives";
+import { Stamp } from "@/components/primitives/Stamp";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 import { computePortfolioMetrics } from "@/lib/orderMetrics";
 import { CountUp } from "./CountUp";

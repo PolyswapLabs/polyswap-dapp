@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/Logo";
-import { buttonVariants } from "@/components/primitives";
+import { buttonVariants } from "@/components/primitives/Button";
 import { Icon } from "@/components/icons";
 import { MobileNav, type MobileNavLink } from "@/components/layout/MobileNav";
 

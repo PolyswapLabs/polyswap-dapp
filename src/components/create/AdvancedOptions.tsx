@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { InfoTip } from "@/components/primitives";
+import { InfoTip } from "@/components/primitives/InfoTip";
 import { cn } from "@/lib/cn";
 import { EXPIRY_OPTIONS } from "@/lib/createOrder";
 import type { CreateFormState } from "@/hooks/useCreateOrderForm";

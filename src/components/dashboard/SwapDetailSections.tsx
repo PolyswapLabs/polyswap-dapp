@@ -1,14 +1,10 @@
 import type { ReactNode } from "react";
 import type { Address } from "viem";
 import { Icon, PolymarketIcon } from "@/components/icons";
-import {
-  BackLink,
-  Button,
-  DefinitionRow,
-  ErrorAlert,
-  Shimmer,
-  TokenLogo,
-} from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { BackLink, DefinitionRow, ErrorAlert } from "@/components/primitives/PageBlocks";
+import { Shimmer } from "@/components/primitives/Shimmer";
+import { TokenLogo } from "@/components/primitives/TokenLogo";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 import { fmtDate, fmtDateTime, fmtNum, fmtPct } from "@/lib/format";
 import { polymarketEventUrl } from "@/lib/links";

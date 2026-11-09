@@ -1,4 +1,4 @@
-import { DashboardPage } from "@/components/dashboard";
+import { DashboardPage } from "@/components/dashboard/DashboardPage";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
 
 export const metadata = {

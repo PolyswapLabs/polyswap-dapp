@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
-import { TokenLogo } from "@/components/primitives";
+import { TokenLogo } from "@/components/primitives/TokenLogo";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";

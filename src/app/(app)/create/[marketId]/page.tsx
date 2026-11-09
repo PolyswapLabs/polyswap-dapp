@@ -1,4 +1,4 @@
-import { CreatePage } from "@/components/create";
+import { CreatePage } from "@/components/create/CreatePage";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
 
 interface Props {

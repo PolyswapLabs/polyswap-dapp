@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Dial } from "@/components/charts/Dial";
 import { Tape } from "@/components/charts/Tape";
-import { Shimmer, TokenLogo } from "@/components/primitives";
+import { Shimmer } from "@/components/primitives/Shimmer";
+import { TokenLogo } from "@/components/primitives/TokenLogo";
 import { Icon } from "@/components/icons";
 import { fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
 import { useOrderOddsSeries } from "@/hooks/useOrderOddsSeries";

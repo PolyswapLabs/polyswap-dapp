@@ -6,14 +6,10 @@ import { useMarket, useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { cn } from "@/lib/cn";
 import { Dial } from "@/components/charts/Dial";
 import { Tape } from "@/components/charts/Tape";
-import {
-  buttonVariants,
-  DetailSkeleton,
-  Tag,
-  PageMessage,
-  BackLink,
-  OddsAxis,
-} from "@/components/primitives";
+import { buttonVariants } from "@/components/primitives/Button";
+import { DetailSkeleton } from "@/components/primitives/DetailSkeleton";
+import { PageMessage, BackLink, OddsAxis } from "@/components/primitives/PageBlocks";
+import { Tag } from "@/components/primitives/Tag";
 import { CategoryIcon, Icon, PolymarketIcon } from "@/components/icons";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errorMessage";

@@ -1,5 +1,6 @@
 import { Icon } from "@/components/icons";
-import { InfoTip, DefinitionRow } from "@/components/primitives";
+import { InfoTip } from "@/components/primitives/InfoTip";
+import { DefinitionRow } from "@/components/primitives/PageBlocks";
 import { expiryRecapLabel } from "@/lib/createOrder";
 import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
 import {

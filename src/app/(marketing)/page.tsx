@@ -1,14 +1,12 @@
-import {
-  Categories,
-  FAQ,
-  FinalCTA,
-  Guarantees,
-  Hero,
-  HowItWorks,
-  Premise,
-  PullQuote,
-  Reveal,
-} from "@/components/landing";
+import { Categories } from "@/components/landing/Categories";
+import { FAQ } from "@/components/landing/FAQ";
+import { FinalCTA } from "@/components/landing/FinalCTA";
+import { Guarantees } from "@/components/landing/Guarantees";
+import { Hero } from "@/components/landing/Hero";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Premise } from "@/components/landing/Premise";
+import { PullQuote } from "@/components/landing/PullQuote";
+import { Reveal } from "@/components/landing/Reveal";
 import { publicPageMetadata } from "@/lib/seo";
 
 export const metadata = publicPageMetadata({

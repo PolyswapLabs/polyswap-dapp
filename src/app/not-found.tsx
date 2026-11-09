@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { buttonVariants, Stamp } from "@/components/primitives";
+import { buttonVariants } from "@/components/primitives/Button";
+import { Stamp } from "@/components/primitives/Stamp";
 import { Icon } from "@/components/icons";
 import { Wordmark } from "@/components/layout/Logo";
 

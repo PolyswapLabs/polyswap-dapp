@@ -1,7 +1,7 @@
 "use client";
 
 import { Tape } from "@/components/charts/Tape";
-import { ErrorAlert } from "@/components/primitives";
+import { ErrorAlert } from "@/components/primitives/PageBlocks";
 import { fmtTokenAmount, fmtUSD } from "@/lib/format";
 import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";

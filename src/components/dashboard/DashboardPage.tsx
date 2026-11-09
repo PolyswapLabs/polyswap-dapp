@@ -7,7 +7,8 @@ import { PortfolioStrip } from "./PortfolioStrip";
 import { StatusTabs, type DashboardTab } from "./StatusTabs";
 import { SwapRow } from "./SwapRow";
 import { ConnectWalletPrompt, NoSwapsYet } from "./EmptyStates";
-import { MotionList, MotionItem, ErrorAlert } from "@/components/primitives";
+import { MotionList, MotionItem } from "@/components/primitives/MotionList";
+import { ErrorAlert } from "@/components/primitives/PageBlocks";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { AnimatePresence, motion } from "motion/react";
 

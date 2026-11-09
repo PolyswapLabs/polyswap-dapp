@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, type ComponentProps } from "react";
-import { Button, DetailSkeleton, ErrorAlert, PageMessage, BackLink } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { DetailSkeleton } from "@/components/primitives/DetailSkeleton";
+import { ErrorAlert, PageMessage, BackLink } from "@/components/primitives/PageBlocks";
 import { Icon } from "@/components/icons";
 import { useMarket } from "@/hooks/markets/useMarkets";
 import {

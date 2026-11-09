@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import type { Hash } from "viem";
-import { Button, Modal } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { Modal } from "@/components/primitives/Modal";
 import { Icon } from "@/components/icons";
 import { useSafeSignModalFlow, type SafeSignPrepare } from "@/hooks/useSafeSignModalFlow";
 import { polygonscanTxUrl } from "@/lib/links";

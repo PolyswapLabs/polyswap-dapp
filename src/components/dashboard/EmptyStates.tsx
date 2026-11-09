@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/primitives";
+import { Button, buttonVariants } from "@/components/primitives/Button";
 import { Icon } from "@/components/icons";
 
 export function ConnectWalletPrompt({ onConnect }: { onConnect?: () => void }) {

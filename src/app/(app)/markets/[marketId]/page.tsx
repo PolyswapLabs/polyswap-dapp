@@ -1,4 +1,4 @@
-import { MarketDetail } from "@/components/markets";
+import { MarketDetail } from "@/components/markets/MarketDetail";
 import type { Metadata } from "next";
 import { marketRepository } from "@/backend/db/marketRepository";
 import { PRIVATE_PAGE_ROBOTS, publicPageMetadata } from "@/lib/seo";
