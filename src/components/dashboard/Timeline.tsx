@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { fmtDateTime, fmtDuration, fmtPct } from "@/lib/format";
-import type { OrderViewModel } from "@/hooks/useOrders";
+import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 
 interface Step {
   Icon: typeof Icon.zap;

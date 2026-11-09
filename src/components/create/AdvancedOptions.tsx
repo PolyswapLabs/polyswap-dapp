@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { InfoTip } from "@/components/primitives";
 import { cn } from "@/lib/cn";
-import type { CreateFormState, Expiry } from "@/hooks/useCreateOrder";
+import type { CreateFormState, Expiry } from "@/hooks/useCreateOrderForm";
 
 interface Props {
   state: Pick<CreateFormState, "expiry" | "slippagePct">;

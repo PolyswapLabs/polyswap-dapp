@@ -8,7 +8,7 @@ import { MarketRow } from "./MarketRow";
 import { MarketsSkeleton } from "./MarketsSkeleton";
 import { Pagination } from "./Pagination";
 import { MotionList, MotionItem } from "@/components/primitives";
-import { useRecommendedMarkets } from "@/hooks/useMarketsData";
+import { useRecommendedMarkets } from "@/hooks/markets/useMarkets";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/types/design";
 import { capturePostHogEvent } from "@/lib/posthog-client";

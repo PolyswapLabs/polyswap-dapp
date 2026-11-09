@@ -1,3 +1,5 @@
+import { isRecord } from "./api";
+
 const CLOB_BASE = "https://clob.polymarket.com";
 
 export type ClobSide = "BUY" | "SELL";
@@ -18,7 +20,7 @@ export async function fetchClobPrices(requests: ClobPriceRequest[]): Promise<Clo
   });
   if (!res.ok) throw new Error(`CLOB /prices failed: ${res.status}`);
   const json: unknown = await res.json();
-  if (json === null || typeof json !== "object") {
+  if (!isRecord(json)) {
     throw new Error("CLOB /prices returned non-object response");
   }
   return json as ClobPricesResponse;
@@ -80,12 +82,6 @@ async function fetchHistory(tokenId: string): Promise<ClobHistoryPoint[]> {
   const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`CLOB /prices-history failed: ${res.status}`);
   const json: unknown = await res.json();
-  if (
-    json === null ||
-    typeof json !== "object" ||
-    !Array.isArray((json as { history?: unknown }).history)
-  ) {
-    return [];
-  }
-  return (json as { history: ClobHistoryPoint[] }).history;
+  if (!isRecord(json) || !Array.isArray(json.history)) return [];
+  return json.history as ClobHistoryPoint[];
 }

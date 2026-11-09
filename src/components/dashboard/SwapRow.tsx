@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Dial, Shimmer, Status, Tape, TokenLogo } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
-import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
-import type { OrderViewModel } from "@/hooks/useOrders";
+import { useMarket, useMarketPriceHistory } from "@/hooks/markets/useMarkets";
+import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 
 interface Props {
   order: OrderViewModel;

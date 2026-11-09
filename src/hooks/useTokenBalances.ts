@@ -5,6 +5,8 @@ import { erc20Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import type { TokenViewModel } from "@/types/design";
 
+const BALANCES_STALE_MS = 30_000;
+
 interface UseTokenBalancesResult {
   balances: ReadonlyMap<string, bigint>;
   isLoading: boolean;
@@ -26,7 +28,7 @@ export function useTokenBalances(
           args: [address!] as const,
         }))
       : [],
-    query: { enabled, staleTime: 30_000 },
+    query: { enabled, staleTime: BALANCES_STALE_MS },
   });
 
   const balances = useMemo<Map<string, bigint>>(() => {

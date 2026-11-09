@@ -4,7 +4,11 @@ import { getTradingAssetIds } from "../../src/lib/polymarket/protocol";
 import { PolymarketAPIService } from "../../src/backend/services/polymarketAPIService";
 import { enrichRecommendation } from "../../src/backend/services/marketRecommendationScoring";
 import type { DatabaseMarket } from "../../src/backend/interfaces/Database";
-import { mergeMarket, toViewModel, tokenPriceRequests } from "../../src/hooks/useMarketsData";
+import {
+  toMarketViewModel,
+  toPricedMarket,
+  tokenPriceRequests,
+} from "../../src/hooks/markets/marketMapper";
 
 const source = { outcomes: '["No","Yes"]', clobTokenIds: '["11","12"]', positionIds: ["21", "22"] };
 
@@ -25,6 +29,7 @@ const unclassifiedRow = {
   position_ids: [],
   condition_id: null,
   active: false,
+  neg_risk: false,
 };
 
 test("unclassified cached markets still display using their cached CLOB IDs", () => {
@@ -34,7 +39,9 @@ test("unclassified cached markets still display using their cached CLOB IDs", ()
     { token_id: "12", side: "BUY" },
     { token_id: "12", side: "SELL" },
   ]);
-  const view = toViewModel(mergeMarket(unclassifiedRow, { "11": { BUY: "0.4", SELL: "0.6" } }));
+  const view = toMarketViewModel(
+    toPricedMarket(unclassifiedRow, { "11": { BUY: "0.4", SELL: "0.6" } })
+  );
   assert.equal(view?.question, "Test?");
   assert.equal(view?.yesTokenId, "11");
   assert.equal(view?.noTokenId, "12");
@@ -44,7 +51,7 @@ test("unclassified cached markets still display using their cached CLOB IDs", ()
 test("unclassified markets with unusable cached IDs display without prices", () => {
   const row = { ...unclassifiedRow, clob_token_ids: ["11"] };
   assert.deepEqual(tokenPriceRequests([row]), []);
-  const view = toViewModel(mergeMarket(row, {}));
+  const view = toMarketViewModel(toPricedMarket(row, {}));
   assert.equal(view?.question, "Test?");
   assert.equal(view?.yesTokenId, null);
 });
@@ -55,10 +62,40 @@ test("classified markets keep version-selected IDs and unknown versions still th
     protocol_version: "v2" as const,
     position_ids: ["21", "22"],
   };
-  assert.equal(toViewModel(mergeMarket(v2, {}))?.yesTokenId, "21");
+  assert.equal(toMarketViewModel(toPricedMarket(v2, {}))?.yesTokenId, "21");
   assert.throws(() =>
     tokenPriceRequests([{ ...unclassifiedRow, protocol_version: "v3" as never }])
   );
+});
+
+test("Yes and No pick their token by label, whatever the outcome order", () => {
+  const row = { ...unclassifiedRow, outcomes: ["No", "Yes"] };
+  const prices = { "11": { BUY: "0.2", SELL: "0.4" }, "12": { BUY: "0.7", SELL: "0.9" } };
+  const view = toMarketViewModel(toPricedMarket(row, prices));
+  assert.equal(view?.yesTokenId, "12");
+  assert.equal(view?.noTokenId, "11");
+  assert.equal(view?.yesProbability, 0.8);
+  assert.equal(view?.yesBestAsk, 0.9);
+  assert.equal(view?.noBestAsk, 0.4);
+});
+
+test("two outcomes not labelled Yes/No read the first outcome as YES", () => {
+  const row = { ...unclassifiedRow, outcomes: ["Up", "Down"] };
+  const view = toMarketViewModel(toPricedMarket(row, {}));
+  assert.equal(view?.yesTokenId, "11");
+  assert.equal(view?.noTokenId, "12");
+});
+
+test("only two-outcome markets are priced", () => {
+  for (const outcomes of [["Yes"], ["A", "B", "C"], []]) {
+    assert.equal(toPricedMarket({ ...unclassifiedRow, outcomes }, {}), null);
+  }
+  assert.equal(toMarketViewModel(null), null);
+});
+
+test("markets outside the known categories have no view model", () => {
+  const row = { ...unclassifiedRow, category: "Knitting" };
+  assert.equal(toMarketViewModel(toPricedMarket(row, {})), null);
 });
 
 test("version selects IDs even when both arrays exist; invalid identifiers fail closed", () => {

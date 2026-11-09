@@ -1,7 +1,7 @@
 "use client";
 
 import { CountUp, Stamp } from "@/components/primitives";
-import type { OrderViewModel } from "@/hooks/useOrders";
+import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 
 interface Props {
   orders: OrderViewModel[];
