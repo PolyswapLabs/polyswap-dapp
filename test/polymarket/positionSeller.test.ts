@@ -23,6 +23,7 @@ const { PolymarketOrderService } =
 const { subscribePositionReceipts, stopPositionSeller } =
   await import("../../src/backend/listener/cron/positionSeller");
 const { handleTrade, handleLiveTrade } = await import("../../src/backend/listener/handlers/trade");
+const { sdkHarness, v2Id: ASSET } = await import("./fixtures");
 
 const OWNER = "0x92e53caa23ffc3bd4051cc5f0b56d9fb1d2a29e1";
 
@@ -317,5 +318,162 @@ test("a real pass neither reads nor sells a redeemable position", async (t) => {
   await Seller.triggerSell();
 
   assert.deepEqual(reads, []);
+  assert.equal(post.mock.callCount(), 0);
+});
+
+type StubPosition = { protocolVersion: "v1" | "v2"; currentPrice?: number };
+
+const BOOK = { bids: [{ price: "0.4" }], tickSize: "0.01", conditionId: "0xbook" };
+
+/** Runs real passes over stubbed positions; only the SDK transport and the chain are faked. */
+async function sellHarness(t: TestContext, stubs: StubPosition[]) {
+  const h = await sdkHarness({ protocolVersion: "v2", negRisk: false });
+  t.mock.method(PolymarketOrderService, "getInstance", () => h.service);
+  t.mock.method(h.service, "initialize", (async () => {}) as never);
+  t.mock.method(h.service, "ensureTradingApprovals", (async () => {}) as never);
+  const openOrders = t.mock.method(h.service, "getOpenOrders", (async () => []) as never);
+  const book = t.mock.method(h.client, "fetchOrderBook", (async () => BOOK) as never);
+  const post = t.mock.method(h.service, "postGTCOrder", (async () => ({
+    response: { orderId: "order-1" },
+  })) as never);
+  const record = t.mock.method(DatabaseService, "recordSoldPosition", (async () => 1) as never);
+  const seller = Seller as unknown as { inventory: unknown };
+  const previous = seller.inventory;
+  seller.inventory = {
+    read: async () =>
+      stubs.map(({ protocolVersion, currentPrice }) => ({
+        assetId: ASSET,
+        protocolVersion,
+        balance: 1_000_000n,
+        metadata:
+          currentPrice === undefined
+            ? undefined
+            : {
+                assetId: ASSET,
+                conditionId: "0xposition",
+                size: 1,
+                currentPrice,
+                title: "A market",
+                outcome: "Yes",
+                negRisk: false,
+                redeemable: false,
+              },
+      })),
+    balance: async () => 3_000_000n,
+  };
+  t.after(() => {
+    seller.inventory = previous;
+  });
+  const postedOrder = (index: number) =>
+    post.mock.calls[index]?.arguments[0 as never] as unknown as Record<string, unknown>;
+  const recorded = () => record.mock.calls[0]?.arguments[0 as never] as unknown;
+  return { post, record, book, openOrders, postedOrder, recorded };
+}
+
+test("a sale uses the discounted price and the balance re-read before posting", async (t) => {
+  const { post, postedOrder, recorded } = await sellHarness(t, [
+    { protocolVersion: "v1", currentPrice: 0.5 },
+  ]);
+
+  await Seller.triggerSell();
+
+  assert.equal(post.mock.callCount(), 1);
+  const order = postedOrder(0);
+  assert.equal(order.tokenID, ASSET);
+  assert.equal(order.protocolVersion, "v1");
+  assert.equal(order.side, "SELL");
+  assert.equal(order.price, 0.47);
+  assert.equal(order.size, "3");
+  assert.deepEqual(recorded(), {
+    assetId: ASSET,
+    conditionId: "0xposition",
+    protocolVersion: "v1",
+    size: "3",
+    sellPrice: 0.47,
+    currentPrice: 0.5,
+    orderId: "order-1",
+    marketTitle: "A market",
+    outcome: "Yes",
+  });
+});
+
+test("a position the Data API does not know is priced from the book, recorded as unknown", async (t) => {
+  const { postedOrder, recorded } = await sellHarness(t, [{ protocolVersion: "v1" }]);
+
+  await Seller.triggerSell();
+
+  assert.equal(postedOrder(0).price, 0.38);
+  assert.equal(postedOrder(0).negRisk, false);
+  assert.deepEqual(recorded(), {
+    assetId: ASSET,
+    conditionId: "0xbook",
+    protocolVersion: "v1",
+    size: "3",
+    sellPrice: 0.38,
+    currentPrice: 0.4,
+    orderId: "order-1",
+    marketTitle: ASSET,
+    outcome: "Unknown",
+  });
+});
+
+test("an asset already being sold is not sold again from the other ledger", async (t) => {
+  const { post } = await sellHarness(t, [
+    { protocolVersion: "v1", currentPrice: 0.5 },
+    { protocolVersion: "v2", currentPrice: 0.5 },
+  ]);
+
+  await Seller.triggerSell();
+
+  assert.equal(post.mock.callCount(), 1);
+});
+
+test("a failed sale does not stop the same asset being sold from the other ledger", async (t) => {
+  const { post, postedOrder } = await sellHarness(t, [
+    { protocolVersion: "v1", currentPrice: 0.5 },
+    { protocolVersion: "v2", currentPrice: 0.5 },
+  ]);
+  post.mock.mockImplementationOnce((async () => {
+    throw new Error("rejected");
+  }) as never);
+
+  await Seller.triggerSell();
+
+  assert.equal(post.mock.callCount(), 2);
+  assert.equal(postedOrder(1).protocolVersion, "v2");
+});
+
+test("a sale whose audit record fails still counts as placed", async (t) => {
+  const { post, record } = await sellHarness(t, [
+    { protocolVersion: "v1", currentPrice: 0.5 },
+    { protocolVersion: "v2", currentPrice: 0.5 },
+  ]);
+  record.mock.mockImplementation((async () => {
+    throw new Error("db down");
+  }) as never);
+
+  await assert.doesNotReject(Seller.triggerSell());
+
+  assert.equal(post.mock.callCount(), 1, "the audit failure must not cause a second sale");
+});
+
+test("an asset with an open SELL order is left alone, but a BUY does not block it", async (t) => {
+  const { post, openOrders } = await sellHarness(t, [{ protocolVersion: "v1", currentPrice: 0.5 }]);
+
+  openOrders.mock.mockImplementationOnce((async () => [{ side: "SELL", assetId: ASSET }]) as never);
+  await Seller.triggerSell();
+  assert.equal(post.mock.callCount(), 0);
+
+  openOrders.mock.mockImplementationOnce((async () => [{ side: "BUY", assetId: ASSET }]) as never);
+  await Seller.triggerSell();
+  assert.equal(post.mock.callCount(), 1);
+});
+
+test("a position with no price signal is not sold", async (t) => {
+  const { post, book } = await sellHarness(t, [{ protocolVersion: "v1", currentPrice: 0 }]);
+  book.mock.mockImplementation((async () => ({ ...BOOK, bids: [] })) as never);
+
+  await Seller.triggerSell();
+
   assert.equal(post.mock.callCount(), 0);
 });

@@ -184,3 +184,75 @@ test("Gamma uses after_cursor and keeps cursor walks independent for each versio
   assert.equal(calls.get("v1"), 2);
   assert.equal(calls.get("v2"), 2);
 });
+
+test("maxNb caps each protocol walk and the merged result", async (t) => {
+  const calls = new Map<string, number>();
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    const version = url.searchParams.get("version");
+    assert.ok(version);
+    calls.set(version, (calls.get(version) ?? 0) + 1);
+    const market = (n: number) => ({
+      ...source,
+      id: `${version}-${n}`,
+      version,
+      slug: `${version}-${n}`,
+      question: "Test?",
+    });
+    return Response.json({
+      events: [{ markets: [market(1), market(2), market(3)] }],
+      next_cursor: "more",
+    });
+  });
+
+  const markets = await PolymarketAPIService.getOpenMarkets({ maxNb: 2 });
+
+  assert.equal(markets.length, 2);
+  assert.equal(calls.get("v1"), 1, "reaching maxNb stops the walk");
+  assert.equal(calls.get("v2"), 1);
+});
+
+test("a repeated Gamma cursor fails the sync instead of looping forever", async (t) => {
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ events: [{ markets: [] }], next_cursor: "same" })
+  );
+  await assert.rejects(PolymarketAPIService.getOpenMarkets({}), (error: AggregateError) => {
+    assert.match(String(error.errors[0]), /same cursor twice/);
+    return true;
+  });
+});
+
+test("a Gamma page without events and an HTTP error both fail the sync", async (t) => {
+  for (const response of [
+    () => Response.json({ unexpected: true }),
+    () => new Response("nope", { status: 502, statusText: "Bad Gateway" }),
+  ]) {
+    const mocked = t.mock.method(globalThis, "fetch", async () => response());
+    await assert.rejects(PolymarketAPIService.getOpenMarkets({ versions: ["v1"] }));
+    mocked.mock.restore();
+  }
+});
+
+test("the keyset request carries the filters Gamma needs", async (t) => {
+  const calls: URL[] = [];
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    calls.push(new URL(String(input)));
+    return Response.json({ events: [], next_cursor: null });
+  });
+
+  await PolymarketAPIService.getOpenMarkets({
+    versions: ["v2"],
+    endDateMin: "2030-01-01T00:00:00.000Z",
+    limit: 500,
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.pathname, "/events/keyset");
+  assert.deepEqual(Object.fromEntries(calls[0]?.searchParams ?? []), {
+    version: "v2",
+    active: "true",
+    closed: "false",
+    end_date_min: "2030-01-01T00:00:00.000Z",
+    limit: "100",
+  });
+});
