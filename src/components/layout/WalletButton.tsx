@@ -14,7 +14,7 @@ interface Props {
 
 /**
  * Compact wallet pill for the masthead.
- * - Disconnected: "Connect wallet" CTA → opens wallet modal (phase 5).
+ * - Disconnected: "Connect wallet" CTA → opens wallet modal.
  * - Connected: shortened address + a hover/click affordance to disconnect.
  */
 export function WalletButton({ onConnect, className }: Props) {

@@ -67,7 +67,7 @@ export interface DatabasePolyswapOrder {
   sentinel_id: number | null;
   last_error_name: string | null;
   last_error_reason: string | null;
-  last_error_retry_at: string | null; // BIGINT — pg returns string
+  last_error_retry_at: string | null; // BIGINT, serialized as a string
   last_checked_at: Date | null;
   cow_order_status: "presignaturePending" | "open" | "fulfilled" | "cancelled" | "expired" | null;
   filled_at: Date | null;

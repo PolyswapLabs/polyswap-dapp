@@ -98,7 +98,7 @@ export function decodeStaticInput(staticInput: Hex): PolyswapOrderData {
  * `getTradeableOrderWithSignature`. Match the IConditionalOrder interface
  * exposed by the upstream CoW contracts.
  */
-export const COW_CONDITIONAL_ORDER_ERROR_ABI = [
+const COW_CONDITIONAL_ORDER_ERROR_ABI = [
   { type: "error", name: "OrderNotValid", inputs: [{ name: "reason", type: "string" }] },
   { type: "error", name: "PollNever", inputs: [{ name: "reason", type: "string" }] },
   { type: "error", name: "PollTryNextBlock", inputs: [{ name: "reason", type: "string" }] },
@@ -127,7 +127,7 @@ export type CowConditionalErrorName =
   | "PollTryAtBlock"
   | "PollTryAtEpoch";
 
-export interface DecodedPollError {
+interface DecodedPollError {
   name: CowConditionalErrorName;
   reason: string;
   /**

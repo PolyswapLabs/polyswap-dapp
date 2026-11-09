@@ -19,7 +19,7 @@ import {
  * Non-retryable errors (bad params, user rejection, encoding issues, etc.)
  * are surfaced immediately on the first failure.
  */
-export interface ResilientHttpConfig extends HttpTransportConfig {
+interface ResilientHttpConfig extends HttpTransportConfig {
   /** Total attempts including the first call. Default 5. */
   maxAttempts?: number;
   /** Initial backoff delay in ms; doubles per attempt. Default 250. */
@@ -92,7 +92,7 @@ const RETRYABLE_NETWORK_PATTERNS = [
   "eai_again",
 ];
 
-export function isRetryableRpcError(error: unknown): boolean {
+function isRetryableRpcError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
 
   if (error instanceof TimeoutError) return true;

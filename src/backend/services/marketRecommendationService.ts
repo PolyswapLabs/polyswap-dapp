@@ -14,7 +14,7 @@ import { getRetryAt } from "../utils/httpRetry";
 
 const log = createLogger("market-recommendations");
 
-export interface RecommendationCandidates {
+interface RecommendationCandidates {
   markets: DatabaseMarket[];
   truncated: boolean;
 }

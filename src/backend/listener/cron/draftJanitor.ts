@@ -23,7 +23,7 @@ function requireComposableCow(): Address {
  * an unconfirmed draft cannot have activated one, while another confirmed
  * order may still reference the same sentinel.
  */
-export async function sweepStaleDrafts(): Promise<void> {
+async function sweepStaleDrafts(): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_AFTER_MS);
   const stale = await DatabaseService.findDraftsOlderThan(cutoff);
   if (stale.length === 0) {

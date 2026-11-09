@@ -1,4 +1,3 @@
-// src/services/safe/multiSendEncoder.ts
 import { concatHex, encodeFunctionData, numberToHex, size, type Address, type Hex } from "viem";
 import type { SafeCall } from "./types";
 
@@ -8,7 +7,7 @@ import type { SafeCall } from "./types";
  *
  * Source: https://github.com/safe-global/safe-deployments
  */
-export const MULTI_SEND_CALL_ONLY: Address = "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D";
+const MULTI_SEND_CALL_ONLY: Address = "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D";
 
 const MULTI_SEND_ABI = [
   {

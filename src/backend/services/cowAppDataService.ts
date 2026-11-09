@@ -12,7 +12,7 @@ const APP_DATA_VERSION = "1.15.0";
 const POLYSWAP_METADATA_VERSION = "1";
 const MAX_FULL_APP_DATA_BYTES = 1_000;
 
-export interface CowAppDataDocument {
+interface CowAppDataDocument {
   version: string;
   appCode: string;
   environment: string;
@@ -23,7 +23,7 @@ export interface CowAppDataDocument {
   };
 }
 
-export interface CowAppData {
+interface CowAppData {
   nonce: Hex;
   document: CowAppDataDocument;
   fullAppData: string;

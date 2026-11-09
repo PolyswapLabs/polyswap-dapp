@@ -3,7 +3,7 @@ import { PROTOCOL_VERSIONS, type ProtocolVersion } from "../../lib/polymarket/pr
 import { getTradingConfig } from "./config";
 import { PolymarketDataClient, type PolymarketPosition } from "./data";
 
-export interface InventoryPosition {
+interface InventoryPosition {
   assetId: string;
   protocolVersion: ProtocolVersion;
   balance: bigint;

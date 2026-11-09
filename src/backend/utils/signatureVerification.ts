@@ -22,7 +22,7 @@ const SAFE_IS_VALID_SIGNATURE_ABI = [
 
 const MAX_TIMESTAMP_AGE_SECONDS = 300; // 5 minutes
 
-export interface SignatureVerificationParams {
+interface SignatureVerificationParams {
   action: string;
   orderIdentifier: string;
   timestamp: number;
@@ -32,7 +32,7 @@ export interface SignatureVerificationParams {
   publicClient: PublicClient;
 }
 
-export interface VerificationResult {
+interface VerificationResult {
   valid: boolean;
   error?: string;
 }

@@ -5,7 +5,7 @@ import { erc20Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import type { TokenViewModel } from "@/types/design";
 
-export interface UseTokenBalancesResult {
+interface UseTokenBalancesResult {
   balances: ReadonlyMap<string, bigint>;
   isLoading: boolean;
 }

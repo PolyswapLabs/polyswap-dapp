@@ -22,12 +22,6 @@ interface TapeProps {
   /** When true, show a vertical hover indicator + tooltip with value and date. */
   interactive?: boolean;
   /**
-   * The date represented by the last data point. Earlier points are spaced
-   * one day apart going backwards. Used only when `interactive` is true and
-   * `timestamps` is not provided.
-   */
-  endDate?: Date | string | number;
-  /**
    * Per-point Unix-seconds timestamps. When provided, the hover tooltip uses
    * the actual point's date instead of the synthesised one-per-day spacing.
    */
@@ -39,8 +33,6 @@ interface TapeProps {
    */
   executedAt?: number;
 }
-
-const DAY_MS = 86_400_000;
 
 function formatHoverDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -60,7 +52,6 @@ export function Tape({
   className,
   animate = false,
   interactive = false,
-  endDate,
   timestamps,
   executedAt,
 }: TapeProps) {
@@ -127,13 +118,6 @@ export function Tape({
       }
       return bestIdx;
     }
-    if (endDate !== undefined) {
-      const endSec = new Date(endDate).getTime() / 1000;
-      const startSec = endSec - (data.length - 1) * (DAY_MS / 1000);
-      if (executedAt < startSec || executedAt > endSec) return null;
-      const ratio = (executedAt - startSec) / (endSec - startSec);
-      return Math.round(ratio * (data.length - 1));
-    }
     return null;
   })();
   const executedPoint = executedIndex !== null ? (points[executedIndex] ?? null) : null;
@@ -149,10 +133,6 @@ export function Tape({
     if (!interactive || hover === null) return null;
     if (timestamps && timestamps[hover] !== undefined) {
       return new Date(timestamps[hover]! * 1000);
-    }
-    if (endDate !== undefined) {
-      const end = new Date(endDate);
-      return new Date(end.getTime() - (data.length - 1 - hover) * DAY_MS);
     }
     return null;
   })();

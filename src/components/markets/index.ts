@@ -1,6 +1,5 @@
 export { CategoryFilter } from "./CategoryFilter";
 export type { CategoryFilterValue } from "./CategoryFilter";
-export { SearchInput } from "./SearchInput";
 export { SearchInputWithSuggestions } from "./SearchInputWithSuggestions";
 export { MarketRow } from "./MarketRow";
 export { MarketsList } from "./MarketsList";

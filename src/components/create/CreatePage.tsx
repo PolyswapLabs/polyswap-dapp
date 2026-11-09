@@ -8,7 +8,7 @@ import { usePublicClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, DetailSkeleton } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { useMarket, useRawMarket } from "@/hooks/useMarketsData";
+import { useMarket } from "@/hooks/useMarketsData";
 import { useCreateOrder, describeSentence, type Slippage } from "@/hooks/useCreateOrder";
 import { useSwapEstimates } from "@/hooks/useSwapEstimates";
 import { useSafeAccount } from "@/hooks/safe/useSafeAccount";
@@ -72,7 +72,6 @@ function computeMinBuyAmount(
 
 export function CreatePage({ marketId }: Props) {
   const { data: market, isLoading, isError, error: marketError } = useMarket(marketId);
-  const { data: rawMarket } = useRawMarket(marketId);
   const { state, derived, set } = useCreateOrder();
   const { safeAddress, isReady: walletReady } = useSafeAccount();
   const estimates = useSwapEstimates({
@@ -139,7 +138,7 @@ export function CreatePage({ marketId }: Props) {
       wallet.open();
       return;
     }
-    if (!rawMarket) {
+    if (!market) {
       setSigningError("Market data unavailable. Please refresh and try again.");
       return;
     }
@@ -164,7 +163,7 @@ export function CreatePage({ marketId }: Props) {
     }
 
     capturePostHogEvent("swap_review_started", {
-      market_id: rawMarket.id,
+      market_id: market.id,
       selected_outcome: state.side,
       threshold_percentage: Math.round(state.threshold * 100),
       expiry: state.expiry,
@@ -209,14 +208,14 @@ export function CreatePage({ marketId }: Props) {
         betPercentage: Math.round(state.threshold * 100),
         startDate: "now",
         deadline,
-        marketId: rawMarket.id,
+        marketId: market.id,
         owner: safeAddress,
       });
 
       orderIdRef.current = order.orderId;
       capturePostHogEvent("swap_draft_created", {
         order_id: order.orderId,
-        market_id: rawMarket.id,
+        market_id: market.id,
         selected_outcome: state.side,
         threshold_percentage: Math.round(state.threshold * 100),
         expiry: state.expiry,

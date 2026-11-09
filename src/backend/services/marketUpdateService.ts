@@ -14,7 +14,7 @@ function readPositiveInt(envName: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-export interface MarketUpdateStats {
+interface MarketUpdateStats {
   fetched: number;
   upserted: number;
   unchanged: number;

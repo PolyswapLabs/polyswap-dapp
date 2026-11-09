@@ -11,7 +11,7 @@ import { createLogger } from "../logger";
 const log = createLogger("polymarket-sentinel");
 const PREPARE_ATTEMPTS = 3;
 
-export interface SentinelBucket {
+interface SentinelBucket {
   marketId: string;
   tokenId: string;
   outcomeSelected: string;

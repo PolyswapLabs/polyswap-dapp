@@ -15,7 +15,6 @@ const NAV_LINKS: { href: string; label: string }[] = [
 ];
 
 interface Props {
-  /** Opens the wallet modal — wired up in phase 5. */
   onConnectWallet: () => void;
 }
 

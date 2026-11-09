@@ -13,8 +13,6 @@ interface RevealProps extends Omit<HTMLMotionProps<"div">, "children"> {
   duration?: number;
   /** Delay in seconds. */
   delay?: number;
-  /** When true, replays every time it scrolls back into view. Default false. */
-  repeat?: boolean;
   className?: string;
 }
 
@@ -28,7 +26,6 @@ export function Reveal({
   offset = 12,
   duration = 0.6,
   delay = 0,
-  repeat = false,
   className,
   ...rest
 }: RevealProps) {
@@ -37,7 +34,7 @@ export function Reveal({
       className={className}
       initial={{ opacity: 0, y: offset }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: !repeat, amount: 0.2, margin: "0px 0px -10% 0px" }}
+      viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
       transition={{ duration, delay, ease: EASE }}
       {...rest}
     >

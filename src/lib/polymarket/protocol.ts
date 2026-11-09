@@ -21,7 +21,7 @@ export function parseStringArray(value: unknown): string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : [];
 }
 
-export interface MarketAssets {
+interface MarketAssets {
   protocolVersion: unknown;
   outcomes: unknown;
   clobTokenIds: unknown;

@@ -12,7 +12,7 @@ interface StatusComponent {
   status: string;
 }
 
-export interface ClobAvailability {
+interface ClobAvailability {
   available: boolean;
   reason?: string;
 }

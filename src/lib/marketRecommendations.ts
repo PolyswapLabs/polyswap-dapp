@@ -69,7 +69,7 @@ export type RecommendationPage = RecommendationPageMetadata &
       }
   );
 
-export function isOddsRangeValid({ oddsMin, oddsMax }: OddsRange): boolean {
+function isOddsRangeValid({ oddsMin, oddsMax }: OddsRange): boolean {
   return (
     Number.isInteger(oddsMin) &&
     Number.isInteger(oddsMax) &&
@@ -133,7 +133,7 @@ const RELEVANCE: Readonly<Record<string, number>> = {
   ai: 0.6,
 };
 
-export function recommendationScore(
+function recommendationScore(
   market: Pick<
     RecommendedMarket,
     "volume24h" | "liquidity" | "spread" | "yesProbability" | "endsAt"
@@ -162,7 +162,7 @@ export function recommendationScore(
   );
 }
 
-export type EnrichmentResult =
+type EnrichmentResult =
   | { market: RecommendedMarket; rejection?: never }
   | { market?: never; rejection: string };
 

@@ -6,7 +6,7 @@ import { type PublicPolyswapOrder } from "../backend/interfaces/PolyswapOrder";
 // PolySwap Order types (consolidated POST /polyswap/orders)
 // ---------------------------------------------------------------------------
 
-export interface CreatePolyswapOrderRequest {
+interface CreatePolyswapOrderRequest {
   sellToken: Address;
   buyToken: Address;
   sellAmount: string;
@@ -19,13 +19,13 @@ export interface CreatePolyswapOrderRequest {
   owner: Address;
 }
 
-export interface PolyswapTxCall {
+interface PolyswapTxCall {
   to: Address;
   data: Hex;
   value: string;
 }
 
-export interface CreatePolyswapOrderResponse {
+interface CreatePolyswapOrderResponse {
   orderId: number;
   polymarketOrderHash: string;
   orderHash: string;
@@ -97,28 +97,6 @@ function isSuccessEnvelope(value: unknown): value is { success: true } {
 
 class ApiService {
   private baseUrl = "/api"; // Use relative paths for Next.js API routes
-
-  private async fetchApi(
-    endpoint: string,
-    params?: Record<string, string | number>
-  ): Promise<unknown> {
-    const fullPath = `${this.baseUrl}${endpoint}`;
-    const url = new URL(fullPath, window.location.origin);
-
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value));
-        }
-      });
-    }
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  }
 
   async getMarketBySlug(
     slug: string,

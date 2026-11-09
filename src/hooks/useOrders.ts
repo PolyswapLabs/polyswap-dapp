@@ -25,7 +25,7 @@ export interface OrderViewModel {
   endTime: Date;
   /** Synthetic spark — replaced by real history when available. */
   spark: number[];
-  /** Threshold used for visual feedback. Real value comes from order params later. */
+  /** Threshold used for visual feedback. */
   threshold: number;
   /** Underlying DB lifecycle status — used by cancel logic (off-chain delete vs. on-chain remove). */
   phase: "draft" | "live" | "filled" | "canceled" | "errored" | "expired";
@@ -75,7 +75,7 @@ function mapStatus(status: PublicPolyswapOrder["status"]): SwapStatus {
 }
 
 /**
- * Action-sentence nickname: `Buy {BUY} if {SIDE} ≥ {pct}%`. Used as the H1 on
+ * Action-sentence nickname: `Buy {BUY} if {SIDE} ≃ {pct}%`. Used as the H1 on
  * the order detail page and the row title on the My Swaps list — readable at
  * a glance without needing the market title (which lives in its own panel).
  */
@@ -104,7 +104,7 @@ function buildTokenMap(tokens: Token[] | undefined): Map<string, Token> {
   return map;
 }
 
-export function toOrderView(o: PublicPolyswapOrder, tokenMap: Map<string, Token>): OrderViewModel {
+function toOrderView(o: PublicPolyswapOrder, tokenMap: Map<string, Token>): OrderViewModel {
   const sellMeta = tokenMap.get(o.sell_token.toLowerCase());
   const buyMeta = tokenMap.get(o.buy_token.toLowerCase());
   const sellSym = sellMeta?.symbol ?? "?";

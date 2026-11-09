@@ -39,7 +39,7 @@ import {
   type SignedOrderFormat,
 } from "../polymarket/orders";
 
-export interface PolymarketOrderConfig extends TradingContext {
+interface PolymarketOrderConfig extends TradingContext {
   tokenID: string;
   price: number;
   side: "BUY" | "SELL";
@@ -48,7 +48,7 @@ export interface PolymarketOrderConfig extends TradingContext {
   postOnly?: boolean;
 }
 
-export interface PreparedGTDOrder {
+interface PreparedGTDOrder {
   signedOrder: SignedOrder;
   signedOrderFormat: SignedOrderFormat;
   exchangeAddress: Address;
@@ -57,7 +57,7 @@ export interface PreparedGTDOrder {
   expiration: number;
 }
 
-export interface ReadyClients {
+interface ReadyClients {
   clobClient: SecureClient;
   publicClient: PublicClient;
   walletClient: WalletClient;

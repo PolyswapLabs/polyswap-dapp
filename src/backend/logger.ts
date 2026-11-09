@@ -18,7 +18,7 @@
  *   log.debug({ markets }, "fetched payload"); // structured, opt-in
  */
 
-export type LogLevel = "error" | "warn" | "info" | "debug";
+type LogLevel = "error" | "warn" | "info" | "debug";
 
 const LEVEL_PRIORITY: Record<LogLevel, number> = {
   error: 0,
@@ -47,7 +47,7 @@ function readLevel(): LogLevel {
 const activeLevel: LogLevel = readLevel();
 const activeThreshold = LEVEL_PRIORITY[activeLevel];
 
-export interface Logger {
+interface Logger {
   error: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;
   info: (...args: unknown[]) => void;

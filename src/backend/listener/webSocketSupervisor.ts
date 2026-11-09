@@ -9,7 +9,7 @@ const CHECK_TIMEOUT_MS = 10_000;
 /** A provider that closes each new socket waits for the next check, not a tight loop. */
 const MIN_REBUILD_GAP_MS = 10_000;
 
-export interface WebSocketSupervisorOptions {
+interface WebSocketSupervisorOptions {
   connect: () => PublicClient;
   disconnect: () => void;
   subscribe: (ws: PublicClient, onError: (error: Error) => void) => Array<() => void>;

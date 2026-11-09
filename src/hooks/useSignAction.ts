@@ -21,7 +21,7 @@ export function useSignAction() {
 
   /**
    * Signs an action message for authentication
-   * @param action - The action type (e.g., 'cancel_order')
+   * @param action - The action type (e.g., 'cancel_draft')
    * @param orderIdentifier - The order hash or ID
    * @returns The signature data to include in API requests
    */

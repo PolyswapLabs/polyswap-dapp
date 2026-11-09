@@ -48,7 +48,7 @@ interface GammaKeysetResponse {
   next_cursor: string | null;
 }
 
-export interface GetOpenMarketsOptions {
+interface GetOpenMarketsOptions {
   endDateMin?: string;
   limit?: number;
   maxNb?: number;

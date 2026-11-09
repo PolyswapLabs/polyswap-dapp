@@ -10,7 +10,7 @@ import type { SafeCall } from "@/services/safe/types";
 
 const STORAGE_KEY_PREFIX = "polyswap.pendingSafeTx";
 
-export type SafeSignPhase =
+type SafeSignPhase =
   | { phase: "idle" }
   | { phase: "wallet" } // popup open, awaiting user signature
   | { phase: "rejected"; message: string }
@@ -19,7 +19,6 @@ export type SafeSignPhase =
   | { phase: "awaitingExecution"; safeTxHash: Hash }
   | { phase: "success"; safeTxHash: Hash; onChainHash: Hash }
   | { phase: "reverted"; safeTxHash: Hash; onChainHash: Hash }
-  | { phase: "replaced"; safeTxHash: Hash }
   | { phase: "error"; message: string };
 
 type Persisted = { safeTxHash: Hash; kind: "5792" | "safetx"; ts: number };
@@ -173,9 +172,6 @@ export function useSafeSignFlow() {
         break;
       case "reverted":
         dispatch({ phase: "reverted", safeTxHash, onChainHash: txStatus.onChainHash });
-        break;
-      case "replaced":
-        dispatch({ phase: "replaced", safeTxHash });
         break;
       case "error":
         dispatch({ phase: "error", message: txStatus.error.message });

@@ -5,11 +5,12 @@
 //   2. `pnpm db:diff <migration_name>` — generates migration SQL into
 //      prisma/migrations/<timestamp>_<name>/migration.sql.
 //   3. Hand-edit the migration SQL if needed (e.g. for the tsvector
-//      generated column on `markets.search_vec`).
+//      column on `markets.search_vec`).
 //   4. `pnpm db:migrate` — applies pending migrations via `prisma migrate deploy`.
 //
-// `markets.search_vec` is a Postgres TSVECTOR with a STORED GENERATED expression
-// that Prisma cannot express in the data model. It's defined in the initial
+// `markets.search_vec` is a Postgres TSVECTOR that Prisma cannot express in the
+// data model. Nile blocks GENERATED columns, so application code refreshes it
+// (see DatabaseService.refreshMissingSearchVectors). It's defined in the initial
 // migration SQL and read back here as `Unsupported("tsvector")`.
 
 generator client {
@@ -45,7 +46,7 @@ model Market {
   // the matching exchange or `verify()` will never observe the fill.
   negRisk         Boolean                  @default(false) @map("neg_risk")
   updatedAt       DateTime?                @default(now()) @map("updated_at") @db.Timestamptz
-  /// Generated tsvector — defined in migration SQL, not synthesised by Prisma.
+  /// Tsvector defined in migration SQL and refreshed by application code.
   searchVec       Unsupported("tsvector")? @map("search_vec")
 
   orders    PolyswapOrder[]

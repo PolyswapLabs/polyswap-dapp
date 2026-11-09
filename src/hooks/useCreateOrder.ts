@@ -38,7 +38,7 @@ export interface CreateFormDerived {
   validationMessage: string | null;
 }
 
-export interface UseCreateOrderReturn {
+interface UseCreateOrderReturn {
   state: CreateFormState;
   derived: CreateFormDerived;
   set: <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => void;

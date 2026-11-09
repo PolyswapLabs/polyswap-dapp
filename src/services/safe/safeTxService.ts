@@ -1,4 +1,3 @@
-// src/services/safe/safeTxService.ts
 import type { Hash } from "viem";
 import type { SafeMultisigTxResponse } from "./types";
 

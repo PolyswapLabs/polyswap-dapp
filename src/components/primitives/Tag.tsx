@@ -8,9 +8,6 @@ const tag = cva(
       tone: {
         paper: "bg-paper text-ink",
         ink: "bg-ink text-paper",
-        accent: "bg-accent text-paper",
-        yes: "bg-yes text-paper",
-        no: "bg-no text-paper",
       },
     },
     defaultVariants: { tone: "paper" },

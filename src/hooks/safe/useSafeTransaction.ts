@@ -1,4 +1,3 @@
-// src/hooks/safe/useSafeTransaction.ts
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +9,7 @@ import type { SafeTxStatus } from "@/services/safe/types";
 const POLL_INTERVAL_MS = 4_000;
 const NOT_FOUND_GRACE_MS = 30_000; // Safe indexer lag tolerance
 
-export type UseSafeTransactionArgs = {
+type UseSafeTransactionArgs = {
   safeTxHash: Hash | undefined;
   safeAddress: Address | undefined;
   /** When true, prefer wagmi's useWaitForCallsStatus (EIP-5792). */
@@ -125,14 +124,13 @@ export function useSafeTransaction({
       if (cancelled) return;
 
       if (result.kind === "notFound") {
-        // Tolerate indexer lag; only escalate to "replaced" check after grace.
+        // Tolerate indexer lag.
         if (restNotFoundSinceRef.current === null) {
           restNotFoundSinceRef.current = Date.now();
         }
         if (Date.now() - restNotFoundSinceRef.current > NOT_FOUND_GRACE_MS) {
           // Still not indexed after grace — likely never reached the service.
-          // No nonce, so we can't resolve to "replaced". Stop polling — the
-          // on-chain event watcher remains active and will catch a successful
+          // Stop polling — the on-chain event watcher remains active and will catch a successful
           // execution if one arrives.
           return;
         }

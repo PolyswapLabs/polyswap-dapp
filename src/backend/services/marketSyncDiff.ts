@@ -15,7 +15,7 @@ export type StoredMarket = Omit<
   protocolVersion: string | null;
 };
 
-export interface MarketDiff {
+interface MarketDiff {
   changed: Market[];
   /** IDs of existing rows whose indexed text changed. New rows start with a null vector. */
   searchStale: string[];

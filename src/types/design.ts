@@ -80,18 +80,3 @@ export interface TokenViewModel {
   /** Real token logo URL from the CoW token lists, when available. */
   logoURI?: string;
 }
-
-export interface SwapViewModel {
-  id: string;
-  nickname: string;
-  status: SwapStatus;
-  market: MarketViewModel;
-  side: Side;
-  threshold: number;
-  from: { symbol: string; amount: number };
-  to: { symbol: string };
-  quote: number;
-  createdAt?: string;
-  filledAt?: string;
-  cancelledAt?: string;
-}

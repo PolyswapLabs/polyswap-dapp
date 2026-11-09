@@ -22,7 +22,7 @@ import {
   type SoldPositionInput,
 } from "../interfaces/PolyswapOrder";
 
-export interface SearchMarketsOptions {
+interface SearchMarketsOptions {
   q?: string;
   category?: string;
   categories?: string[];
@@ -714,7 +714,7 @@ export class DatabaseService {
   }
 
   /**
-   * - If a draft row exists for (polymarket_order_hash, owner) → upgrade to live
+   * - If a draft row exists for (order_hash, owner) → upgrade to live
    *   and stamp the on-chain coordinates. Standard frontend-then-listener path.
    * - Otherwise → fresh live insert. Catch-up path when the draft was lost.
    */

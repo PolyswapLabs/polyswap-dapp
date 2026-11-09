@@ -89,26 +89,3 @@ async function fetchHistory(tokenId: string): Promise<ClobHistoryPoint[]> {
   }
   return (json as { history: ClobHistoryPoint[] }).history;
 }
-
-/**
- * Convenience: fetch BUY+SELL for every token, return the midpoint as a number
- * in [0, 1]. Tokens with no price come back missing from the map.
- */
-export async function fetchClobMidpoints(tokenIds: string[]): Promise<Map<string, number>> {
-  if (tokenIds.length === 0) return new Map();
-  const requests: ClobPriceRequest[] = tokenIds.flatMap((token_id) => [
-    { token_id, side: "BUY" as ClobSide },
-    { token_id, side: "SELL" as ClobSide },
-  ]);
-  const prices = await fetchClobPrices(requests);
-  const out = new Map<string, number>();
-  for (const tokenId of tokenIds) {
-    const sides = prices[tokenId];
-    if (!sides) continue;
-    const buy = Number(sides.BUY);
-    const sell = Number(sides.SELL);
-    if (!Number.isFinite(buy) || !Number.isFinite(sell)) continue;
-    out.set(tokenId, (buy + sell) / 2);
-  }
-  return out;
-}

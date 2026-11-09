@@ -11,7 +11,7 @@ const COMPOSABLE_COW: Address = getAddress(
   process.env.NEXT_PUBLIC_COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
 );
 
-export interface UseRemoveOrder {
+interface UseRemoveOrder {
   /**
    * Off-chain draft cancellation: signs an EIP-191 message and DELETEs the row.
    * Throws on failure.
@@ -21,17 +21,10 @@ export interface UseRemoveOrder {
   /**
    * Build the SafeCall list for `ComposableCoW.remove(orderHash)`. The caller
    * passes this to <SafeSignModal calls={...} />. After the modal fires
-   * onConfirmed, the caller MUST invoke `notifyRemoval(orderId)` to finalise
-   * server-side state (Polymarket cancel + DB update).
+   * onConfirmed, the caller MUST notify the server (`apiService.notifyRemoveOrder`)
+   * to finalise server-side state (Polymarket cancel + DB update).
    */
   buildRemoveLiveCalls: (orderHash: Hex) => SafeCall[];
-
-  /**
-   * Server-side finalisation after the on-chain remove() has been confirmed.
-   * The endpoint verifies removal via `singleOrders[owner][orderHash]` on-chain.
-   * Throws on failure.
-   */
-  notifyRemoval: (orderId: number) => Promise<void>;
 
   pending: boolean;
   error: string | null;
@@ -60,24 +53,6 @@ export function useRemoveOrder(): UseRemoveOrder {
     [signAction]
   );
 
-  const notifyRemoval = useCallback(
-    async (orderId: number) => {
-      setPending(true);
-      setError(null);
-      try {
-        const signed = await signAction("notify_remove", String(orderId));
-        await apiService.notifyRemoveOrder(orderId, signed.signature, signed.timestamp);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to notify removal";
-        setError(msg);
-        throw e;
-      } finally {
-        setPending(false);
-      }
-    },
-    [signAction]
-  );
-
   const buildRemoveLiveCalls = useCallback((orderHash: Hex): SafeCall[] => {
     const data = encodeFunctionData({
       abi: composableCowAbi,
@@ -88,7 +63,7 @@ export function useRemoveOrder(): UseRemoveOrder {
   }, []);
 
   return useMemo(
-    () => ({ deleteDraft, buildRemoveLiveCalls, notifyRemoval, pending, error }),
-    [deleteDraft, buildRemoveLiveCalls, notifyRemoval, pending, error]
+    () => ({ deleteDraft, buildRemoveLiveCalls, pending, error }),
+    [deleteDraft, buildRemoveLiveCalls, pending, error]
   );
 }

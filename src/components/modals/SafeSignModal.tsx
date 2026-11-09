@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
 import { useSafeSignFlow } from "@/hooks/safe/useSafeSignFlow";
 import type { SafeCall } from "@/services/safe/types";
 
-export type SafeSignModalProps = {
+type SafeSignModalProps = {
   open: boolean;
   onClose: () => void;
   /**
@@ -80,7 +80,6 @@ export function SafeSignModal({
       !open &&
       (state.phase === "success" ||
         state.phase === "reverted" ||
-        state.phase === "replaced" ||
         state.phase === "rejected" ||
         state.phase === "error")
     ) {
@@ -263,16 +262,6 @@ export function SafeSignModal({
             heading="Transaction reverted"
             body="The transaction executed on chain but reverted. No funds moved."
             detail={`On-chain hash: ${state.onChainHash}`}
-            onClose={onClose}
-            onRetry={() => void startTransaction()}
-          />
-        )}
-
-        {/* replaced */}
-        {state.phase === "replaced" && (
-          <ErrorScreen
-            heading="Transaction replaced"
-            body="A different transaction with the same Safe nonce was executed first."
             onClose={onClose}
             onRetry={() => void startTransaction()}
           />

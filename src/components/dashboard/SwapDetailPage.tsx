@@ -165,7 +165,7 @@ export function SwapDetailPage({ orderId }: Props) {
   const isFilled = order.phase === "filled";
   // Polyswap places a BUY limit at `threshold` on Polymarket, which fills only
   // when the side's price falls to that level. So the threshold is "met" when
-  // the live odds drop to or below the line — the inverse of the old logic.
+  // the live odds drop to or below the line.
   const thresholdMet = currentOdds <= order.threshold;
   // Right-of-dial label, in priority order: filled fill → trigger fired
   // (gate opened on-chain) → threshold met (market past the line, gate not

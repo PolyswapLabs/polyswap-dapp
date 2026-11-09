@@ -352,7 +352,7 @@ async function pollCowOrderbook(order: DatabasePolyswapOrder): Promise<void> {
   }
 }
 
-export async function runOrderHealthCheck(): Promise<void> {
+async function runOrderHealthCheck(): Promise<void> {
   const live = await DatabaseService.getLiveOrders();
   if (live.length === 0) {
     log.debug("no live orders to check");

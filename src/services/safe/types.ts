@@ -1,4 +1,3 @@
-// src/services/safe/types.ts
 import type { Address, Hash, Hex } from "viem";
 
 /** A single call inside a batch (matches EIP-5792 `Call` shape). */
@@ -15,7 +14,6 @@ export type SafeTxStatus =
   | { kind: "awaitingExecution" }
   | { kind: "executed"; onChainHash: Hash }
   | { kind: "reverted"; onChainHash: Hash }
-  | { kind: "replaced" }
   | { kind: "error"; error: Error };
 
 /** Subset of fields we read from Safe Transaction Service REST. */

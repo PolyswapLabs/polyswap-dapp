@@ -11,24 +11,19 @@ import {
   type ClobPricesResponse,
 } from "@/services/polymarket";
 import { apiService, readApiErrorMessage } from "@/services/api";
-import {
-  MARKET_CATEGORIES,
-  type MarketCategory,
-  type MarketViewModel,
-  type Side,
-} from "@/types/design";
+import { MARKET_CATEGORIES, type MarketCategory, type MarketViewModel } from "@/types/design";
 import {
   RECOMMENDATION_POLICY,
   type OddsRange,
   type RecommendationPage,
 } from "@/lib/marketRecommendations";
 
-export interface MarketOption {
+interface MarketOption {
   text: string;
   odds: number;
 }
 
-export interface ApiMarket {
+interface ApiMarket {
   id: string;
   title: string;
   volume: number;
@@ -83,24 +78,12 @@ interface SearchResponse {
   };
 }
 
-interface CountsResponse {
-  success: boolean;
-  data: {
-    byCategory: Record<string, number>;
-    total: number;
-  };
-}
-
 const CANONICAL_BY_LOWER: ReadonlyMap<string, MarketCategory> = new Map(
   MARKET_CATEGORIES.map((c) => [c.toLowerCase(), c])
 );
 
-export function normalizeCategory(raw: string): MarketCategory | null {
+function normalizeCategory(raw: string): MarketCategory | null {
   return CANONICAL_BY_LOWER.get(raw.trim().toLowerCase()) ?? null;
-}
-
-export function isDesignCategory(c: string): c is MarketCategory {
-  return CANONICAL_BY_LOWER.has(c.toLowerCase());
 }
 
 function midpointPercent(prices: ClobPricesResponse, tokenId: string | undefined): number {
@@ -438,7 +421,7 @@ export function useMarketPriceHistory(tokenId: string | null | undefined, days =
   });
 }
 
-export interface TagSuggestion {
+interface TagSuggestion {
   tag: string;
   count: number;
 }
@@ -471,27 +454,6 @@ export function useSearchSuggestions(prefix: string, enabled = true) {
   });
 }
 
-export function useCategoryCounts(categories: ReadonlyArray<string>) {
-  const key = categories.join(",");
-  return useQuery({
-    queryKey: ["markets", "counts", key],
-    queryFn: async (): Promise<{ byCategory: Record<string, number>; total: number }> => {
-      if (categories.length === 0) return { byCategory: {}, total: 0 };
-      const url = new URL("/api/markets/counts", window.location.origin);
-      url.searchParams.set("categories", key);
-      const res = await fetch(url.toString());
-      const payload: unknown = await res.json();
-      if (!res.ok) {
-        throw new Error(readApiErrorMessage(payload) ?? `markets/counts failed: ${res.status}`);
-      }
-      const json = payload as CountsResponse;
-      if (!json.success) throw new Error("markets/counts returned success=false");
-      return json.data;
-    },
-    staleTime: STALE,
-  });
-}
-
 /**
  * `opts.track` opts the caller into server-side view counting (passed as
  * `?track=1` on the GET). Included in the query key so the tracked variant
@@ -505,16 +467,4 @@ export function useMarket(identifier: string, opts: { track?: boolean } = {}) {
     staleTime: STALE,
     select: (api) => (api ? toViewModel(api) : null),
   });
-}
-
-export function useRawMarket(identifier: string) {
-  return useQuery({
-    queryKey: ["market", identifier, "untracked"],
-    queryFn: () => fetchSingleMarket(identifier),
-    staleTime: STALE,
-  });
-}
-
-export function thresholdSide(probability: number): Side {
-  return probability >= 0.5 ? "YES" : "NO";
 }

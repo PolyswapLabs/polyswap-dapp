@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { isAddress } from "viem";
 
-// Network-specific CoW Protocol API base URLs (matches cowQuoteService.ts).
+// Network-specific CoW Protocol API base URLs.
 const NETWORK_URLS: Readonly<Record<number, string>> = {
   1: "https://api.cow.fi/mainnet",
   100: "https://api.cow.fi/xdai",
@@ -12,7 +12,7 @@ const NETWORK_URLS: Readonly<Record<number, string>> = {
   137: "https://api.cow.fi/polygon",
 };
 
-// WETH/wrapped-native addresses per network (matches cowQuoteService.ts).
+// WETH/wrapped-native addresses per network.
 const WETH_ADDRESSES: Readonly<Record<number, string>> = {
   1: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   100: "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1",
@@ -80,7 +80,7 @@ interface CowQuoteApiResponse {
   verified: boolean;
 }
 
-export interface QuoteResult {
+interface QuoteResult {
   buyAmount: string;
   sellAmount: string;
   feeAmount: string;
@@ -89,7 +89,7 @@ export interface QuoteResult {
   exchangeRate: string;
 }
 
-export interface QuoteParams {
+interface QuoteParams {
   sellToken: string;
   buyToken: string;
   /** Amount to sell in wei (as a decimal string). */
