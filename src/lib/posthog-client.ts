@@ -5,7 +5,7 @@ import { isProductionEnvironment } from "@/lib/env";
 
 type EventProperties = Record<string, string | number | boolean | null | undefined>;
 
-function isPostHogConfigured() {
+export function isPostHogEnabled(): boolean {
   return (
     isProductionEnvironment() &&
     Boolean(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) &&
@@ -14,11 +14,11 @@ function isPostHogConfigured() {
 }
 
 export function capturePostHogEvent(event: string, properties?: EventProperties) {
-  if (!isPostHogConfigured()) return;
+  if (!isPostHogEnabled()) return;
   posthog.capture(event, properties);
 }
 
 export function capturePostHogException(error: Error) {
-  if (!isPostHogConfigured()) return;
+  if (!isPostHogEnabled()) return;
   posthog.captureException(error);
 }
