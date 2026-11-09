@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/cn";
-import { ConsoleSignature } from "@/components/layout";
+import { ConsoleSignature } from "./ConsoleSignature";
 import { SITE_URL } from "@/lib/seo";
 
 const sans = Inter_Tight({

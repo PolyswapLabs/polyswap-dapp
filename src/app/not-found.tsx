@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonVariants, Stamp } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { Logo } from "@/components/layout/Logo";
+import { Wordmark } from "@/components/layout/Logo";
 
 export const metadata = {
   title: "Filed under: missing · Polyswap",
@@ -12,10 +12,7 @@ export default function NotFound() {
     <div className="flex min-h-screen flex-col bg-paper">
       <header className="border-b border-ink">
         <div className="page-container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={36} />
-            <span className="font-serif text-2xl">Polyswap</span>
-          </Link>
+          <Wordmark />
           <Link href="/markets" className="text-sm underline underline-offset-4">
             Open the app →
           </Link>

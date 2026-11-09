@@ -28,7 +28,7 @@ const GLYPHS: Record<MarketCategory, { src: string; alt: string }> = {
   Weather: CHART,
 };
 
-export function CatIllus({ category, size = 64, className }: Props) {
+export function CategoryIllustration({ category, size = 64, className }: Props) {
   const { src, alt } = GLYPHS[category];
   return (
     <Image

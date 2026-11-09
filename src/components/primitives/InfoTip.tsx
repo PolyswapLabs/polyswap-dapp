@@ -28,7 +28,7 @@ export function InfoTip({ label, body, width = "sm" }: Props) {
       </button>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute top-[calc(100%+6px)] left-1/2 z-10 ${widthClass} -translate-x-1/2 border border-ink bg-paper p-3 text-left text-xs leading-relaxed text-ink opacity-0 shadow-[4px_4px_0_0_var(--color-ink)] transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100`}
+        className={`pointer-events-none absolute top-[calc(100%+6px)] left-1/2 z-10 ${widthClass} -translate-x-1/2 border border-ink bg-paper p-3 text-left text-xs leading-relaxed text-ink opacity-0 shadow-stamp transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100`}
       >
         {body}
       </span>

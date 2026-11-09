@@ -1,1 +1,0 @@
-export { CatIllus } from "./CatIllus";

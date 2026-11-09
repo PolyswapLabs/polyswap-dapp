@@ -82,6 +82,7 @@ const CATEGORY_ICON: Record<MarketCategory, keyof typeof Icon> = {
 };
 
 export { PolymarketIcon } from "./PolymarketIcon";
+export { GithubIcon, LinkedinIcon, XIcon } from "./BrandIcons";
 
 export function CategoryIcon({
   category,

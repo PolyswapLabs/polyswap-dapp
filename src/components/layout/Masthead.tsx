@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { Logo } from "./Logo";
+import { Wordmark } from "./Logo";
 import { WalletButton } from "./WalletButton";
 import { MobileNav, type MobileNavLink } from "./MobileNav";
 import { cn } from "@/lib/cn";
@@ -38,16 +38,12 @@ export function Masthead({ onConnectWallet }: Props) {
     <header className="border-b border-ink bg-paper">
       {/* Main bar */}
       <div className="page-container flex items-center justify-between gap-6 py-4 lg:py-5">
-        <Link
-          href="/"
-          className="flex items-center gap-3 hover:no-underline"
+        <Wordmark
+          logoSize={38}
+          className="hover:no-underline"
+          textClassName="tracking-tight text-ink lg:text-[26px]"
           aria-label="Polyswap home"
-        >
-          <Logo size={38} />
-          <span className="font-serif text-2xl tracking-tight text-ink lg:text-[26px]">
-            Polyswap
-          </span>
-        </Link>
+        />
 
         <nav className="hidden items-center gap-8 lg:flex" aria-label="Primary">
           {NAV_LINKS.map((l) => (
