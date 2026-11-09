@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { createApiErrorResponder } from "@/lib/apiError";
+import { createLogger } from "@/backend/logger";
 
 const apiError = createApiErrorResponder("api-market-detail");
+const log = createLogger("api-market-detail");
 
 /**
  * @swagger
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
       // Fire-and-forget. View tracking must never block the response or fail
       // the request — the count is a soft signal, not a contract.
       void DatabaseService.incrementMarketViews(identifier).catch((err) => {
-        console.error("View increment failed:", err);
+        log.error("View increment failed:", err);
       });
     }
 

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createLogger } from "@/backend/logger";
 
-interface ApiErrorOptions {
+export interface ApiErrorOptions {
   status: number;
   error: string;
   message?: string;
@@ -15,6 +15,8 @@ interface ApiErrorOptions {
  * same unique id. Callers may expose deliberate validation details through
  * `message`; `cause` is logged server-side only.
  */
+export type ApiErrorResponder = ReturnType<typeof createApiErrorResponder>;
+
 export function createApiErrorResponder(scope: string) {
   const log = createLogger(scope);
 

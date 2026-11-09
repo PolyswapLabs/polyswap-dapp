@@ -4,7 +4,7 @@ import { createLogger } from "../logger";
 
 const log = createLogger("cow-app-data");
 
-const DEFAULT_API_BASE = "https://api.cow.fi/polygon";
+export const DEFAULT_API_BASE = "https://api.cow.fi/polygon";
 const DEFAULT_APP_CODE = "PolySwap";
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MIN_TIMEOUT_MS = 250;

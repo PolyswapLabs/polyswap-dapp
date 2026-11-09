@@ -34,7 +34,7 @@ export type CowConditionalErrorName =
   | "PollTryAtBlock"
   | "PollTryAtEpoch";
 
-interface DecodedPollError {
+export interface DecodedPollError {
   name: CowConditionalErrorName;
   reason: string;
   /**

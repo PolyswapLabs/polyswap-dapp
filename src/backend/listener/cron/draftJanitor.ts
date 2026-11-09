@@ -1,9 +1,7 @@
 import { type Address, type Hex } from "viem";
-import { getPublicClient } from "../blockchainProvider";
+import { isSingleOrderAuthed } from "@/backend/rpc/composableCow";
 import { DatabaseService } from "@/backend/services/databaseService";
-import composableCowAbi from "@/abi/composableCoW.json";
 import { createLogger } from "@/backend/logger";
-import { requireAddress } from "@/backend/utils/env";
 import { createIntervalJob } from "./intervalJob";
 
 const log = createLogger("draft-janitor");
@@ -25,21 +23,14 @@ async function sweepStaleDrafts(): Promise<void> {
   }
   log.debug(`found ${stale.length} stale draft(s) older than ${STALE_AFTER_MS / 60_000}min`);
 
-  const client = getPublicClient();
-  const composableCow = requireAddress("COMPOSABLE_COW");
   for (const draft of stale) {
     try {
       // If a draft already has an order_hash and is authed on-chain, leave
       // it alone — the listener will transition it to `live`. This protects
       // catch-up race windows where the row's status hasn't caught up yet.
       if (draft.order_hash) {
-        const exists = await client.readContract({
-          address: composableCow,
-          abi: composableCowAbi,
-          functionName: "singleOrders",
-          args: [draft.owner as Address, draft.order_hash as Hex],
-        });
-        if (exists === true) continue;
+        const authed = await isSingleOrderAuthed(draft.owner as Address, draft.order_hash as Hex);
+        if (authed === true) continue;
       }
 
       await DatabaseService.deletePolyswapOrderById(draft.id);
