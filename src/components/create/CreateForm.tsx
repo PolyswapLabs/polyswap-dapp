@@ -7,7 +7,7 @@ import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";
 import { TokenPicker } from "./TokenPicker";
 import { AdvancedOptions } from "./AdvancedOptions";
-import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrder";
+import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrderForm";
 import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { useTokens } from "@/hooks/useTokens";
 import { cn } from "@/lib/cn";

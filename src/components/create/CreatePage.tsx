@@ -9,7 +9,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button, DetailSkeleton, ErrorAlert, PageMessage, BackLink } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { useMarket } from "@/hooks/markets/useMarkets";
-import { useCreateOrder, describeSentence, type Slippage } from "@/hooks/useCreateOrder";
+import {
+  useCreateOrderForm,
+  describeImmediateFillSentence,
+  describeTriggerSentence,
+  type Slippage,
+} from "@/hooks/useCreateOrderForm";
 import { useSwapEstimates } from "@/hooks/useSwapEstimates";
 import { useSafeAccount } from "@/hooks/safe/useSafeAccount";
 import { SafeSignModal } from "@/components/modals/SafeSignModal";
@@ -73,7 +78,7 @@ function computeMinBuyAmount(
 
 export function CreatePage({ marketId }: Props) {
   const { data: market, isLoading, isError, error: marketError } = useMarket(marketId);
-  const { state, derived, set } = useCreateOrder();
+  const { state, derived, set } = useCreateOrderForm();
   const { safeAddress, isReady: walletReady } = useSafeAccount();
   const estimates = useSwapEstimates({
     fromToken: state.fromToken,
@@ -269,7 +274,13 @@ export function CreatePage({ marketId }: Props) {
 
   const modalSummary = useMemo(() => {
     if (!market) return undefined;
-    return <span className="italic">{describeSentence(state, market.question, wouldCross)}</span>;
+    return (
+      <span className="italic">
+        {wouldCross
+          ? describeImmediateFillSentence(state)
+          : describeTriggerSentence(state, market.question)}
+      </span>
+    );
   }, [market, state, wouldCross]);
 
   if (isLoading) {

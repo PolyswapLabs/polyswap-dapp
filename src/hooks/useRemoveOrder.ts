@@ -7,6 +7,7 @@ import { apiService } from "@/services/api";
 import { useSignAction } from "@/hooks/useSignAction";
 import type { SafeCall } from "@/services/safe/types";
 import { COMPOSABLE_COW } from "@/lib/contracts";
+import { getErrorMessage } from "@/lib/errorMessage";
 
 interface UseRemoveOrder {
   /**
@@ -40,8 +41,7 @@ export function useRemoveOrder(): UseRemoveOrder {
         const signed = await signAction("cancel_draft", String(orderId));
         await apiService.deleteDraftOrder(orderId, signed.signature, signed.timestamp);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to delete draft order";
-        setError(msg);
+        setError(getErrorMessage(e, "Failed to delete draft order"));
         throw e;
       } finally {
         setPending(false);

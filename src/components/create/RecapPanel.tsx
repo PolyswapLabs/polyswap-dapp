@@ -1,7 +1,11 @@
 import { Icon } from "@/components/icons";
 import { InfoTip, DefinitionRow } from "@/components/primitives";
 import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
-import { describeSentence, type CreateFormState } from "@/hooks/useCreateOrder";
+import {
+  describeImmediateFillSentence,
+  describeTriggerSentence,
+  type CreateFormState,
+} from "@/hooks/useCreateOrderForm";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
 import type { MarketViewModel } from "@/types/design";
 
@@ -13,7 +17,9 @@ interface Props {
 }
 
 export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
-  const sentence = describeSentence(state, market.question, wouldCross);
+  const sentence = wouldCross
+    ? describeImmediateFillSentence(state)
+    : describeTriggerSentence(state, market.question);
   const expiryLabel =
     state.expiry === "7d"
       ? "in 7 days"

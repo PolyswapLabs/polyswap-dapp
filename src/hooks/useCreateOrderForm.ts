@@ -38,14 +38,14 @@ export interface CreateFormDerived {
   validationMessage: string | null;
 }
 
-interface UseCreateOrderReturn {
+interface UseCreateOrderFormReturn {
   state: CreateFormState;
   derived: CreateFormDerived;
   set: <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => void;
   reset: () => void;
 }
 
-export function useCreateOrder(): UseCreateOrderReturn {
+export function useCreateOrderForm(): UseCreateOrderFormReturn {
   const [state, setState] = useState<CreateFormState>(INITIAL);
 
   const set = useCallback(
@@ -78,21 +78,25 @@ export function useCreateOrder(): UseCreateOrderReturn {
   return { state, derived, set, reset };
 }
 
-/**
- * Describe the order using the live order-book result supplied by the create
- * flow. A displayed probability is not enough to infer immediate execution.
- */
-export function describeSentence(
-  state: CreateFormState,
-  marketTitle: string,
-  wouldCross = false
-): string {
-  const pct = Math.round(state.threshold * 100);
-  const amount = state.amountIn || "0";
-  const fromSymbol = state.fromToken?.symbol ?? "—";
-  const toSymbol = state.toToken?.symbol ?? "—";
-  if (wouldCross) {
-    return `This ${pct}% threshold crosses the live order book — the swap of ${amount} ${fromSymbol} for ${toSymbol} would fire immediately.`;
-  }
+function sentenceParts(state: CreateFormState) {
+  return {
+    pct: Math.round(state.threshold * 100),
+    amount: state.amountIn || "0",
+    fromSymbol: state.fromToken?.symbol ?? "—",
+    toSymbol: state.toToken?.symbol ?? "—",
+  };
+}
+
+export function describeTriggerSentence(state: CreateFormState, marketTitle: string): string {
+  const { pct, amount, fromSymbol, toSymbol } = sentenceParts(state);
   return `If "${marketTitle}" drops to ${pct}%, swap ${amount} ${fromSymbol} for ${toSymbol}.`;
+}
+
+/**
+ * For orders the live order book says would cross. A displayed probability is
+ * not enough to infer immediate execution, so the create flow decides.
+ */
+export function describeImmediateFillSentence(state: CreateFormState): string {
+  const { pct, amount, fromSymbol, toSymbol } = sentenceParts(state);
+  return `This ${pct}% threshold crosses the live order book — the swap of ${amount} ${fromSymbol} for ${toSymbol} would fire immediately.`;
 }
