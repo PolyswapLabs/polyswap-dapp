@@ -41,3 +41,10 @@ test("backend code only reaches shared, backend and ABI modules at runtime", () 
   );
   assert.deepEqual(offenders, []);
 });
+
+test("fonts are self-hosted, so a Google Fonts response cannot break dev or the build", () => {
+  const offenders = sourceFiles("src").filter((file) =>
+    readFileSync(file, "utf8").includes("next/font/google")
+  );
+  assert.deepEqual(offenders, []);
+});

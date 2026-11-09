@@ -1,28 +1,29 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/utils/cn";
 import { ConsoleSignature } from "./ConsoleSignature";
 import { SITE_URL } from "@/server/seo";
 
-const sans = Inter_Tight({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const sans = localFont({
+  src: "./fonts/InterTight-latin.woff2",
+  weight: "400 700",
   variable: "--font-sans",
   display: "swap",
 });
 
-const serif = Fraunces({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
+const serif = localFont({
+  src: [
+    { path: "./fonts/Fraunces-latin.woff2", weight: "300 700", style: "normal" },
+    { path: "./fonts/Fraunces-italic-latin.woff2", weight: "300 700", style: "italic" },
+  ],
   variable: "--font-serif",
   display: "swap",
 });
 
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const mono = localFont({
+  src: "./fonts/JetBrainsMono-latin.woff2",
+  weight: "400 600",
   variable: "--font-mono",
   display: "swap",
 });
