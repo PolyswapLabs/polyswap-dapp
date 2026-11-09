@@ -1,5 +1,5 @@
 import { getAddress, type Address, type Hex } from "viem";
-import { getPublicClient } from "../listener/blockchainProvider";
+import { getPublicClient } from "@/backend/rpc/clients";
 import { TransactionEncodingService } from "./transactionEncodingService";
 import { createLogger } from "../logger";
 

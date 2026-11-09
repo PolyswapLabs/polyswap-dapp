@@ -1,8 +1,8 @@
 import { getAbiItem, type AbiEvent, type Log } from "viem";
-import { getPublicClient } from "../blockchainProvider";
-import { handleConditionalOrderCreated } from "../handlers/conditionalOrderCreated";
-import { handleTrade } from "../handlers/trade";
-import { handleOrderInvalidated } from "../handlers/orderInvalidated";
+import { getPublicClient } from "@/backend/rpc/clients";
+import { handleConditionalOrderCreated } from "@/backend/listener/handlers/conditionalOrderCreated";
+import { handleTrade } from "@/backend/listener/handlers/trade";
+import { handleOrderInvalidated } from "@/backend/listener/handlers/orderInvalidated";
 import { DatabaseService } from "@/backend/services/databaseService";
 import composableCowAbi from "@/abi/composableCoW.json";
 import gpv2Abi from "@/abi/GPV2Settlement.json";

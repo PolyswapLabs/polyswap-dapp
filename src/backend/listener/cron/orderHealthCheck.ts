@@ -5,9 +5,12 @@ import {
   ContractFunctionExecutionError,
   decodeErrorResult,
 } from "viem";
-import { getPublicClient } from "../blockchainProvider";
+import { getPublicClient } from "@/backend/rpc/clients";
 import { encodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
-import { decodePollError, type CowConditionalErrorName } from "../eventDecoder";
+import {
+  decodePollError,
+  type CowConditionalErrorName,
+} from "@/backend/listener/orderHealth/pollErrors";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { OrderUidCalculationService } from "@/backend/services/orderUidCalculationService";
 import { PolymarketAPIService } from "@/backend/services/polymarketAPIService";

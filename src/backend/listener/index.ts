@@ -3,7 +3,7 @@ dotenv.config();
 
 import { parseAbiItem, type Log, type PublicClient } from "viem";
 import { verifyDatabaseConnection } from "@/backend/db/prisma";
-import { closeWebSocketClient, getWebSocketClient } from "./blockchainProvider";
+import { closeWebSocketClient, getWebSocketClient } from "@/backend/rpc/clients";
 import { handleConditionalOrderCreated } from "./handlers/conditionalOrderCreated";
 import { handleLiveTrade } from "./handlers/trade";
 import { handleLiveOrderInvalidated } from "./handlers/orderInvalidated";

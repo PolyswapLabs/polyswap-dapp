@@ -94,7 +94,7 @@ async function verifyEip1271Signature(
  * Verifies a signed PolySwap action message. Tries EOA recovery first
  * (cheapest, no RPC), then falls back to EIP-1271 for smart contract wallets
  * such as Safe. Callers must pass a viem PublicClient — see
- * blockchainProvider.getPublicClient().
+ * getPublicClient() in rpc/clients.
  */
 export async function verifySignature(
   params: SignatureVerificationParams

@@ -1,5 +1,5 @@
 import { type Address, type Hex } from "viem";
-import { getPublicClient } from "../blockchainProvider";
+import { getPublicClient } from "@/backend/rpc/clients";
 import { DatabaseService } from "@/backend/services/databaseService";
 import composableCowAbi from "@/abi/composableCoW.json";
 import { createLogger } from "@/backend/logger";

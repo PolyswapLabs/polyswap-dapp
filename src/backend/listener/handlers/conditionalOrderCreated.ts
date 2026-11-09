@@ -1,11 +1,11 @@
-import { getAcceptedPolyswapHandlers } from "../../polymarket/config";
+import { getAcceptedPolyswapHandlers } from "@/backend/polymarket/config";
 import { randomUUID } from "node:crypto";
 import Sentry from "@sentry/nextjs";
 import { decodeEventLog, type Log, type Hex, type Address } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { OrderUidCalculationService } from "@/backend/services/orderUidCalculationService";
-import { getPublicClient } from "../blockchainProvider";
+import { getPublicClient } from "@/backend/rpc/clients";
 import { calculateOrderHash, decodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
 import type { ConditionalOrderParams } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
