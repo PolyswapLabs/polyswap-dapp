@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
-import { Button } from "@/components/primitives";
+import { buttonVariants } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { MobileNav, type MobileNavLink } from "@/components/layout/MobileNav";
 
@@ -38,19 +38,15 @@ export function LandingHeader() {
               {l.label}
             </a>
           ))}
-          <Link href="/markets">
-            <Button variant="ink" size="sm" style={{ cursor: "pointer" }}>
-              Open app
-              <Icon.arrowRight size={14} aria-hidden />
-            </Button>
+          <Link href="/markets" className={buttonVariants({ variant: "ink", size: "sm" })}>
+            Open app
+            <Icon.arrowRight size={14} aria-hidden />
           </Link>
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Link href="/markets">
-            <Button variant="ink" size="sm">
-              Open app
-            </Button>
+          <Link href="/markets" className={buttonVariants({ variant: "ink", size: "sm" })}>
+            Open app
           </Link>
           <button
             type="button"

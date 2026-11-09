@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
-const button = cva(
+export const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2.5",
     "border border-ink",
@@ -37,7 +37,7 @@ const button = cva(
 );
 
 interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof button> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, type = "button", ...rest }, ref) => {
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        className={cn(button({ variant, size }), className)}
+        className={cn(buttonVariants({ variant, size }), className)}
         {...rest}
       />
     );

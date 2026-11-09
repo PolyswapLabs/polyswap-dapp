@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Stamp } from "@/components/primitives";
+import { buttonVariants, Stamp } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { Logo } from "@/components/layout/Logo";
 
@@ -36,17 +36,13 @@ export default function NotFound() {
               before you got there.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link href="/">
-                <Button variant="ink" size="lg">
-                  <Icon.arrowLeft size={14} aria-hidden />
-                  Back to the front page
-                </Button>
+              <Link href="/" className={buttonVariants({ variant: "ink", size: "lg" })}>
+                <Icon.arrowLeft size={14} aria-hidden />
+                Back to the front page
               </Link>
-              <Link href="/markets">
-                <Button variant="paper" size="lg">
-                  Browse markets
-                  <Icon.arrowRight size={14} aria-hidden />
-                </Button>
+              <Link href="/markets" className={buttonVariants({ variant: "paper", size: "lg" })}>
+                Browse markets
+                <Icon.arrowRight size={14} aria-hidden />
               </Link>
             </div>
           </div>

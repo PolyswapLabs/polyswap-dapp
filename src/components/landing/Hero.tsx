@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Button, Reveal, RevealItem, RevealStack } from "@/components/primitives";
+import { buttonVariants, Reveal, RevealItem, RevealStack } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 
 export function Hero() {
@@ -28,11 +28,9 @@ export function Hero() {
           </RevealItem>
           <RevealItem>
             <div className="mt-7 flex flex-wrap items-center gap-4 lg:mt-9">
-              <Link href="/markets">
-                <Button variant="accent" size="lg" style={{ cursor: "pointer" }}>
-                  Open the app
-                  <Icon.arrowRight size={14} aria-hidden />
-                </Button>
+              <Link href="/markets" className={buttonVariants({ variant: "accent", size: "lg" })}>
+                Open the app
+                <Icon.arrowRight size={14} aria-hidden />
               </Link>
               <a href="#how-it-works" className="text-sm underline underline-offset-4">
                 See how it works →

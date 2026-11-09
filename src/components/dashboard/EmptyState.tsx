@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/primitives";
+import { Button, buttonVariants } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 
 interface Props {
@@ -34,11 +34,9 @@ export function EmptyState({ walletConnected, onConnect }: Props) {
         Pick a Polymarket question, set your trigger, and we&rsquo;ll watch the odds for you.
       </p>
       <div className="mt-6 flex justify-center">
-        <Link href="/markets">
-          <Button variant="accent" size="md">
-            Browse markets
-            <Icon.arrowRight size={14} aria-hidden />
-          </Button>
+        <Link href="/markets" className={buttonVariants({ variant: "accent", size: "md" })}>
+          Browse markets
+          <Icon.arrowRight size={14} aria-hidden />
         </Link>
       </div>
     </div>

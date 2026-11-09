@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
-import { Button, DetailSkeleton, Tag, Tape, Dial } from "@/components/primitives";
+import { cn } from "@/lib/cn";
+import { buttonVariants, DetailSkeleton, Tag, Tape, Dial } from "@/components/primitives";
 import { CategoryIcon, Icon, PolymarketIcon } from "@/components/icons";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -165,11 +166,12 @@ export function MarketDetail({ identifier }: Props) {
               <p className="mt-4 font-serif text-lg leading-snug">
                 Set a swap that fires only when this question crosses your line.
               </p>
-              <Link href={`/create/${data.id}`} className="mt-5 inline-flex">
-                <Button variant="accent" size="lg">
-                  Set up a swap
-                  <Icon.arrowRight size={14} aria-hidden />
-                </Button>
+              <Link
+                href={`/create/${data.id}`}
+                className={cn(buttonVariants({ variant: "accent", size: "lg" }), "mt-5")}
+              >
+                Set up a swap
+                <Icon.arrowRight size={14} aria-hidden />
               </Link>
             </div>
           </div>

@@ -2,7 +2,7 @@ export { Tape } from "./Tape";
 export { Dial } from "./Dial";
 export { Status } from "./Status";
 export { Tag } from "./Tag";
-export { Button } from "./Button";
+export { Button, buttonVariants } from "./Button";
 export { TokenLogo } from "./TokenLogo";
 export { Stamp } from "./Stamp";
 export { Modal } from "./Modal";

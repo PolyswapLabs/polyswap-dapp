@@ -57,8 +57,8 @@ export interface OrderViewModel {
 
 const STALE = 30_000;
 
-function mapStatus(status: PublicPolyswapOrder["status"]): SwapStatus {
-  switch (status) {
+function mapStatus(order: Pick<PublicPolyswapOrder, "status" | "gate_opened_at">): SwapStatus {
+  switch (order.status) {
     case "filled":
       return "done";
     case "canceled":
@@ -68,7 +68,7 @@ function mapStatus(status: PublicPolyswapOrder["status"]): SwapStatus {
     case "expired":
       return "expired";
     case "live":
-      return "waiting";
+      return order.gate_opened_at ? "ready" : "waiting";
     case "draft":
       return "waiting";
   }
@@ -104,7 +104,7 @@ function buildTokenMap(tokens: Token[] | undefined): Map<string, Token> {
   return map;
 }
 
-function toOrderView(o: PublicPolyswapOrder, tokenMap: Map<string, Token>): OrderViewModel {
+export function toOrderView(o: PublicPolyswapOrder, tokenMap: Map<string, Token>): OrderViewModel {
   const sellMeta = tokenMap.get(o.sell_token.toLowerCase());
   const buyMeta = tokenMap.get(o.buy_token.toLowerCase());
   const sellSym = sellMeta?.symbol ?? "?";
@@ -114,7 +114,7 @@ function toOrderView(o: PublicPolyswapOrder, tokenMap: Map<string, Token>): Orde
   return {
     id: String(o.id),
     numericId: o.id,
-    status: mapStatus(o.status),
+    status: mapStatus(o),
     nickname: shortNickname(buySym, o.outcome_selected, o.bet_percentage),
     marketId: o.market_id ? String(o.market_id) : null,
     side: o.outcome_selected?.toLowerCase() === "no" ? "NO" : "YES",
