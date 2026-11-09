@@ -10,7 +10,7 @@ import {
   type ClobPriceRequest,
   type ClobPricesResponse,
 } from "@/services/polymarket";
-import { apiService, readApiErrorMessage } from "@/services/api";
+import { apiService, isSuccessEnvelope, readApiResponse } from "@/services/api";
 import { MARKET_CATEGORIES, type MarketCategory, type MarketViewModel } from "@/types/design";
 import {
   RECOMMENDATION_POLICY,
@@ -260,13 +260,7 @@ async function searchAndHydrate(params: {
   }
 
   const res = await fetch(url.toString());
-  const payload: unknown = await res.json();
-  if (!res.ok) {
-    throw new Error(readApiErrorMessage(payload) ?? `markets/search failed: ${res.status}`);
-  }
-  const json = payload as SearchResponse;
-
-  if (!json.success) throw new Error("markets/search returned success=false");
+  const json = await readApiResponse(res, isSuccessEnvelope<SearchResponse["data"]>);
 
   const leanMarkets = json.data.markets;
   const total = json.data.total ?? 0;
@@ -364,13 +358,7 @@ export function useRecommendedMarkets({
       });
       if (category) params.set("category", category);
       const res = await fetch(`/api/markets/recommended?${params}`);
-      const payload: unknown = await res.json();
-      if (!res.ok) {
-        throw new Error(readApiErrorMessage(payload) ?? "Couldn’t load recommendations.");
-      }
-      const json = payload as { success: boolean; data: RecommendationPage };
-      if (!json.success) throw new Error("Couldn’t load recommendations.");
-      const data = json.data;
+      const { data } = await readApiResponse(res, isSuccessEnvelope<RecommendationPage>);
       if (data.source === "database") {
         const prices = data.markets.length
           ? await fetchClobPrices(tokenPriceRequests(data.markets))
@@ -441,13 +429,7 @@ export function useSearchSuggestions(prefix: string, enabled = true) {
       url.searchParams.set("q", trimmed);
       url.searchParams.set("limit", "8");
       const res = await fetch(url.toString());
-      const payload: unknown = await res.json();
-      if (!res.ok) {
-        throw new Error(readApiErrorMessage(payload) ?? `markets/suggest failed: ${res.status}`);
-      }
-      const json = payload as SuggestResponse;
-      if (!json.success) throw new Error("markets/suggest returned success=false");
-      return json.data;
+      return (await readApiResponse(res, isSuccessEnvelope<SuggestResponse["data"]>)).data;
     },
     enabled: enabled && trimmed.length > 0,
     staleTime: STALE,
