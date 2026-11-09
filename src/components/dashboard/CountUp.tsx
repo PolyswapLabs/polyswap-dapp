@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
+import { EDITORIAL_EASE } from "@/lib/motion";
 
 interface Props {
   to: number;
@@ -22,7 +23,7 @@ export function CountUp({ to, format }: Props) {
   useEffect(() => {
     const controls = animate(mv, to, {
       duration: 0.36,
-      ease: [0.16, 1, 0.3, 1],
+      ease: EDITORIAL_EASE,
     });
     return () => controls.stop();
   }, [mv, to]);

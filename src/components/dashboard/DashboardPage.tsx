@@ -6,7 +6,7 @@ import { useWalletModal } from "@/components/modals/WalletModalProvider";
 import { PortfolioStrip } from "./PortfolioStrip";
 import { StatusTabs, type DashboardTab } from "./StatusTabs";
 import { SwapRow } from "./SwapRow";
-import { EmptyState } from "./EmptyState";
+import { ConnectWalletPrompt, NoSwapsYet } from "./EmptyStates";
 import { MotionList, MotionItem, ErrorAlert } from "@/components/primitives";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { AnimatePresence, motion } from "motion/react";
@@ -31,6 +31,41 @@ export function DashboardPage() {
 
   const filtered = tab === "all" ? orders : orders.filter((o) => o.status === tab);
 
+  const renderSwaps = () => {
+    if (!walletConnected) return <ConnectWalletPrompt onConnect={wallet.open} />;
+    if (orders.length === 0) return <NoSwapsYet />;
+    return (
+      <div>
+        <StatusTabs value={tab} onChange={setTab} counts={counts} />
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{
+              type: "spring",
+              stiffness: 320,
+              damping: 36,
+            }}
+          >
+            {filtered.length === 0 ? (
+              <p className="py-10 text-center text-sm text-ink-3">Nothing in this tab yet.</p>
+            ) : (
+              <MotionList className="-mx-4 sm:mx-0">
+                {filtered.map((o) => (
+                  <MotionItem key={o.id}>
+                    <SwapRow order={o} />
+                  </MotionItem>
+                ))}
+              </MotionList>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 py-8 lg:space-y-8 lg:py-10">
       <header>
@@ -50,42 +85,7 @@ export function DashboardPage() {
         </ErrorAlert>
       )}
 
-      {!isLoading && !isError && (
-        <>
-          {!walletConnected || orders.length === 0 ? (
-            <EmptyState walletConnected={walletConnected} onConnect={wallet.open} />
-          ) : (
-            <div>
-              <StatusTabs value={tab} onChange={setTab} counts={counts} />
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={tab}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 320,
-                    damping: 36,
-                  }}
-                >
-                  {filtered.length === 0 ? (
-                    <p className="py-10 text-center text-sm text-ink-3">Nothing in this tab yet.</p>
-                  ) : (
-                    <MotionList className="-mx-4 sm:mx-0">
-                      {filtered.map((o) => (
-                        <MotionItem key={o.id}>
-                          <SwapRow order={o} />
-                        </MotionItem>
-                      ))}
-                    </MotionList>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          )}
-        </>
-      )}
+      {!isLoading && !isError && renderSwaps()}
     </div>
   );
 }

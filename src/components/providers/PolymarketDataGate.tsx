@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UnavailableModal } from "./UnavailableModal";
+import { UnavailableModal } from "@/components/modals/UnavailableModal";
 
 const POLYMARKET_DATA_URL =
   "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=1";

@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
@@ -16,9 +16,9 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        ink: "bg-ink text-paper shadow-[4px_4px_0_0_var(--color-ink)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-ink)] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0_0_var(--color-ink)]",
+        ink: "bg-ink text-paper shadow-stamp hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-stamp-lg active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-stamp",
         accent:
-          "bg-accent text-paper shadow-[4px_4px_0_0_var(--color-ink)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-ink)] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0_0_var(--color-ink)]",
+          "bg-accent text-paper shadow-stamp hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-stamp-lg active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-stamp",
         paper: "bg-paper text-ink hover:bg-paper-3 active:translate-x-0 active:translate-y-0",
         ghost:
           "border-transparent bg-transparent text-ink underline-offset-4 hover:underline active:translate-x-0 active:translate-y-0",
@@ -36,19 +36,10 @@ export const buttonVariants = cva(
   }
 );
 
-interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
+interface ButtonProps extends ComponentProps<"button">, VariantProps<typeof buttonVariants> {}
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, type = "button", ...rest }, ref) => {
-    return (
-      <button
-        ref={ref}
-        type={type}
-        className={cn(buttonVariants({ variant, size }), className)}
-        {...rest}
-      />
-    );
-  }
-);
-Button.displayName = "Button";
+export function Button({ className, variant, size, type = "button", ...rest }: ButtonProps) {
+  return (
+    <button type={type} className={cn(buttonVariants({ variant, size }), className)} {...rest} />
+  );
+}

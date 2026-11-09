@@ -58,7 +58,7 @@ export function WalletButton({ onConnect, className }: Props) {
           <div
             className={cn(
               "absolute right-0 z-50 mt-2 min-w-[180px] border border-ink bg-paper",
-              "shadow-[4px_4px_0_0_var(--color-ink)]"
+              "shadow-stamp"
             )}
           >
             <button

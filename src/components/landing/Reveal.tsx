@@ -2,8 +2,7 @@
 
 import { motion, type HTMLMotionProps } from "motion/react";
 import type { ReactNode } from "react";
-
-const EASE = [0.16, 1, 0.3, 1] as const; // editorial cubic-bezier
+import { EDITORIAL_EASE } from "@/lib/motion";
 
 interface RevealProps extends Omit<HTMLMotionProps<"div">, "children"> {
   children: ReactNode;
@@ -35,7 +34,7 @@ export function Reveal({
       initial={{ opacity: 0, y: offset }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
-      transition={{ duration, delay, ease: EASE }}
+      transition={{ duration, delay, ease: EDITORIAL_EASE }}
       {...rest}
     >
       {children}
@@ -102,7 +101,7 @@ export function RevealItem({
         show: {
           opacity: 1,
           y: 0,
-          transition: { duration, ease: EASE },
+          transition: { duration, ease: EDITORIAL_EASE },
         },
       }}
       {...rest}

@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
 import { TokenLogo } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { formatAddress } from "@/lib/format";
+import { polygonscanTokenUrl } from "@/lib/links";
+import { groupTokens, tokenKey } from "@/lib/tokenGroups";
+import { useModalDismiss } from "@/hooks/useModalDismiss";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
 import type { TokenViewModel } from "@/types/design";
 
@@ -17,8 +21,6 @@ interface Props {
   title?: string;
 }
 
-const POPULAR_SYMBOLS = ["USDC", "USDC.e", "USDT", "DAI", "WETH", "WBTC", "WPOL", "LINK"] as const;
-
 function formatBalance(raw: bigint, decimals: number): string {
   const num = Number(formatUnits(raw, decimals));
   if (!Number.isFinite(num) || num === 0) return "0";
@@ -27,10 +29,6 @@ function formatBalance(raw: bigint, decimals: number): string {
   if (num < 1_000) return num.toFixed(2);
   if (num < 1_000_000) return `${(num / 1_000).toFixed(1)}K`;
   return `${(num / 1_000_000).toFixed(2)}M`;
-}
-
-function shortAddr(addr: string): string {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
 export function TokenPicker({
@@ -43,79 +41,21 @@ export function TokenPicker({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const close = useCallback(() => setOpen(false), []);
+  useModalDismiss(open, close);
 
+  const selectedKey = tokenKey(value);
   const currentToken = useMemo(
-    () => options.find((t) => t.address.toLowerCase() === value.address.toLowerCase()) ?? value,
-    [options, value]
+    () => options.find((t) => tokenKey(t) === selectedKey) ?? value,
+    [options, value, selectedKey]
   );
 
   const { balances } = useTokenBalances(options, { enabled: open && showBalances });
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  const { owned, popular, rest } = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = q
-      ? options.filter(
-          (t) =>
-            t.symbol.toLowerCase().includes(q) ||
-            t.name.toLowerCase().includes(q) ||
-            t.address.toLowerCase().includes(q)
-        )
-      : options.slice();
-
-    const ownedList = showBalances
-      ? filtered
-          .filter((t) => (balances.get(t.address.toLowerCase()) ?? 0n) > 0n)
-          .sort((a, b) => {
-            const ba = balances.get(a.address.toLowerCase()) ?? 0n;
-            const bb = balances.get(b.address.toLowerCase()) ?? 0n;
-            if (bb === ba) return a.symbol.localeCompare(b.symbol);
-            return bb > ba ? 1 : -1;
-          })
-      : [];
-
-    const ownedAddrs = new Set(ownedList.map((t) => t.address.toLowerCase()));
-    const popularList = filtered
-      .filter(
-        (t) =>
-          POPULAR_SYMBOLS.includes(t.symbol as (typeof POPULAR_SYMBOLS)[number]) &&
-          !ownedAddrs.has(t.address.toLowerCase())
-      )
-      .sort(
-        (a, b) =>
-          POPULAR_SYMBOLS.indexOf(a.symbol as (typeof POPULAR_SYMBOLS)[number]) -
-          POPULAR_SYMBOLS.indexOf(b.symbol as (typeof POPULAR_SYMBOLS)[number])
-      );
-
-    const popularAddrs = new Set(popularList.map((t) => t.address.toLowerCase()));
-    const restList = filtered
-      .filter(
-        (t) =>
-          !ownedAddrs.has(t.address.toLowerCase()) && !popularAddrs.has(t.address.toLowerCase())
-      )
-      .sort((a, b) => a.symbol.localeCompare(b.symbol));
-
-    return { owned: ownedList, popular: popularList, rest: restList };
-  }, [options, query, balances, showBalances]);
-
-  const totalCount = owned.length + popular.length + rest.length;
+  const groups = useMemo(
+    () => groupTokens({ options, query, balances, showBalances }),
+    [options, query, balances, showBalances]
+  );
 
   const select = (token: TokenViewModel) => {
     onChange(token);
@@ -155,7 +95,7 @@ export function TokenPicker({
             role="dialog"
             aria-modal="true"
             aria-label={title ?? "Select a token"}
-            className="flex max-h-[min(640px,calc(100dvh-6rem))] w-full max-w-[460px] flex-col border border-ink bg-paper shadow-[6px_6px_0_0_var(--color-ink)]"
+            className="flex max-h-[min(640px,calc(100dvh-6rem))] w-full max-w-[460px] flex-col border border-ink bg-paper shadow-stamp-lg"
           >
             <div className="flex items-center justify-between border-b border-ink px-4 py-3">
               <p className="font-serif text-lg leading-none">{title ?? "Select a token"}</p>
@@ -189,52 +129,24 @@ export function TokenPicker({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {totalCount === 0 ? (
+              {groups.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-ink-3">
                   {query ? <>No tokens match &ldquo;{query}&rdquo;.</> : "No tokens available."}
                 </div>
               ) : (
-                <>
-                  {owned.length > 0 && (
-                    <Section title="In your wallet">
-                      {owned.map((t) => (
-                        <Row
-                          key={t.address}
-                          token={t}
-                          selected={t.address.toLowerCase() === value.address.toLowerCase()}
-                          balance={balances.get(t.address.toLowerCase())}
-                          onSelect={() => select(t)}
-                        />
-                      ))}
-                    </Section>
-                  )}
-                  {popular.length > 0 && (
-                    <Section title="Popular">
-                      {popular.map((t) => (
-                        <Row
-                          key={t.address}
-                          token={t}
-                          selected={t.address.toLowerCase() === value.address.toLowerCase()}
-                          balance={showBalances ? balances.get(t.address.toLowerCase()) : undefined}
-                          onSelect={() => select(t)}
-                        />
-                      ))}
-                    </Section>
-                  )}
-                  {rest.length > 0 && (
-                    <Section title={query ? "Results" : "All tokens"}>
-                      {rest.map((t) => (
-                        <Row
-                          key={t.address}
-                          token={t}
-                          selected={t.address.toLowerCase() === value.address.toLowerCase()}
-                          balance={showBalances ? balances.get(t.address.toLowerCase()) : undefined}
-                          onSelect={() => select(t)}
-                        />
-                      ))}
-                    </Section>
-                  )}
-                </>
+                groups.map((group) => (
+                  <Section key={group.id} title={group.title}>
+                    {group.tokens.map((t) => (
+                      <Row
+                        key={t.address}
+                        token={t}
+                        selected={tokenKey(t) === selectedKey}
+                        balance={showBalances ? balances.get(tokenKey(t)) : undefined}
+                        onSelect={() => select(t)}
+                      />
+                    ))}
+                  </Section>
+                ))
               )}
             </div>
           </div>
@@ -267,7 +179,6 @@ function Row({
   onSelect: () => void;
 }) {
   const hasPositiveBalance = balance !== undefined && balance > 0n;
-  const polygonscanUrl = `https://polygonscan.com/token/${token.address}`;
   return (
     <li>
       <div
@@ -298,7 +209,7 @@ function Row({
             </span>
           )}
           <AddressLink
-            href={polygonscanUrl}
+            href={polygonscanTokenUrl(token.address)}
             symbol={token.symbol}
             address={token.address}
             overlay={hasPositiveBalance}
@@ -335,7 +246,7 @@ function AddressLink({
           : "ml-auto"
       )}
     >
-      {shortAddr(address)}
+      {formatAddress(address)}
     </a>
   );
 }

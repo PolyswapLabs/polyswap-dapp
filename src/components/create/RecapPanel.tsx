@@ -1,5 +1,6 @@
 import { Icon } from "@/components/icons";
 import { InfoTip, DefinitionRow } from "@/components/primitives";
+import { expiryRecapLabel } from "@/lib/createOrder";
 import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
 import {
   describeImmediateFillSentence,
@@ -20,12 +21,6 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
   const sentence = wouldCross
     ? describeImmediateFillSentence(state)
     : describeTriggerSentence(state, market.question);
-  const expiryLabel =
-    state.expiry === "7d"
-      ? "in 7 days"
-      : state.expiry === "30d"
-        ? "in 30 days"
-        : "when the market resolves";
 
   const fromSymbol = state.fromToken?.symbol ?? "—";
   const toSymbol = state.toToken?.symbol ?? "—";
@@ -66,7 +61,7 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
             term="Notional"
             value={estimates.amountInUsd > 0 ? fmtUSD(estimates.amountInUsd) : "—"}
           />
-          <DefinitionRow term="Expires" value={expiryLabel} />
+          <DefinitionRow term="Expires" value={expiryRecapLabel(state.expiry)} />
           <DefinitionRow
             term={
               <span className="inline-flex items-center gap-1.5">

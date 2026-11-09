@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { useModalDismiss } from "@/hooks/useModalDismiss";
 import { cn } from "@/lib/cn";
 
 export interface MobileNavLink {
@@ -19,18 +19,7 @@ interface Props {
 }
 
 export function MobileNav({ open, onClose, links, footer }: Props) {
-  useEffect(() => {
-    if (!open) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onEsc);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onEsc);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+  useModalDismiss(open, onClose);
 
   if (!open) return null;
 

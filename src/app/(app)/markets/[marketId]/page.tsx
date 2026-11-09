@@ -9,7 +9,7 @@ interface Props {
 
 export default async function MarketDetailPage({ params }: Props) {
   const { marketId } = await params;
-  return <MarketDetail identifier={marketId} />;
+  return <MarketDetail marketIdOrSlug={marketId} />;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

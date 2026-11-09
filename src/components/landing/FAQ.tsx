@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { EDITORIAL_EASE } from "@/lib/motion";
 
 interface QA {
   q: string;
@@ -32,8 +33,6 @@ const FAQS: QA[] = [
     a: "There is NO fee at the moment! Subject to change — a small fee may apply on executed swaps only.",
   },
 ];
-
-const EASE = [0.16, 1, 0.3, 1] as const;
 
 export function FAQ() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
@@ -69,7 +68,7 @@ export function FAQ() {
                     aria-hidden
                     className="text-ink-3"
                     animate={{ rotate: open ? 45 : 0 }}
-                    transition={{ duration: 0.24, ease: EASE }}
+                    transition={{ duration: 0.24, ease: EDITORIAL_EASE }}
                   >
                     <Icon.plus size={18} />
                   </motion.span>
@@ -85,8 +84,8 @@ export function FAQ() {
                     collapsed: { height: 0, opacity: 0 },
                   }}
                   transition={{
-                    height: { duration: 0.32, ease: EASE },
-                    opacity: { duration: 0.22, ease: EASE },
+                    height: { duration: 0.32, ease: EDITORIAL_EASE },
+                    opacity: { duration: 0.22, ease: EDITORIAL_EASE },
                   }}
                   style={{ overflow: "hidden" }}
                 >
@@ -95,7 +94,7 @@ export function FAQ() {
                       open: { y: 0 },
                       collapsed: { y: -4 },
                     }}
-                    transition={{ duration: 0.32, ease: EASE }}
+                    transition={{ duration: 0.32, ease: EDITORIAL_EASE }}
                     className="max-w-[720px] px-5 pb-5 text-sm leading-relaxed text-ink-2 lg:px-6 lg:text-[15px]"
                   >
                     {it.a}

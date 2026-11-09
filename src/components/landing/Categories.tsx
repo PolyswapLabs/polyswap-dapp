@@ -1,4 +1,4 @@
-import { CatIllus } from "./illustrations";
+import { CategoryIllustration } from "./CategoryIllustration";
 import type { MarketCategory } from "@/types/design";
 
 interface Cat {
@@ -61,7 +61,7 @@ export function Categories() {
               }`}
             >
               <div className="mb-4 text-ink lg:mb-5">
-                <CatIllus category={c.k} size={56} />
+                <CategoryIllustration category={c.k} size={56} />
               </div>
               <p className="font-serif text-2xl lg:text-[26px]">{c.t}</p>
               <p className="mt-1 text-sm text-ink-3">{c.d}</p>

@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { buttonVariants, Reveal, RevealItem, RevealStack } from "@/components/primitives";
+import { buttonVariants } from "@/components/primitives";
+import { Reveal, RevealItem, RevealStack } from "./Reveal";
 import { Icon } from "@/components/icons";
 
 export function Hero() {

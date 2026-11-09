@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Icon } from "@/components/icons";
+import { GithubIcon, Icon, LinkedinIcon, XIcon } from "@/components/icons";
 
 interface Creator {
   name: string;
@@ -106,17 +106,24 @@ function CreatorCard({ creator }: { creator: Creator }) {
   );
 }
 
+const SOCIAL_ICON = {
+  github: GithubIcon,
+  twitter: XIcon,
+  linkedin: LinkedinIcon,
+} as const;
+
 function SocialRow({
   icon,
   label,
   handle,
   url,
 }: {
-  icon: "github" | "twitter" | "linkedin";
+  icon: keyof typeof SOCIAL_ICON;
   label: string;
   handle: string;
   url: string;
 }) {
+  const SocialIcon = SOCIAL_ICON[icon];
   return (
     <li>
       <a
@@ -126,7 +133,7 @@ function SocialRow({
         className="group flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-paper-2"
       >
         <span className="flex min-w-0 items-center gap-2.5">
-          <SocialIcon kind={icon} />
+          <SocialIcon />
           <span className="flex min-w-0 flex-col">
             <span className="eyebrow">{label}</span>
             <span className="num truncate text-xs text-ink-2">{handle}</span>
@@ -139,48 +146,5 @@ function SocialRow({
         />
       </a>
     </li>
-  );
-}
-
-function SocialIcon({ kind }: { kind: "github" | "twitter" | "linkedin" }) {
-  if (kind === "github") {
-    return (
-      <svg
-        width={18}
-        height={18}
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden
-        className="shrink-0"
-      >
-        <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.05c-3.2.7-3.87-1.37-3.87-1.37-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.06 11.06 0 015.79 0c2.21-1.49 3.18-1.18 3.18-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.07.78 2.16v3.2c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z" />
-      </svg>
-    );
-  }
-  if (kind === "twitter") {
-    return (
-      <svg
-        width={18}
-        height={18}
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden
-        className="shrink-0"
-      >
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z" />
-      </svg>
-    );
-  }
-  return (
-    <svg
-      width={18}
-      height={18}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden
-      className="shrink-0"
-    >
-      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
-    </svg>
   );
 }

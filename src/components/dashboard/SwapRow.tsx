@@ -1,46 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { Dial, Shimmer, Status, Tape, TokenLogo } from "@/components/primitives";
+import { Dial } from "@/components/charts/Dial";
+import { Tape } from "@/components/charts/Tape";
+import { Shimmer, TokenLogo } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
-import { useMarket, useMarketPriceHistory } from "@/hooks/markets/useMarkets";
+import { useOrderOddsSeries } from "@/hooks/useOrderOddsSeries";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
+import { Status } from "./Status";
 
 interface Props {
   order: OrderViewModel;
 }
 
 export function SwapRow({ order }: Props) {
-  // Real Polymarket history for the side this order picked. React Query dedups
-  // across rows that share the same market+token, so the per-row fetch is cheap.
-  const marketQ = useMarket(order.marketId ?? "");
-  const market = marketQ.data;
-  const sideTokenId =
-    order.side === "NO" ? (market?.noTokenId ?? null) : (market?.yesTokenId ?? null);
-  const historyQ = useMarketPriceHistory(sideTokenId, 60);
-  const priceHistory = historyQ.data ?? [];
-
-  // While market/history are still loading for an order that has a marketId,
-  // we'd otherwise paint the synthetic `order.spark` and a placeholder 0% — so
-  // the row visibly swaps content a moment later. Hold a skeleton instead.
-  const expectingRealData = order.marketId !== null;
-  const dataPending =
-    expectingRealData &&
-    (marketQ.isPending ||
-      historyQ.isPending ||
-      (market !== undefined &&
-        sideTokenId !== null &&
-        historyQ.isFetching &&
-        priceHistory.length === 0));
-
-  const useRealHistory = priceHistory.length >= 2;
-  const sparkData = useRealHistory ? priceHistory.map((p) => p.p) : order.spark;
-  const sparkTimestamps = useRealHistory ? priceHistory.map((p) => p.t) : undefined;
-  const currentOdds = sparkData[sparkData.length - 1] ?? 0;
+  const {
+    market,
+    isPending,
+    odds: sparkData,
+    timestamps: sparkTimestamps,
+    currentOdds,
+  } = useOrderOddsSeries(order);
   const marketQuestion = market?.question ?? order.nickname;
 
-  if (dataPending) {
+  if (isPending) {
     return <SwapRowSkeleton href={`/dashboard/${order.id}`} order={order} />;
   }
   return (

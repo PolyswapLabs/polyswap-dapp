@@ -2,18 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SearchInputWithSuggestions } from "./SearchInputWithSuggestions";
 import { MarketRow } from "./MarketRow";
 import { MarketsSkeleton } from "./MarketsSkeleton";
 import { Pagination } from "./Pagination";
+import { MARKETS_PAGE_SIZE, MarketsEmptyState, MarketsPageHeader } from "./MarketsPageBlocks";
 import { MotionList, MotionItem } from "@/components/primitives";
 import { TransitionLink } from "@/components/layout";
 import { Icon } from "@/components/icons";
 import { useMarketsPage } from "@/hooks/markets/useMarkets";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { capturePostHogEvent } from "@/lib/posthog-client";
-
-const PAGE_SIZE = 20;
 
 function readPage(raw: string | null): number {
   if (!raw) return 1;
@@ -49,7 +47,7 @@ export function MarketsSearchResults() {
 
   const { data, isLoading, isError, error } = useMarketsPage({
     page,
-    pageSize: PAGE_SIZE,
+    pageSize: MARKETS_PAGE_SIZE,
     q: query,
     category: null,
   });
@@ -78,8 +76,8 @@ export function MarketsSearchResults() {
 
   return (
     <div>
-      <div className="border-b border-ink">
-        <div className="flex flex-col gap-6 py-10 lg:py-14">
+      <MarketsPageHeader
+        aboveTitle={
           <TransitionLink
             href="/markets"
             className="inline-flex items-center gap-2 text-sm text-ink-3 hover:text-ink"
@@ -87,40 +85,27 @@ export function MarketsSearchResults() {
             <Icon.arrowLeft size={14} />
             <span>All markets</span>
           </TransitionLink>
-          <div className="grid items-end gap-6 lg:grid-cols-12 lg:gap-10">
-            <div className="lg:col-span-7">
-              <p className="eyebrow mb-3">
-                {trimmed.length > 0
-                  ? `Search · ${total.toLocaleString()} match${total === 1 ? "" : "es"}`
-                  : "Search"}
-              </p>
-              <h1 className="display text-4xl leading-[0.95] sm:text-5xl lg:text-[64px]">
-                {trimmed.length > 0 ? (
-                  <>
-                    Results for <span className="display-italic">{trimmed}</span>
-                  </>
-                ) : (
-                  <>Find a market.</>
-                )}
-              </h1>
-            </div>
-            <div className="lg:col-span-5">
-              <SearchInputWithSuggestions
-                value={query}
-                onSubmit={handleQuerySubmit}
-                placeholder="Search questions, tags, slugs"
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+        }
+        eyebrow={
+          trimmed.length > 0
+            ? `Search · ${total.toLocaleString()} match${total === 1 ? "" : "es"}`
+            : "Search"
+        }
+        title={
+          trimmed.length > 0 ? (
+            <>
+              Results for <span className="display-italic">{trimmed}</span>
+            </>
+          ) : (
+            <>Find a market.</>
+          )
+        }
+        searchValue={query}
+        onSearchSubmit={handleQuerySubmit}
+      />
 
       {trimmed.length === 0 ? (
-        <div className="border-b border-rule-soft px-6 py-16 text-center sm:px-8 lg:py-20">
-          <p className="font-serif text-xl text-ink sm:text-2xl">Type to search.</p>
-          <p className="mt-2 text-sm text-ink-3">Match by question, tag or slug.</p>
-        </div>
+        <MarketsEmptyState title="Type to search." hint="Match by question, tag or slug." />
       ) : (
         <>
           {isLoading && <MarketsSkeleton />}
@@ -130,10 +115,7 @@ export function MarketsSearchResults() {
             </p>
           )}
           {!isLoading && !isError && items.length === 0 && (
-            <div className="border-b border-rule-soft px-6 py-16 text-center sm:px-8 lg:py-20">
-              <p className="font-serif text-xl text-ink sm:text-2xl">No matches.</p>
-              <p className="mt-2 text-sm text-ink-3">Try a different term.</p>
-            </div>
+            <MarketsEmptyState title="No matches." hint="Try a different term." />
           )}
           {!isLoading && !isError && items.length > 0 && (
             <>
@@ -144,7 +126,12 @@ export function MarketsSearchResults() {
                   </MotionItem>
                 ))}
               </MotionList>
-              <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+              <Pagination
+                page={page}
+                pageSize={MARKETS_PAGE_SIZE}
+                total={total}
+                onChange={setPage}
+              />
             </>
           )}
         </>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Logo } from "@/components/layout/Logo";
+import { Wordmark } from "@/components/layout/Logo";
 import { buttonVariants } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { MobileNav, type MobileNavLink } from "@/components/layout/MobileNav";
@@ -27,10 +27,7 @@ export function LandingHeader() {
   return (
     <header className="border-b border-ink bg-paper">
       <div className="page-container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <Logo size={36} />
-          <span className="font-serif text-2xl">Polyswap</span>
-        </Link>
+        <Wordmark />
 
         <nav className="hidden items-center gap-7 text-sm lg:flex" aria-label="Primary">
           {ANCHOR_LINKS.map((l) => (
