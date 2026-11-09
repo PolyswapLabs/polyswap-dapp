@@ -6,16 +6,6 @@ const nextConfig: NextConfig = {
   env: {
     ENVIRONMENT: process.env.ENVIRONMENT ?? "dev",
   },
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
-  },
   async rewrites() {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
     const posthogAssetsHost = process.env.NEXT_PUBLIC_POSTHOG_ASSETS_HOST;
