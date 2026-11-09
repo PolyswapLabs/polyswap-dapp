@@ -97,7 +97,8 @@ function classifyPollError({ name, reason, retryAt }: DecodedPollError): RevertC
   return {
     errorCode: name,
     reason,
-    retryAt: retryAt ?? null,
+    // PollTryAtBlock carries a block number; the column and the UI hold epoch seconds.
+    retryAt: name === "PollTryAtEpoch" ? (retryAt ?? null) : null,
     nextStatus: endDatePassed ? "expired" : TERMINAL_POLL_ERRORS.has(name) ? "errored" : null,
     logLevel: isWaiting ? "debug" : "warn",
     logDetail: isWaiting ? ` not yet tradeable: ${name}(${reason})` : ` ${name}: ${reason}`,

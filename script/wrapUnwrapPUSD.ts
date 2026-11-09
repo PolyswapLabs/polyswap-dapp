@@ -15,9 +15,7 @@
  *   pUSD   --approve--> Offramp.unwrap(asset, to, amount) --burns--> USDC.e
  */
 
-import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
+import "dotenv/config";
 import { resilientHttp } from "../src/shared/rpc/resilientHttp";
 import {
   createPublicClient,
@@ -32,11 +30,6 @@ import { polygon } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { createLogger } from "../src/backend/logger.js";
 import { toPrivateKeyHex } from "../src/backend/utils/env";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: resolve(__dirname, "..", ".env") });
 
 const log = createLogger("pusd");
 

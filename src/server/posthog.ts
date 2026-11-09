@@ -1,4 +1,5 @@
 import { PostHog } from "posthog-node";
+import { isProductionEnvironment } from "@/shared/env";
 
 interface CaptureClient {
   capture: (event: Parameters<PostHog["capture"]>[0]) => void;
@@ -30,6 +31,10 @@ export function getPostHogClient(): CaptureClient {
         )
       );
     }
+    cachedClient = noopClient;
+    return cachedClient;
+  }
+  if (!isProductionEnvironment()) {
     cachedClient = noopClient;
     return cachedClient;
   }

@@ -116,11 +116,17 @@ function parseSchedule(
   if (requestedDeadline !== undefined && typeof requestedDeadline !== "string") {
     return rejected("Invalid deadline", "deadline must be a string");
   }
+  if (requestedDeadline && Number.isNaN(new Date(requestedDeadline).getTime())) {
+    return rejected("Invalid deadline", "deadline must be a valid date");
+  }
 
   if (!requestedStart || requestedStart === "now") {
     return { value: { startDate: new Date(), requestedDeadline } };
   }
   const startDate = new Date(requestedStart);
+  if (Number.isNaN(startDate.getTime())) {
+    return rejected("Invalid startDate", "startDate must be a valid date");
+  }
   if (startDate < new Date(Date.now() - MAX_START_DATE_AGE_MS)) {
     return rejected("startDate must not be in the past");
   }
@@ -128,6 +134,9 @@ function parseSchedule(
 }
 
 export function parseCreateOrderRequest(rawBody: unknown): Parsed<CreateOrderInput> {
+  if (typeof rawBody !== "object" || rawBody === null) {
+    return rejected("Invalid request body", "The request body must be a JSON object");
+  }
   const body = rawBody as CreateOrderRequestBody;
 
   const missing = REQUIRED_FIELDS.filter(

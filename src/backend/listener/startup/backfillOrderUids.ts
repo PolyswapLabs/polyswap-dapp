@@ -22,7 +22,8 @@ export async function backfillOrderUids(): Promise<void> {
 
   let filled = 0;
   for (const order of ordersWithoutUid) {
-    if (!order.order_hash) continue;
+    // Without a handler the UID cannot be derived on-chain.
+    if (!order.order_hash || !order.handler) continue;
     try {
       await storeDbOrderUid(client, order, order.order_hash);
       filled += 1;

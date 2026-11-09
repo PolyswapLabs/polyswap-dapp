@@ -13,6 +13,17 @@ const VALUE_IMPORT = /^import (?!type\b)[^;]*?from "(@\/[^"]+)";/gms;
 const valueImports = (file: string) =>
   [...readFileSync(file, "utf8").matchAll(VALUE_IMPORT)].map((match) => match[1] as string);
 
+const ENTRY_POINTS = ["src/backend/listener/index.ts", ...sourceFiles("script")];
+
+test("entry points load .env before any module reads the environment at import time", () => {
+  const offenders = ENTRY_POINTS.filter((file) => {
+    const source = readFileSync(file, "utf8");
+    if (!source.includes("dotenv")) return false;
+    return source.match(/^import [^\n]*$/m)?.[0] !== 'import "dotenv/config";';
+  });
+  assert.deepEqual(offenders, []);
+});
+
 test("shared code only depends on shared code, so the listener image stays self-contained", () => {
   const offenders = sourceFiles("src/shared").flatMap((file) =>
     valueImports(file)

@@ -1,12 +1,10 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import { verifyDatabaseConnection } from "@/backend/db/prisma";
 import { assertRequiredEnv, readIntervals, readMode, type Mode } from "@/backend/listener/config";
 import { buildServices } from "@/backend/listener/services";
 import { backfillOrderUids } from "@/backend/listener/startup/backfillOrderUids";
 import { catchupHistoricalEvents } from "@/backend/listener/startup/catchupHistoricalEvents";
 import { createLogger, getActiveLogLevel } from "@/backend/logger";
-
-dotenv.config();
 
 const log = createLogger("listener");
 

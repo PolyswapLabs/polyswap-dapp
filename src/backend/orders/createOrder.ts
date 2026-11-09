@@ -81,7 +81,7 @@ function defaultDeadline(market: MarketRow, startDate: Date): Date {
   return deadline.getTime() > maxDeadline.getTime() ? maxDeadline : deadline;
 }
 
-function resolveDeadline(
+export function resolveDeadline(
   requestedDeadline: string | undefined,
   market: MarketRow,
   startDate: Date
@@ -93,6 +93,12 @@ function resolveDeadline(
 
   if (deadline <= startDate) {
     reject({ status: 400, error: "deadline must be after startDate" });
+  }
+  if (deadline.getTime() > startDate.getTime() + MAX_DEADLINE_DAYS * DAY_MS) {
+    reject({
+      status: 400,
+      error: `deadline must be within ${MAX_DEADLINE_DAYS} days of startDate`,
+    });
   }
   return { deadline, explicitDeadline };
 }

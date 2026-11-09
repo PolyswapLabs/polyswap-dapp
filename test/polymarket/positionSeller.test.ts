@@ -579,3 +579,7 @@ test("a missing private key still fails the seller's start", (t) => {
   withEnv(t, { PK: undefined });
   assert.throws(() => new PolymarketOrderService().getChainReader(), /Private key/);
 });
+
+test("a price whose discount lands on a tick is not pushed one tick lower by float error", () => {
+  assert.equal(computeSellPrice(orderBook(0.01, "0.2"), { currentPrice: 0.6 })?.price, 0.57);
+});

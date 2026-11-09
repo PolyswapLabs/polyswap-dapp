@@ -79,7 +79,7 @@ test("wait signals keep the order live and carry the retry point", () => {
   assert.deepEqual(outcome(classifyRevert(revert("PollTryAtBlock", 123n, "at block"))), {
     errorCode: "PollTryAtBlock",
     reason: "at block",
-    retryAt: 123,
+    retryAt: null,
     nextStatus: null,
   });
   assert.deepEqual(outcome(classifyRevert(revert("PollTryAtEpoch", 456n, "at epoch"))), {
@@ -91,7 +91,7 @@ test("wait signals keep the order live and carry the retry point", () => {
 });
 
 test("a retry point of zero is kept, not treated as missing", () => {
-  assert.equal(classifyRevert(revert("PollTryAtBlock", 0n, "now")).retryAt, 0);
+  assert.equal(classifyRevert(revert("PollTryAtEpoch", 0n, "now")).retryAt, 0);
 });
 
 test("wait signals log quietly while terminal poll errors warn", () => {

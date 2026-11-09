@@ -104,8 +104,10 @@ function buildKeysetUrl(
   return url;
 }
 
+const GAMMA_TIMEOUT_MS = 30_000;
+
 async function fetchKeysetPage(url: URL): Promise<GammaKeysetResponse> {
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), { signal: AbortSignal.timeout(GAMMA_TIMEOUT_MS) });
   if (!response.ok) {
     const responseBody = (await response.text()).slice(0, 1_000);
     throw new Error(
@@ -137,7 +139,10 @@ export const gammaApi = {
   async isMarketClosed(id: string): Promise<boolean> {
     try {
       const url = `${GAMMA_API_URL}/markets/${encodeURIComponent(id)}`;
-      const res = await fetch(url, { headers: { accept: "application/json" } });
+      const res = await fetch(url, {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(GAMMA_TIMEOUT_MS),
+      });
       if (!res.ok) {
         log.debug(`market ${id} status HTTP ${res.status}`);
         return false;

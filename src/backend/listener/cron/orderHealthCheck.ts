@@ -59,7 +59,7 @@ async function markFillable(order: PolyswapOrderRow): Promise<void> {
   }
 }
 
-async function checkTradeability(order: PolyswapOrderRow): Promise<void> {
+export async function checkTradeability(order: PolyswapOrderRow): Promise<void> {
   // Without these the conditional-order params can't be reconstructed.
   if (!order.handler || !order.salt) return;
 
@@ -74,15 +74,13 @@ async function checkTradeability(order: PolyswapOrderRow): Promise<void> {
 
   try {
     await assertOrderTradeable(order.owner as Address, params);
-    await markFillable(order);
   } catch (err) {
     const data = extractRevertData(err);
-    if (!data) {
-      log.error(`unrecognised error for order ${order.id}`, err);
-      return;
-    }
-    await recordRevert(order, data);
+    if (data) await recordRevert(order, data);
+    else log.error(`unrecognised error for order ${order.id}`, err);
+    return;
   }
+  await markFillable(order);
 }
 
 async function runOrderHealthCheck(): Promise<void> {

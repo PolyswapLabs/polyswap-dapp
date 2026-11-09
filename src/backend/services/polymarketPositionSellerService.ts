@@ -43,7 +43,9 @@ export function computeSellPrice(
   const referencePrice = metadata && metadata.currentPrice > 0 ? metadata.currentPrice : bestBid;
   if (!referencePrice) return null;
   const tick = Number(book.tickSize);
-  const discounted = Math.floor((referencePrice * LIQUIDATION_PRICE_RATIO) / tick) * tick;
+  // Round first: 0.57 / 0.01 is 56.99999... in floats and would otherwise floor a tick too low.
+  const ticks = Number(((referencePrice * LIQUIDATION_PRICE_RATIO) / tick).toFixed(8));
+  const discounted = Math.floor(ticks) * tick;
   return { price: Number(Math.max(tick, discounted).toFixed(6)), referencePrice };
 }
 
