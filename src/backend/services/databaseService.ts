@@ -4,7 +4,6 @@ import {
   type Market as PrismaMarket,
   type PolymarketSentinel as PrismaPolymarketSentinel,
   type PolyswapOrder as PrismaPolyswapOrder,
-  type SoldPosition as PrismaSoldPosition,
 } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import { createLogger } from "../logger";
@@ -20,7 +19,6 @@ import {
   type PolyswapOrderRecord,
   type DatabasePolyswapOrder,
   type DatabasePolymarketSentinel,
-  type SoldPosition,
   type SoldPositionInput,
 } from "../interfaces/PolyswapOrder";
 
@@ -158,22 +156,6 @@ function toPolymarketSentinelRow(s: PrismaPolymarketSentinel): DatabasePolymarke
     filled_at: s.filledAt,
     created_at: s.createdAt,
     updated_at: s.updatedAt,
-  };
-}
-
-function toSoldPositionRow(s: PrismaSoldPosition): SoldPosition {
-  return {
-    id: s.id,
-    asset_id: s.assetId,
-    protocol_version: s.protocolVersion === null ? null : parseProtocolVersion(s.protocolVersion),
-    condition_id: s.conditionId,
-    size: decimalToNumber(s.size),
-    sell_price: decimalToNumber(s.sellPrice),
-    current_price: decimalToNumber(s.currentPrice),
-    order_id: s.orderId,
-    market_title: s.marketTitle ?? "",
-    outcome: s.outcome ?? "",
-    sold_at: s.soldAt,
   };
 }
 
@@ -862,32 +844,6 @@ export class DatabaseService {
     return rows.map(toPolyswapOrderRow);
   }
 
-  static async getPolyswapOrdersByPolymarketHash(
-    polymarketHash: string
-  ): Promise<DatabasePolyswapOrder[]> {
-    const rows = await prisma.polyswapOrder.findMany({
-      where: { polymarketOrderHash: polymarketHash },
-      orderBy: { createdAt: "desc" },
-    });
-    return rows.map(toPolyswapOrderRow);
-  }
-
-  static async updateOrderStatus(
-    orderHash: string,
-    status: "draft" | "live" | "filled" | "canceled"
-  ): Promise<boolean> {
-    try {
-      const result = await prisma.polyswapOrder.updateMany({
-        where: { orderHash },
-        data: { status, updatedAt: new Date() },
-      });
-      return result.count > 0;
-    } catch (error) {
-      log.error(`failed to update order status for hash ${orderHash}:`, error);
-      return false;
-    }
-  }
-
   static async updateOrderStatusById(
     orderId: number,
     status: OrderStatus,
@@ -1000,115 +956,6 @@ export class DatabaseService {
     return rows.map(toPolyswapOrderRow);
   }
 
-  static async updateOrderPolymarketHash(
-    orderHash: string,
-    polymarketOrderHash: string
-  ): Promise<boolean> {
-    const result = await prisma.polyswapOrder.updateMany({
-      where: { orderHash },
-      data: { polymarketOrderHash, updatedAt: new Date() },
-    });
-    return result.count > 0;
-  }
-
-  static async updateOrderPolymarketHashById(
-    orderId: number,
-    polymarketOrderHash: string
-  ): Promise<boolean> {
-    try {
-      await prisma.polyswapOrder.update({
-        where: { id: orderId },
-        data: { polymarketOrderHash, updatedAt: new Date() },
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        return false;
-      }
-      throw error;
-    }
-  }
-
-  static async updateOrderTransactionHashById(
-    orderId: number,
-    transactionHash: string
-  ): Promise<boolean> {
-    try {
-      await prisma.polyswapOrder.update({
-        where: { id: orderId },
-        data: { transactionHash, status: "live", updatedAt: new Date() },
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        return false;
-      }
-      throw error;
-    }
-  }
-
-  static async getOrdersByStatus(
-    status: "draft" | "live" | "filled" | "canceled",
-    limit: number = 100,
-    offset: number = 0
-  ): Promise<DatabasePolyswapOrder[]> {
-    const rows = await prisma.polyswapOrder.findMany({
-      where: { status },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset,
-    });
-    return rows.map(toPolyswapOrderRow);
-  }
-
-  static async getPolyswapOrderByHashAndOwner(
-    orderHash: string,
-    ownerAddress: string
-  ): Promise<DatabasePolyswapOrder | null> {
-    const row = await prisma.polyswapOrder.findFirst({
-      where: { orderHash, owner: ownerAddress.toLowerCase() },
-    });
-    return row ? toPolyswapOrderRow(row) : null;
-  }
-
-  /**
-   * Listener catch-up path: stamp the full set of on-chain coordinates and
-   * advance the row to "live" in a single update.
-   */
-  static async updateOrderTransactionDetails(
-    orderId: number,
-    transactionHash: string,
-    blockNumber: number,
-    logIndex: number,
-    handler: string,
-    appData: string,
-    orderHash: string,
-    orderUid?: string
-  ): Promise<boolean> {
-    try {
-      await prisma.polyswapOrder.update({
-        where: { id: orderId },
-        data: {
-          transactionHash,
-          blockNumber: BigInt(blockNumber),
-          logIndex,
-          handler: handler.toLowerCase(),
-          appData,
-          orderHash,
-          orderUid: orderUid ?? null,
-          status: "live",
-          updatedAt: new Date(),
-        },
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        return false;
-      }
-      throw error;
-    }
-  }
-
   static async updateOrderUid(orderHash: string, orderUid: string): Promise<boolean> {
     const result = await prisma.polyswapOrder.updateMany({
       where: { orderHash },
@@ -1141,11 +988,6 @@ export class DatabaseService {
     return rows.map(toPolyswapOrderRow);
   }
 
-  static async getAllPolyswapOrders(): Promise<DatabasePolyswapOrder[]> {
-    const rows = await prisma.polyswapOrder.findMany({ orderBy: { createdAt: "asc" } });
-    return rows.map(toPolyswapOrderRow);
-  }
-
   // ============================================================
   // Sold Positions
   // ============================================================
@@ -1166,79 +1008,6 @@ export class DatabaseService {
       select: { id: true },
     });
     return created.id;
-  }
-
-  static async getRecentlySoldPositions(hoursAgo: number = 24): Promise<SoldPosition[]> {
-    const since = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-    const rows = await prisma.soldPosition.findMany({
-      where: { soldAt: { gt: since } },
-      orderBy: { soldAt: "desc" },
-    });
-    return rows.map(toSoldPositionRow);
-  }
-
-  static async getSoldPositionByAsset(assetId: string): Promise<SoldPosition | null> {
-    const row = await prisma.soldPosition.findFirst({
-      where: { assetId },
-      orderBy: { soldAt: "desc" },
-    });
-    return row ? toSoldPositionRow(row) : null;
-  }
-
-  static async getAllSoldPositions(
-    limit: number = 100,
-    offset: number = 0
-  ): Promise<SoldPosition[]> {
-    const rows = await prisma.soldPosition.findMany({
-      orderBy: { soldAt: "desc" },
-      take: limit,
-      skip: offset,
-    });
-    return rows.map(toSoldPositionRow);
-  }
-
-  static async getSoldPositionsStats(): Promise<{
-    totalSold: number;
-    totalValue: number;
-    last24Hours: number;
-  }> {
-    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [totalSold, last24Hours, rows] = await Promise.all([
-      prisma.soldPosition.count(),
-      prisma.soldPosition.count({ where: { soldAt: { gt: since24h } } }),
-      prisma.soldPosition.findMany({ select: { size: true, sellPrice: true } }),
-    ]);
-    const totalValue = rows.reduce(
-      (sum, r) => sum + decimalToNumber(r.size) * decimalToNumber(r.sellPrice),
-      0
-    );
-    return { totalSold, totalValue, last24Hours };
-  }
-
-  static async cleanupOldSoldPositions(daysOld: number = 30): Promise<number> {
-    const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
-    const { count } = await prisma.soldPosition.deleteMany({
-      where: { soldAt: { lt: cutoff } },
-    });
-    return count;
-  }
-
-  static async deleteSoldPositionByOrderId(orderId: string): Promise<boolean> {
-    const { count } = await prisma.soldPosition.deleteMany({ where: { orderId } });
-    return count > 0;
-  }
-
-  static async deleteSoldPositionByAssetId(assetId: string): Promise<number> {
-    const { count } = await prisma.soldPosition.deleteMany({ where: { assetId } });
-    return count;
-  }
-
-  static async cleanupFailedSoldPositions(): Promise<number> {
-    const { count } = await prisma.soldPosition.deleteMany({
-      where: { OR: [{ orderId: "unknown" }, { orderId: "" }] },
-    });
-    if (count > 0) log.info(`cleaned up ${count} failed sold-position record(s)`);
-    return count;
   }
 
   // ============================================================

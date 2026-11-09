@@ -137,15 +137,4 @@ export class MarketUpdateService {
       this.isUpdating = false;
     }
   }
-
-  /**
-   * Returns the current run status of the update routine.
-   */
-  static getStatus() {
-    return {
-      isRunning: this.updateInterval !== null,
-      isUpdating: this.isUpdating,
-      nextUpdate: this.updateInterval ? "Scheduled" : "Not scheduled",
-    };
-  }
 }

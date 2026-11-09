@@ -8,7 +8,6 @@ import { DatabaseService } from "./databaseService";
 import { createLogger } from "../logger";
 import { PolymarketInventory, inventoryKey, sharesFromBalance } from "../polymarket/inventory";
 import { getTradingConfig } from "../polymarket/config";
-import { PolymarketDataClient } from "../polymarket/data";
 
 const log = createLogger("position-seller");
 
@@ -19,7 +18,6 @@ export class PolymarketPositionSellerService {
   private static passRequested = false;
   private static ownerAddress: Address | null = null;
   private static inventory: PolymarketInventory | null = null;
-  private static readonly data = new PolymarketDataClient();
 
   private static async initialize(): Promise<void> {
     if (this.inventory) return;
@@ -31,7 +29,7 @@ export class PolymarketPositionSellerService {
       transport: resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org"),
     });
     this.ownerAddress = account.address;
-    this.inventory = new PolymarketInventory(client, account.address, this.data);
+    this.inventory = new PolymarketInventory(client, account.address);
   }
 
   static async startSellRoutine(intervalMinutes = 5): Promise<void> {

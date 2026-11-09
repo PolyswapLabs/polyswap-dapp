@@ -10,18 +10,6 @@ import {
 import { type PolyswapOrderData, type ConditionalOrderParams } from "../interfaces/PolyswapOrder";
 import composableCowAbi from "../../abi/composableCoW.json";
 
-export interface TransactionData {
-  to: string;
-  data: string;
-  value: string;
-  chainId: number;
-}
-
-// Canonical Polygon ComposableCoW deployment address
-const COMPOSABLE_COW_ADDRESS: Address = getAddress(
-  process.env.COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
-);
-
 const VALUE_FACTORY_ADDRESS: Address = getAddress(
   process.env.VALUE_FACTORY ?? "0x52eD56Da04309Aca4c3FECC595298d80C2f16BAc"
 );
@@ -39,8 +27,6 @@ const SAFE_SET_FALLBACK_HANDLER_ABI = [
     outputs: [],
   },
 ] as const;
-
-const CHAIN_ID = parseInt(process.env.CHAIN_ID ?? "137");
 
 // Normalise a hex string to a valid bytes32 Hex value.
 // On-chain the polymarketOrderHash and appData are bytes32 slots, so they
@@ -144,21 +130,6 @@ export class TransactionEncodingService {
       functionName: "createWithContext",
       args: [params, valueFactory, data, dispatch],
     });
-  }
-
-  static createTransaction(
-    orderData: PolyswapOrderData,
-    options: TradingContext & { salt?: string }
-  ): TransactionData {
-    const params = this.createConditionalOrderParams(orderData, options);
-    const callData = this.encodeCreateWithContextCallData(params);
-
-    return {
-      to: COMPOSABLE_COW_ADDRESS,
-      data: callData,
-      value: "0",
-      chainId: CHAIN_ID,
-    };
   }
 
   static encodeSetFallbackHandlerCalldata(handler: Address): Hex {

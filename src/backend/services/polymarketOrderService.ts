@@ -149,10 +149,6 @@ export class PolymarketOrderService {
   async cancelAllOrders() {
     return this.getReady().clobClient.cancelAll();
   }
-  async cancelOrder(orderId: string) {
-    return this.getReady().clobClient.cancelOrder({ orderId });
-  }
-
   /**
    * Avoids `fetchOrder`: the CLOB answers 200 null for unknown and matched orders, which the SDK
    * rejects as an incompatible response.

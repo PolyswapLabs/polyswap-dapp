@@ -2,6 +2,9 @@ import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { createLogger } from "../logger";
+
+const log = createLogger("db");
 
 /**
  * Single Prisma client instance for the entire backend (Vercel API + listener).
@@ -56,4 +59,15 @@ export const prisma: PrismaClient = globalForPrisma.prisma ?? createClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+}
+
+export async function testConnection(): Promise<boolean> {
+  try {
+    const rows = await prisma.$queryRaw<{ now: Date }[]>`SELECT NOW() AS now`;
+    log.info(`connected (server time ${rows[0]?.now.toISOString() ?? "unknown"})`);
+    return true;
+  } catch (error) {
+    log.error("connection failed:", error);
+    return false;
+  }
 }

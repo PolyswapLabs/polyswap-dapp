@@ -19,15 +19,6 @@ export interface ConditionalOrderParams {
   staticInput: string; // bytes (ABI-encoded)
 }
 
-export interface ConditionalOrderCreatedEvent {
-  owner: string;
-  params: ConditionalOrderParams;
-  orderHash?: string; // calculated hash
-  blockNumber?: number;
-  transactionHash?: string;
-  logIndex?: number;
-}
-
 export interface PolyswapOrderRecord {
   orderHash: string;
   owner: string;
@@ -144,21 +135,6 @@ export interface DatabasePolymarketSentinel {
   filled_at: Date | null;
   created_at: Date;
   updated_at: Date;
-}
-
-// Interface for sold positions tracking
-export interface SoldPosition {
-  id: number;
-  asset_id: string; // Polymarket token ID
-  protocol_version: ProtocolVersion | null;
-  condition_id: string;
-  size: number;
-  sell_price: number;
-  current_price: number;
-  order_id: string;
-  market_title: string;
-  outcome: string;
-  sold_at: Date;
 }
 
 // Input interface for recording a sold position

@@ -47,9 +47,6 @@ async function getCurrentFallbackHandler(safeAddress: Address): Promise<Address 
 
   // Storage slot value is a 32-byte hex; the address occupies the lower 20 bytes.
   const lower20 = `0x${slot.slice(-40)}` as Hex;
-  if (lower20 === "0x0000000000000000000000000000000000000000") {
-    return getAddress(lower20);
-  }
   return getAddress(lower20);
 }
 

@@ -238,5 +238,3 @@ export class CowAppDataService {
     }
   }
 }
-
-export default CowAppDataService;

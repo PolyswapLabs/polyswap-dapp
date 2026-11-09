@@ -44,7 +44,7 @@ PolySwap consists of integrated frontend and backend components:
 - **Real-time Processing**: Indexes and processes orders as they're created
 - **Order UID Calculation**: Automatic calculation and storage of CoW Protocol order UIDs
 
-📚 **[View Detailed Backend Documentation with API endpoints →](./Backend.md)**
+📚 **[API endpoints and examples →](#-api-endpoints)**
 
 ## 🚀 Quick Start
 
@@ -102,14 +102,12 @@ pnpm lint         # Run ESLint
 pnpm start:listener               # Start blockchain listener + market updater
 pnpm start:listener-only          # Start only blockchain listener
 pnpm start:market-updater         # Start only market updater (via listener)
-pnpm start:market-updater-standalone # Start standalone market updater
 ```
 
 ### Market Data Management
 
 ```bash
-pnpm saveMarkets   # Fetch markets from Polymarket API to data.json
-pnpm db:import     # Import markets from data.json to database
+pnpm markets:sync   # Run one market sync against the database, then exit
 ```
 
 ### Market Recommendations
@@ -159,7 +157,6 @@ pnpm db:status    # Inspect migration state on the configured DB
 pnpm db:diff      # Diff the live DB against prisma/schema.prisma (script form)
 pnpm db:generate  # Regenerate the Prisma client (also runs on postinstall)
 pnpm db:studio    # Open Prisma Studio
-pnpm db:import    # Import markets from data.json into the DB
 ```
 
 ### Utility Scripts
@@ -170,6 +167,8 @@ pnpm cancel-polymarket-orders     # Cancel all open Polymarket orders
 pnpm sell-polymarket-positions    # Sell all open Polymarket positions
 pnpm check-polymarket-orders      # Print orders, positions and on-chain CTF balances
 pnpm pusd                         # Wrap / unwrap pUSD (Polymarket's USDC bridge)
+pnpm register-cow-appdata         # Register the CoW app-data document
+pnpm setup-polymarket-approvals   # Pre-grant the Polymarket trading approvals
 ```
 
 ### Code Quality
@@ -190,7 +189,6 @@ Set the update interval in your `.env` file:
 
 ```bash
 MARKET_UPDATE_INTERVAL_MINUTES=5  # Update every 5 minutes (default)
-AUTO_REMOVE_CLOSED_MARKETS=true   # Remove closed markets automatically
 ```
 
 ## 🛡️ Automatic Position Selling
@@ -255,7 +253,80 @@ EXTENSIBLE_FALLBACK_HANDLER=0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5
 ```bash
 MARKET_UPDATE_INTERVAL_MINUTES=60    # Market data sync interval (default: 60)
 POSITION_SELL_INTERVAL_MINUTES=10    # Position auto-sell backup interval (default: 10)
-AUTO_REMOVE_CLOSED_MARKETS=true      # Clean up closed markets automatically
+```
+
+## 📡 API Endpoints
+
+The full schema is generated from JSDoc `@swagger` blocks above each handler and served as JSON at `/api/swagger` and browsable at `/api-docs` (Swagger UI). The tables below are the canonical inventory.
+
+### Market Endpoints
+
+| Method | Endpoint                                 | Description                                                     |
+| ------ | ---------------------------------------- | --------------------------------------------------------------- |
+| `GET`  | `/api/markets/search?q=...&category=...` | Search markets (sort: volume / liquidity / end_date / interest) |
+| `GET`  | `/api/markets/suggest?q=<prefix>`        | Tag autocomplete for the search bar                             |
+| `GET`  | `/api/markets/counts?categories=A,B,C`   | Per-category market counts for the filter chips                 |
+| `GET`  | `/api/markets/[slug]?track=1`            | Single market by slug or id; `?track=1` also bumps `view_count` |
+
+### PolySwap Order Endpoints
+
+| Method   | Endpoint                                     | Description                                                                        |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `GET`    | `/api/polyswap/orders`                       | List orders (filter by owner / block range; pagination)                            |
+| `POST`   | `/api/polyswap/orders`                       | Create draft + place Polymarket GTD + return single-tx and approve+create batch    |
+| `GET`    | `/api/polyswap/orders/[owner]`               | Orders for a specific owner address                                                |
+| `GET`    | `/api/polyswap/orders/hash/[orderHash]`      | Lookup order by its on-chain `orderHash`                                           |
+| `GET`    | `/api/polyswap/orders/id/[id]`               | Lookup order by numeric DB id                                                      |
+| `DELETE` | `/api/polyswap/orders/id/[id]`               | Off-chain draft cancellation (signed `cancel_draft` EIP-191 message required)      |
+| `POST`   | `/api/polyswap/orders/id/[id]/notify-remove` | Server-side finalisation after on-chain `ComposableCoW.remove(orderHash)` confirms |
+
+### Utility Endpoints
+
+| Method | Endpoint       | Description                     |
+| ------ | -------------- | ------------------------------- |
+| `GET`  | `/api/health`  | Health check                    |
+| `GET`  | `/api/swagger` | Generated OpenAPI JSON (and UI) |
+
+## 🔍 API Examples
+
+### Create a new order
+
+```bash
+curl -X POST "http://localhost:3000/api/polyswap/orders" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sellToken": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+    "buyToken":  "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+    "sellAmount": "1000000000",
+    "minBuyAmount": "1",
+    "selectedOutcome": "Yes",
+    "betPercentage": 30,
+    "startDate": "now",
+    "marketId": "0x...",
+    "owner": "0x1234...5678"
+  }'
+```
+
+The response includes `tx` (single create call) and `batchTx` (approve + create), plus `fallbackSetupTx` — a self-call installing CoW's ExtensibleFallbackHandler when the Safe doesn't already have it.
+
+### Search markets
+
+```bash
+curl "http://localhost:3000/api/markets/search?q=fed,rates&sort=interest"
+```
+
+### List orders for an owner
+
+```bash
+curl "http://localhost:3000/api/polyswap/orders/0x1234...5678?limit=50"
+```
+
+### Cancel a draft (off-chain)
+
+```bash
+curl -X DELETE "http://localhost:3000/api/polyswap/orders/id/123" \
+  -H "Content-Type: application/json" \
+  -d '{ "signature": "0x...", "timestamp": 1715200000 }'
 ```
 
 ## 💰 Fund Flow Architecture

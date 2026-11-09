@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { parseAbiItem, type Address, type Log, type PublicClient } from "viem";
-import { testConnection } from "@/backend/db/database";
+import { testConnection } from "@/backend/db/prisma";
 import { closeWebSocketClient, getWebSocketClient } from "./blockchainProvider";
 import { handleConditionalOrderCreated } from "./handlers/conditionalOrderCreated";
 import { handleLiveTrade } from "./handlers/trade";

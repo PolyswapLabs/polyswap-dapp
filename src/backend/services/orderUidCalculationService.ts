@@ -169,5 +169,3 @@ export class OrderUidCalculationService {
     };
   }
 }
-
-export default OrderUidCalculationService;

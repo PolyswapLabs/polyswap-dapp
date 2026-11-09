@@ -84,34 +84,22 @@ export class PolymarketAPIService {
   private static readonly BASE_URL =
     process.env.POLYMARKET_API_URL ?? "https://gamma-api.polymarket.com";
 
-  // Live market status from Gamma (endDate isn't authoritative). Null on failure.
-  static async getMarketStatusById(
-    id: string
-  ): Promise<{ closed: boolean; active: boolean; acceptingOrders: boolean | null } | null> {
+  // Live status from Gamma (endDate isn't authoritative).
+  // Conservative: false on any read failure, so we never wrongly expire a live market.
+  static async isMarketClosed(id: string): Promise<boolean> {
     try {
       const url = `${this.BASE_URL}/markets/${encodeURIComponent(id)}`;
       const res = await fetch(url, { headers: { accept: "application/json" } });
       if (!res.ok) {
         log.debug(`market ${id} status HTTP ${res.status}`);
-        return null;
+        return false;
       }
       const raw = (await res.json()) as GammaApiMarket;
-      return {
-        closed:
-          raw.closed === true || (raw.version === "v2" && raw.resolutionStatus === "resolved"),
-        active: raw.active ?? true,
-        acceptingOrders: raw.acceptingOrders ?? null,
-      };
+      return raw.closed === true || (raw.version === "v2" && raw.resolutionStatus === "resolved");
     } catch (error) {
       log.warn(`failed to fetch market ${id} status:`, error);
-      return null;
+      return false;
     }
-  }
-
-  // Conservative: false on any read failure, so we never wrongly expire a live market.
-  static async isMarketClosed(id: string): Promise<boolean> {
-    const status = await this.getMarketStatusById(id);
-    return status?.closed === true;
   }
 
   // Uses cursor-based /events/keyset because /markets does not return tag labels
