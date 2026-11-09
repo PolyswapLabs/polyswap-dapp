@@ -75,10 +75,25 @@ const MAX_FEE_ABI = [
   },
 ] as const;
 
+function createChainClients() {
+  const pk = process.env.PK;
+  if (!pk) throw new Error("Private key (PK) is not configured");
+  const account = privateKeyToAccount(toPrivateKeyHex(pk));
+  const transport = resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org");
+  return {
+    account,
+    publicClient: createPublicClient({ chain: polygon, transport }),
+    walletClient: createWalletClient({ account, chain: polygon, transport }),
+  };
+}
+
+type ChainClients = ReturnType<typeof createChainClients>;
+
 /** One boundary for SDK types, exchange selection, approvals and signed order IO. */
 export class PolymarketOrderService {
   private static instance: PolymarketOrderService | null = null;
   private initialization: Promise<void> | null = null;
+  private chainClients: ChainClients | null = null;
 
   constructor(private ready: ReadyClients | null = null) {}
 
@@ -99,12 +114,7 @@ export class PolymarketOrderService {
     if (Number(process.env.CHAIN_ID ?? 137) !== 137) {
       throw new Error("Polymarket trading requires Polygon chain 137");
     }
-    const pk = process.env.PK;
-    if (!pk) throw new Error("Private key (PK) is not configured");
-    const account = privateKeyToAccount(toPrivateKeyHex(pk));
-    const transport = resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org");
-    const publicClient = createPublicClient({ chain: polygon, transport });
-    const walletClient = createWalletClient({ account, chain: polygon, transport });
+    const { account, publicClient, walletClient } = this.getChainClients();
     const credentials = {
       key: process.env.CLOB_API_KEY,
       secret: process.env.CLOB_SECRET,
@@ -138,6 +148,20 @@ export class PolymarketOrderService {
   private getReady(): ReadyClients {
     if (!this.ready) throw new Error("PolymarketOrderService is not initialized");
     return this.ready;
+  }
+
+  private getChainClients(): ChainClients {
+    return (this.chainClients ??= createChainClients());
+  }
+
+  /**
+   * Needs only PK and RPC, never CLOB credentials or the CLOB itself, so read-only callers
+   * keep working (and the listener still boots) while the CLOB is unavailable.
+   */
+  getChainReader(): { publicClient: PublicClient; ownerAddress: Address } {
+    if (this.ready) return this.ready;
+    const { account, publicClient } = this.getChainClients();
+    return { publicClient, ownerAddress: account.address };
   }
 
   getClient(): SecureClient | null {
@@ -197,16 +221,18 @@ export class PolymarketOrderService {
       args: [ownerAddress, exchange],
     });
     if (!approved) {
-      const hash = await walletClient.writeContract({
-        account,
-        chain: polygon,
-        address: ledger,
-        abi: erc1155Abi,
-        functionName: "setApprovalForAll",
-        args: [exchange, true],
-      });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (receipt.status !== "success") throw new Error("Position approval reverted");
+      await this.sendAndConfirm(
+        () =>
+          walletClient.writeContract({
+            account,
+            chain: polygon,
+            address: ledger,
+            abi: erc1155Abi,
+            functionName: "setApprovalForAll",
+            args: [exchange, true],
+          }),
+        "Position approval reverted"
+      );
     }
     const allowance = await publicClient.readContract({
       address: collateral,
@@ -215,18 +241,26 @@ export class PolymarketOrderService {
       args: [ownerAddress, exchange],
     });
     if (allowance !== maxUint256) {
-      const hash = await walletClient.writeContract({
-        account,
-        chain: polygon,
-        address: collateral,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [exchange, maxUint256],
-      });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (receipt.status !== "success") throw new Error("Collateral approval reverted");
+      await this.sendAndConfirm(
+        () =>
+          walletClient.writeContract({
+            account,
+            chain: polygon,
+            address: collateral,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [exchange, maxUint256],
+          }),
+        "Collateral approval reverted"
+      );
     }
     await updateBalanceAllowance(clobClient, { assetType: AssetType.COLLATERAL });
+  }
+
+  private async sendAndConfirm(send: () => Promise<Hex>, revertMessage: string): Promise<void> {
+    const hash = await send();
+    const receipt = await this.getReady().publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error(revertMessage);
   }
 
   private async checkBuyAllowance(order: SignedOrder, context: TradingContext): Promise<void> {

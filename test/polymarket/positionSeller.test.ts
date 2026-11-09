@@ -16,14 +16,14 @@ const { getPolymarketContracts } = await import("../../src/backend/polymarket/co
 const { PolymarketDataClient } = await import("../../src/backend/polymarket/data");
 const { PolymarketInventory } = await import("../../src/backend/polymarket/inventory");
 const { DatabaseService } = await import("../../src/backend/services/databaseService");
-const { PolymarketPositionSellerService: Seller } =
+const { computeSellPrice, PolymarketPositionSellerService: Seller } =
   await import("../../src/backend/services/polymarketPositionSellerService");
 const { PolymarketOrderService } =
   await import("../../src/backend/services/polymarketOrderService");
-const { subscribePositionReceipts, stopPositionSeller } =
+const { startPositionSeller, subscribePositionReceipts, stopPositionSeller } =
   await import("../../src/backend/listener/cron/positionSeller");
 const { handleTrade, handleLiveTrade } = await import("../../src/backend/listener/handlers/trade");
-const { sdkHarness, v2Id: ASSET } = await import("./fixtures");
+const { account, sdkHarness, TEST_KEY, v2Id: ASSET } = await import("./fixtures");
 
 const OWNER = "0x92e53caa23ffc3bd4051cc5f0b56d9fb1d2a29e1";
 
@@ -166,8 +166,8 @@ type WatchArgs = {
 
 function startWatching(t: TestContext) {
   t.mock.timers.enable({ apis: ["setTimeout"] });
-  t.mock.method(Seller, "getStatus", (() => ({ ownerAddress: OWNER })) as never);
-  const sell = t.mock.method(Seller, "triggerSell", (async () => {}) as never);
+  t.mock.method(Seller, "getOwnerAddress", (() => OWNER) as never);
+  const sell = t.mock.method(Seller, "sellPositions", (async () => {}) as never);
   const unwatch = t.mock.fn();
   const subscriptions: WatchArgs[] = [];
   const ws = {
@@ -274,8 +274,8 @@ function mockPass(t: TestContext) {
 test("a trigger during a running pass gets its own pass instead of being dropped", async (t) => {
   const { pass, release } = mockPass(t);
 
-  const running = Seller.triggerSell();
-  void Seller.triggerSell();
+  const running = Seller.sellPositions();
+  void Seller.sellPositions();
   assert.equal(pass.mock.callCount(), 1, "passes never overlap");
 
   await release();
@@ -288,10 +288,10 @@ test("a trigger during a running pass gets its own pass instead of being dropped
 test("many triggers during a pass collapse into one more pass", async (t) => {
   const { pass, release } = mockPass(t);
 
-  const running = Seller.triggerSell();
-  void Seller.triggerSell();
-  void Seller.triggerSell();
-  void Seller.triggerSell();
+  const running = Seller.sellPositions();
+  void Seller.sellPositions();
+  void Seller.sellPositions();
+  void Seller.sellPositions();
 
   await release();
   await release();
@@ -315,7 +315,7 @@ test("a real pass neither reads nor sells a redeemable position", async (t) => {
     seller.inventory = previous;
   });
 
-  await Seller.triggerSell();
+  await Seller.sellPositions();
 
   assert.deepEqual(reads, []);
   assert.equal(post.mock.callCount(), 0);
@@ -323,7 +323,7 @@ test("a real pass neither reads nor sells a redeemable position", async (t) => {
 
 type StubPosition = { protocolVersion: "v1" | "v2"; currentPrice?: number };
 
-const BOOK = { bids: [{ price: "0.4" }], tickSize: "0.01", conditionId: "0xbook" };
+const BOOK = { bids: [{ price: "0.4" }], tickSize: 0.01, conditionId: "0xbook" };
 
 /** Runs real passes over stubbed positions; only the SDK transport and the chain are faked. */
 async function sellHarness(t: TestContext, stubs: StubPosition[]) {
@@ -375,7 +375,7 @@ test("a sale uses the discounted price and the balance re-read before posting", 
     { protocolVersion: "v1", currentPrice: 0.5 },
   ]);
 
-  await Seller.triggerSell();
+  await Seller.sellPositions();
 
   assert.equal(post.mock.callCount(), 1);
   const order = postedOrder(0);
@@ -400,7 +400,7 @@ test("a sale uses the discounted price and the balance re-read before posting", 
 test("a position the Data API does not know is priced from the book, recorded as unknown", async (t) => {
   const { postedOrder, recorded } = await sellHarness(t, [{ protocolVersion: "v1" }]);
 
-  await Seller.triggerSell();
+  await Seller.sellPositions();
 
   assert.equal(postedOrder(0).price, 0.38);
   assert.equal(postedOrder(0).negRisk, false);
@@ -423,7 +423,7 @@ test("an asset already being sold is not sold again from the other ledger", asyn
     { protocolVersion: "v2", currentPrice: 0.5 },
   ]);
 
-  await Seller.triggerSell();
+  await Seller.sellPositions();
 
   assert.equal(post.mock.callCount(), 1);
 });
@@ -437,7 +437,7 @@ test("a failed sale does not stop the same asset being sold from the other ledge
     throw new Error("rejected");
   }) as never);
 
-  await Seller.triggerSell();
+  await Seller.sellPositions();
 
   assert.equal(post.mock.callCount(), 2);
   assert.equal(postedOrder(1).protocolVersion, "v2");
@@ -452,7 +452,7 @@ test("a sale whose audit record fails still counts as placed", async (t) => {
     throw new Error("db down");
   }) as never);
 
-  await assert.doesNotReject(Seller.triggerSell());
+  await assert.doesNotReject(Seller.sellPositions());
 
   assert.equal(post.mock.callCount(), 1, "the audit failure must not cause a second sale");
 });
@@ -461,11 +461,11 @@ test("an asset with an open SELL order is left alone, but a BUY does not block i
   const { post, openOrders } = await sellHarness(t, [{ protocolVersion: "v1", currentPrice: 0.5 }]);
 
   openOrders.mock.mockImplementationOnce((async () => [{ side: "SELL", assetId: ASSET }]) as never);
-  await Seller.triggerSell();
+  await Seller.sellPositions();
   assert.equal(post.mock.callCount(), 0);
 
   openOrders.mock.mockImplementationOnce((async () => [{ side: "BUY", assetId: ASSET }]) as never);
-  await Seller.triggerSell();
+  await Seller.sellPositions();
   assert.equal(post.mock.callCount(), 1);
 });
 
@@ -473,7 +473,110 @@ test("a position with no price signal is not sold", async (t) => {
   const { post, book } = await sellHarness(t, [{ protocolVersion: "v1", currentPrice: 0 }]);
   book.mock.mockImplementation((async () => ({ ...BOOK, bids: [] })) as never);
 
-  await Seller.triggerSell();
+  await Seller.sellPositions();
 
   assert.equal(post.mock.callCount(), 0);
+});
+
+type QuotedBook = Parameters<typeof computeSellPrice>[0];
+
+const orderBook = (tickSize: number, ...bids: string[]) =>
+  ({ tickSize, bids: bids.map((price) => ({ price })) }) as unknown as QuotedBook;
+
+test("the sell price is 5% under the position's price, floored to the tick", () => {
+  assert.deepEqual(computeSellPrice(orderBook(0.01, "0.2"), { currentPrice: 0.5 }), {
+    price: 0.47,
+    referencePrice: 0.5,
+  });
+});
+
+test("without a position price the best bid is the reference", () => {
+  const expected = { price: 0.39, referencePrice: 0.42 };
+  assert.deepEqual(computeSellPrice(orderBook(0.01, "0.4", "0.42", "0.1")), expected);
+  assert.deepEqual(computeSellPrice(orderBook(0.01, "0.42"), { currentPrice: 0 }), expected);
+});
+
+test("the sell price never drops below one tick", () => {
+  assert.equal(computeSellPrice(orderBook(0.01), { currentPrice: 0.01 })?.price, 0.01);
+});
+
+test("finer ticks are honoured without floating-point noise", () => {
+  assert.equal(computeSellPrice(orderBook(0.001), { currentPrice: 0.333 })?.price, 0.316);
+});
+
+test("no position price and an empty book yields no price", () => {
+  assert.equal(computeSellPrice(orderBook(0.01)), null);
+  assert.equal(computeSellPrice(orderBook(0.01), { currentPrice: 0 }), null);
+});
+
+function mockSellerCron(t: TestContext) {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const initialize = t.mock.method(Seller, "initialize", (() => {}) as never);
+  const sell = t.mock.method(Seller, "sellPositions", (async () => {}) as never);
+  t.after(stopPositionSeller);
+  return { initialize, sell };
+}
+
+test("the sell cron sells at once, then on every interval until stopped", async (t) => {
+  const { sell } = mockSellerCron(t);
+
+  await startPositionSeller(5);
+  assert.equal(sell.mock.callCount(), 1, "the first pass must not wait for the interval");
+  await startPositionSeller(5);
+  assert.equal(sell.mock.callCount(), 1, "a second start is ignored");
+
+  t.mock.timers.tick(299_999);
+  assert.equal(sell.mock.callCount(), 1);
+  t.mock.timers.tick(1);
+  assert.equal(sell.mock.callCount(), 2);
+
+  stopPositionSeller();
+  t.mock.timers.tick(600_000);
+  assert.equal(sell.mock.callCount(), 2);
+});
+
+test("a seller that cannot initialize fails the start and schedules nothing", async (t) => {
+  const { initialize, sell } = mockSellerCron(t);
+  initialize.mock.mockImplementation((() => {
+    throw new Error("Private key (PK) is not configured");
+  }) as never);
+
+  await assert.rejects(startPositionSeller(5), /Private key/);
+
+  t.mock.timers.tick(600_000);
+  assert.equal(sell.mock.callCount(), 0);
+});
+
+/** Applies env overrides for one test; undefined removes the variable. */
+function withEnv(t: TestContext, overrides: Record<string, string | undefined>) {
+  for (const [name, value] of Object.entries(overrides)) {
+    const previous = process.env[name];
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+    t.after(() => {
+      if (previous === undefined) delete process.env[name];
+      else process.env[name] = previous;
+    });
+  }
+}
+
+test("the seller starts from PK and RPC alone, so a CLOB outage cannot stop the listener", (t) => {
+  withEnv(t, { PK: TEST_KEY, CLOB_API_KEY: undefined, CLOB_SECRET: undefined });
+  const order = new PolymarketOrderService();
+  t.mock.method(PolymarketOrderService, "getInstance", () => order);
+  const seller = Seller as unknown as { inventory: unknown; ownerAddress: unknown };
+  const previous = { inventory: seller.inventory, ownerAddress: seller.ownerAddress };
+  seller.inventory = null;
+  t.after(() => Object.assign(seller, previous));
+
+  Seller.initialize();
+
+  assert.equal(Seller.getOwnerAddress(), account.address);
+  assert.ok(seller.inventory instanceof PolymarketInventory);
+  assert.equal(order.isReady(), false, "the CLOB client is not built just to read the chain");
+});
+
+test("a missing private key still fails the seller's start", (t) => {
+  withEnv(t, { PK: undefined });
+  assert.throws(() => new PolymarketOrderService().getChainReader(), /Private key/);
 });
