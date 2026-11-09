@@ -1,8 +1,6 @@
 import type { DatabaseMarket } from "../interfaces/Database";
 import type { MarketCategory } from "../../types/design";
 import {
-  diversifyRecommendations,
-  enrichRecommendation,
   RECOMMENDATION_POLICY,
   type DatabaseRecommendationMarket,
   type RecommendationOptions,
@@ -11,6 +9,8 @@ import {
 } from "../../lib/marketRecommendations";
 import { createLogger } from "../logger";
 import { getRetryAt } from "../utils/httpRetry";
+import { diversifyRecommendations, enrichRecommendation } from "./marketRecommendationScoring";
+import { GAMMA_API_URL } from "./polymarketAPIService";
 
 const log = createLogger("market-recommendations");
 
@@ -61,10 +61,7 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
   let gammaBlockedUntil = 0;
 
   async function fetchBatch(markets: DatabaseMarket[]): Promise<unknown[]> {
-    const url = new URL(
-      "/markets",
-      dependencies.baseUrl ?? process.env.POLYMARKET_API_URL ?? "https://gamma-api.polymarket.com"
-    );
+    const url = new URL("/markets", dependencies.baseUrl ?? GAMMA_API_URL);
     for (const market of markets) url.searchParams.append("id", market.id);
     url.searchParams.set("limit", String(RECOMMENDATION_POLICY.gammaBatchSize));
     url.searchParams.append("version", "v1");
@@ -99,24 +96,9 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     return {
       source: "database",
       fallbackReason: "rate_limit",
-      markets: shortlist.map((market) => ({
-        id: market.id,
-        slug: market.slug,
-        event_slug: market.event_slug,
-        question: market.question,
-        description: market.description,
-        category: market.category,
-        tags: market.tags,
-        outcomes: market.outcomes,
-        volume: market.volume,
-        liquidity: market.liquidity,
-        end_date: market.end_date?.toISOString() ?? null,
-        clob_token_ids: market.clob_token_ids,
-        protocol_version: market.protocol_version,
-        position_ids: market.position_ids,
-        condition_id: market.condition_id,
-        active: market.active,
-        neg_risk: market.neg_risk,
+      markets: shortlist.map(({ end_date, updated_at: _internal, ...market }) => ({
+        ...market,
+        end_date: end_date?.toISOString() ?? null,
       })),
       asOf: new Date(timestamp).toISOString(),
       expiresAt: Math.min(gammaBlockedUntil, timestamp + RECOMMENDATION_POLICY.cacheMs),
@@ -125,11 +107,8 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     };
   }
 
-  async function buildSnapshot(category: MarketCategory | null): Promise<Snapshot> {
-    const startedAt = now();
-    const candidates = await dependencies.loadCandidates(category);
-    if (gammaBlockedUntil > now()) return databaseSnapshot(candidates);
-    const shortlist = candidates.markets.slice(0, RECOMMENDATION_POLICY.candidateLimit);
+  /** Returns null when Gamma rate limited any batch; the cooldown is recorded before returning. */
+  async function fetchGammaPayload(shortlist: DatabaseMarket[]): Promise<unknown[] | null> {
     const batches: DatabaseMarket[][] = [];
     for (
       let offset = 0;
@@ -154,25 +133,23 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
         gammaBlockedUntil,
         ...rateLimits.map((error) => error.retryUntil)
       );
-      log.warn("Gamma rate limited; using database markets", {
-        category: category ?? "All",
-        candidates: shortlist.length,
-        retryAt: new Date(gammaBlockedUntil).toISOString(),
-      });
-      return databaseSnapshot(candidates);
+      return null;
     }
     if (failures.length > 0) {
       throw new RecommendationUnavailableError("Recommendations are temporarily unavailable.", {
         cause: new AggregateError(failures, "Gamma batch enrichment failed"),
       });
     }
+    return payload;
+  }
+
+  function enrichShortlist(shortlist: DatabaseMarket[], payload: unknown[], timestamp: number) {
     const byId = new Map<string, unknown>();
     for (const raw of payload) {
       if (raw && typeof raw === "object" && !Array.isArray(raw) && "id" in raw) {
         byId.set(String(raw.id), raw);
       }
     }
-    const timestamp = now();
     const rejections: Record<string, number> = {};
     const markets: RecommendedMarket[] = [];
     for (const candidate of shortlist) {
@@ -180,10 +157,29 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
       if (result.market) markets.push(result.market);
       else rejections[result.rejection] = (rejections[result.rejection] ?? 0) + 1;
     }
+    return { markets, rejections };
+  }
+
+  async function buildSnapshot(category: MarketCategory | null): Promise<Snapshot> {
+    const startedAt = now();
+    const candidates = await dependencies.loadCandidates(category);
+    if (gammaBlockedUntil > now()) return databaseSnapshot(candidates);
+    const shortlist = candidates.markets.slice(0, RECOMMENDATION_POLICY.candidateLimit);
+    const payload = await fetchGammaPayload(shortlist);
+    if (!payload) {
+      log.warn("Gamma rate limited; using database markets", {
+        category: category ?? "All",
+        candidates: shortlist.length,
+        retryAt: new Date(gammaBlockedUntil).toISOString(),
+      });
+      return databaseSnapshot(candidates);
+    }
+    const timestamp = now();
+    const { markets, rejections } = enrichShortlist(shortlist, payload, timestamp);
     log.info("snapshot built", {
       category: category ?? "All",
       candidates: shortlist.length,
-      gammaRequests: batches.length,
+      gammaRequests: Math.ceil(shortlist.length / RECOMMENDATION_POLICY.gammaBatchSize),
       eligible: markets.length,
       rejections,
       durationMs: timestamp - startedAt,

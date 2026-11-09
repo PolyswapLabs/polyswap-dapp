@@ -44,18 +44,11 @@ export async function getClobAvailability(): Promise<ClobAvailability> {
 
   let value = AVAILABLE;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    let res: Response;
-    try {
-      res = await fetch(COMPONENTS_URL, {
-        signal: controller.signal,
-        headers: { accept: "application/json" },
-        cache: "no-store",
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+    const res = await fetch(COMPONENTS_URL, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { accept: "application/json" },
+      cache: "no-store",
+    });
 
     if (res.ok) {
       const json = (await res.json()) as { components?: StatusComponent[] };

@@ -12,6 +12,7 @@ import { PolymarketPositionSellerService } from "@/backend/services/polymarketPo
  */
 const FOLLOW_UP_DELAY_MS = 30_000;
 
+let sellInterval: NodeJS.Timeout | null = null;
 let followUp: NodeJS.Timeout | null = null;
 
 function clearFollowUp(): void {
@@ -25,9 +26,12 @@ function sellAfterReceipt(): void {
   followUp = setTimeout(() => void triggerPositionSell(), FOLLOW_UP_DELAY_MS);
 }
 
-/** Start the backup sell cron. */
+/** Start the backup sell cron. Sells immediately, then on every interval. */
 export async function startPositionSeller(intervalMinutes: number): Promise<void> {
-  await PolymarketPositionSellerService.startSellRoutine(intervalMinutes);
+  if (sellInterval) return;
+  PolymarketPositionSellerService.initialize();
+  void triggerPositionSell();
+  sellInterval = setInterval(() => void triggerPositionSell(), intervalMinutes * 60_000);
 }
 
 /** Sell as soon as shares reach the operator wallet. Call after startPositionSeller. */
@@ -35,7 +39,7 @@ export function subscribePositionReceipts(
   ws: PublicClient,
   onError: (error: Error) => void
 ): Array<() => void> {
-  const owner = PolymarketPositionSellerService.getStatus().ownerAddress;
+  const owner = PolymarketPositionSellerService.getOwnerAddress();
   if (!owner) throw new Error("Position seller has no owner address");
 
   const address = getPositionLedgers();
@@ -58,7 +62,8 @@ export function subscribePositionReceipts(
 }
 
 export function stopPositionSeller(): void {
-  PolymarketPositionSellerService.stopSellRoutine();
+  if (sellInterval) clearInterval(sellInterval);
+  sellInterval = null;
   clearFollowUp();
 }
 
@@ -66,5 +71,5 @@ export function stopPositionSeller(): void {
  * Trigger an immediate sell pass, for a fill seen on the ledger or on CoW.
  */
 export async function triggerPositionSell(): Promise<void> {
-  await PolymarketPositionSellerService.triggerSell();
+  await PolymarketPositionSellerService.sellPositions();
 }

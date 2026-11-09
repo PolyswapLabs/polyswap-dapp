@@ -47,6 +47,7 @@ export async function sdkHarness(context: TradingContext) {
           fd: { r: 0, e: 1 },
         });
       }
+      if (url.pathname === "/neg-risk") return Response.json({ neg_risk: context.negRisk });
       if (url.pathname === "/balance-allowance/update") return new Response(null, { status: 200 });
       if (url.pathname === "/balance-allowance") {
         return Response.json({
