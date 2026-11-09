@@ -165,11 +165,17 @@ beforeEach(async () => {
   await prisma.$executeRaw`DELETE FROM tag_index`;
 });
 
-async function sync(t: TestContext, markets: Market[]) {
+async function runSync(t: TestContext, markets: Market[]) {
   const mocked = t.mock.method(PolymarketAPIService, "getOpenMarkets", async () => markets);
-  const stats = await MarketUpdateService.updateMarkets();
+  const result = await MarketUpdateService.updateMarkets();
   mocked.mock.restore();
-  return stats;
+  return result;
+}
+
+async function sync(t: TestContext, markets: Market[]) {
+  const result = await runSync(t, markets);
+  assert.equal(result.status, "completed");
+  return result.status === "completed" ? result.stats : undefined;
 }
 
 const row = async (id = "1") =>
@@ -264,13 +270,57 @@ test("a failed search refresh is repaired by the next sync", async (t) => {
   const failing = t.mock.method(DatabaseService, "refreshMissingSearchVectors", async () => {
     throw new Error("statement timeout");
   });
-  assert.equal(await sync(t, [renamed]), null);
+  assert.deepEqual(await runSync(t, [renamed]), { status: "failed" });
   failing.mock.restore();
 
   const stats = await sync(t, [renamed]);
 
   assert.equal(stats?.upserted, 0, "the text was already saved");
   assert.match(String((await row())?.vec), /renam/);
+});
+
+test("a sync requested during another reports it is already running and fetches nothing", async (t) => {
+  let release = (_markets: Market[]) => {};
+  const fetched = t.mock.method(
+    PolymarketAPIService,
+    "getOpenMarkets",
+    () => new Promise<Market[]>((resolve) => (release = resolve))
+  );
+
+  const running = MarketUpdateService.updateMarkets();
+  assert.deepEqual(await MarketUpdateService.updateMarkets(), { status: "already_running" });
+  assert.equal(fetched.mock.callCount(), 1);
+
+  release([]);
+  assert.equal((await running).status, "completed");
+  fetched.mock.restore();
+  assert.equal((await runSync(t, [])).status, "completed", "the guard is released afterwards");
+});
+
+test("the market-sync cron runs at once, then on every interval until stopped", async (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const update = t.mock.method(
+    MarketUpdateService,
+    "updateMarkets",
+    async () => ({ status: "already_running" }) as const
+  );
+  const { startMarketSync, stopMarketSync } =
+    await import("../../src/backend/listener/cron/marketSync");
+  t.after(stopMarketSync);
+
+  startMarketSync(2);
+  assert.equal(update.mock.callCount(), 1, "the first sync must not wait for the interval");
+  startMarketSync(2);
+  assert.equal(update.mock.callCount(), 1, "a second start is ignored");
+
+  t.mock.timers.tick(119_999);
+  assert.equal(update.mock.callCount(), 1);
+  t.mock.timers.tick(1);
+  assert.equal(update.mock.callCount(), 2);
+
+  stopMarketSync();
+  t.mock.timers.tick(600_000);
+  assert.equal(update.mock.callCount(), 2);
 });
 
 // Nile delivers a bound empty string as NULL, so `id > ''` as a parameter matches nothing there.

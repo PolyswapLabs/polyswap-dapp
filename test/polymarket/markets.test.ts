@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getTradingAssetIds } from "../../src/lib/polymarket/protocol";
 import { PolymarketAPIService } from "../../src/backend/services/polymarketAPIService";
-import { enrichRecommendation } from "../../src/lib/marketRecommendations";
+import { enrichRecommendation } from "../../src/backend/services/marketRecommendationScoring";
 import type { DatabaseMarket } from "../../src/backend/interfaces/Database";
 import { mergeMarket, toViewModel, tokenPriceRequests } from "../../src/hooks/useMarketsData";
 

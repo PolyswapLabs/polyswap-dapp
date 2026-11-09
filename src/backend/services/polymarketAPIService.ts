@@ -10,6 +10,11 @@ import { createLogger } from "../logger";
 
 const log = createLogger("polymarket-api");
 
+export const GAMMA_API_URL = process.env.POLYMARKET_API_URL ?? "https://gamma-api.polymarket.com";
+
+const MAX_KEYSET_PAGE_SIZE = 100;
+const KEYSET_PAGE_DELAY_MS = 50;
+
 interface GammaApiMarket {
   id: string;
   slug?: string;
@@ -80,15 +85,58 @@ function derivePrimaryCategory(tags: readonly string[]): string | null {
   return null;
 }
 
-export class PolymarketAPIService {
-  private static readonly BASE_URL =
-    process.env.POLYMARKET_API_URL ?? "https://gamma-api.polymarket.com";
+function capToMaxNb(markets: Market[], maxNb: number | undefined): Market[] {
+  return maxNb ? markets.slice(0, maxNb) : markets;
+}
 
+function buildKeysetUrl(
+  version: ProtocolVersion,
+  { endDateMin, limit = MAX_KEYSET_PAGE_SIZE }: GetOpenMarketsOptions,
+  cursor: string | null
+): URL {
+  const url = new URL(`${GAMMA_API_URL}/events/keyset`);
+  url.searchParams.set("version", version);
+  url.searchParams.set("active", "true");
+  url.searchParams.set("closed", "false");
+  if (endDateMin) url.searchParams.set("end_date_min", endDateMin);
+  url.searchParams.set("limit", Math.min(Math.max(1, limit), MAX_KEYSET_PAGE_SIZE).toString());
+  if (cursor) url.searchParams.set("after_cursor", cursor);
+  return url;
+}
+
+async function fetchKeysetPage(url: URL): Promise<GammaKeysetResponse> {
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    const responseBody = (await response.text()).slice(0, 1_000);
+    throw new Error(
+      `Gamma API error: ${response.status} ${response.statusText}; ` +
+        `url=${url.toString()}; body=${responseBody || "<empty>"}`
+    );
+  }
+
+  const raw: unknown = await response.json();
+  if (
+    raw === null ||
+    typeof raw !== "object" ||
+    !Array.isArray((raw as { events?: unknown }).events)
+  ) {
+    throw new Error(`Unexpected Gamma response: ${JSON.stringify(raw)}`);
+  }
+  return raw as GammaKeysetResponse;
+}
+
+function nextCursorOf(page: GammaKeysetResponse): string | null {
+  return typeof page.next_cursor === "string" && page.next_cursor.length > 0
+    ? page.next_cursor
+    : null;
+}
+
+export class PolymarketAPIService {
   // Live status from Gamma (endDate isn't authoritative).
   // Conservative: false on any read failure, so we never wrongly expire a live market.
   static async isMarketClosed(id: string): Promise<boolean> {
     try {
-      const url = `${this.BASE_URL}/markets/${encodeURIComponent(id)}`;
+      const url = `${GAMMA_API_URL}/markets/${encodeURIComponent(id)}`;
       const res = await fetch(url, { headers: { accept: "application/json" } });
       if (!res.ok) {
         log.debug(`market ${id} status HTTP ${res.status}`);
@@ -120,89 +168,49 @@ export class PolymarketAPIService {
     if (failures.length) {
       throw new AggregateError(failures, "Could not sync both Polymarket protocols");
     }
-    const all = [...markets.values()];
-    return options.maxNb ? all.slice(0, options.maxNb) : all;
+    return capToMaxNb([...markets.values()], options.maxNb);
   }
 
   private static async getOpenMarketsForVersion(
     version: ProtocolVersion,
     options: GetOpenMarketsOptions
   ): Promise<Market[]> {
-    const { endDateMin, maxNb, limit: requestedPageLimit = 100 } = options;
-    const pageLimit = Math.min(Math.max(1, requestedPageLimit), 100);
-    const allMarkets: Market[] = [];
-    let cursor: string | null = null;
+    const { maxNb } = options;
+    const markets: Market[] = [];
     const seenCursors = new Set<string>();
+    let cursor: string | null = null;
 
-    try {
-      do {
-        const url = new URL(`${this.BASE_URL}/events/keyset`);
-        url.searchParams.set("version", version);
-        url.searchParams.set("active", "true");
-        url.searchParams.set("closed", "false");
-        if (endDateMin) {
-          url.searchParams.set("end_date_min", endDateMin);
-        }
-        url.searchParams.set("limit", pageLimit.toString());
-        if (cursor) url.searchParams.set("after_cursor", cursor);
+    while (true) {
+      const page: GammaKeysetResponse = await fetchKeysetPage(
+        buildKeysetUrl(version, options, cursor)
+      );
+      if (page.events.length === 0) break;
 
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-          const responseBody = (await response.text()).slice(0, 1_000);
-          throw new Error(
-            `Gamma API error: ${response.status} ${response.statusText}; ` +
-              `url=${url.toString()}; body=${responseBody || "<empty>"}`
-          );
-        }
+      for (const event of page.events) markets.push(...this.eventToMarkets(event));
+      if (maxNb && markets.length >= maxNb) break;
 
-        const raw: unknown = await response.json();
-        if (
-          raw === null ||
-          typeof raw !== "object" ||
-          !Array.isArray((raw as { events?: unknown }).events)
-        ) {
-          throw new Error(`Unexpected Gamma response: ${JSON.stringify(raw)}`);
-        }
-        const page = raw as GammaKeysetResponse;
+      cursor = nextCursorOf(page);
+      if (!cursor) break;
+      if (seenCursors.has(cursor)) {
+        throw new Error("Gamma keyset pagination returned the same cursor twice");
+      }
+      seenCursors.add(cursor);
 
-        if (page.events.length === 0) break;
-
-        for (const event of page.events) {
-          const tags = (event.tags ?? [])
-            .map((t) => t.label)
-            .filter((l): l is string => typeof l === "string" && l.length > 0);
-          const category = derivePrimaryCategory(tags);
-          const eventSlug = event.slug ?? null;
-          for (const market of event.markets ?? []) {
-            const lean = this.toLeanMarket(market, tags, category, eventSlug);
-            if (lean) allMarkets.push(lean);
-          }
-        }
-
-        if (maxNb && allMarkets.length >= maxNb) break;
-
-        const nextCursor =
-          typeof page.next_cursor === "string" && page.next_cursor.length > 0
-            ? page.next_cursor
-            : null;
-        if (!nextCursor) break;
-        if (seenCursors.has(nextCursor)) {
-          throw new Error("Gamma keyset pagination returned the same cursor twice");
-        }
-        seenCursors.add(nextCursor);
-        cursor = nextCursor;
-
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      } while (true);
-    } catch (error) {
-      log.error("failed to fetch markets from Gamma:", error);
-      throw error;
+      await new Promise((resolve) => setTimeout(resolve, KEYSET_PAGE_DELAY_MS));
     }
 
-    if (maxNb && allMarkets.length > maxNb) {
-      return allMarkets.slice(0, maxNb);
-    }
-    return allMarkets;
+    return capToMaxNb(markets, maxNb);
+  }
+
+  private static eventToMarkets(event: GammaApiEvent): Market[] {
+    const tags = (event.tags ?? [])
+      .map((t) => t.label)
+      .filter((l): l is string => typeof l === "string" && l.length > 0);
+    const category = derivePrimaryCategory(tags);
+    const eventSlug = event.slug ?? null;
+    return (event.markets ?? []).flatMap(
+      (market) => this.toLeanMarket(market, tags, category, eventSlug) ?? []
+    );
   }
 
   private static toLeanMarket(
