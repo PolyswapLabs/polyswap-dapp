@@ -349,20 +349,6 @@ export class DatabaseService {
     return rows[0]?.total ?? 0;
   }
 
-  static async getMarketCountsByCategory(categories: string[]): Promise<Record<string, number>> {
-    if (categories.length === 0) return {};
-    const rows = await prisma.market.groupBy({
-      by: ["category"],
-      where: { active: true, protocolVersion: { in: ["v1", "v2"] }, category: { in: categories } },
-      _count: { _all: true },
-    });
-    const out: Record<string, number> = Object.fromEntries(categories.map((c) => [c, 0]));
-    for (const r of rows) {
-      if (r.category) out[r.category] = r._count._all;
-    }
-    return out;
-  }
-
   static async searchMarkets(opts: SearchMarketsOptions): Promise<DatabaseMarket[]> {
     const { sort = "volume", limit = 50, offset = 0, category } = opts;
     // Search and its count share the same predicates. Editorial eligibility

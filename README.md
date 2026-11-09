@@ -265,7 +265,6 @@ The full schema is generated from JSDoc `@swagger` blocks above each handler and
 | ------ | ---------------------------------------- | --------------------------------------------------------------- |
 | `GET`  | `/api/markets/search?q=...&category=...` | Search markets (sort: volume / liquidity / end_date / interest) |
 | `GET`  | `/api/markets/suggest?q=<prefix>`        | Tag autocomplete for the search bar                             |
-| `GET`  | `/api/markets/counts?categories=A,B,C`   | Per-category market counts for the filter chips                 |
 | `GET`  | `/api/markets/[slug]?track=1`            | Single market by slug or id; `?track=1` also bumps `view_count` |
 
 ### PolySwap Order Endpoints
