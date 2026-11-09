@@ -1,4 +1,4 @@
-import { getAbiItem, type AbiEvent, type Address, type Log } from "viem";
+import { getAbiItem, type AbiEvent, type Log } from "viem";
 import { getPublicClient } from "../blockchainProvider";
 import { handleConditionalOrderCreated } from "../handlers/conditionalOrderCreated";
 import { handleTrade } from "../handlers/trade";
@@ -7,16 +7,11 @@ import { DatabaseService } from "@/backend/services/databaseService";
 import composableCowAbi from "@/abi/composableCoW.json";
 import gpv2Abi from "@/abi/GPV2Settlement.json";
 import { createLogger } from "@/backend/logger";
+import { requireAddress } from "@/backend/utils/env";
 
 const log = createLogger("catchup");
 
 const DEFAULT_BATCH_SIZE = 5_000n;
-
-function requireAddress(envName: string): Address {
-  const value = process.env[envName];
-  if (!value) throw new Error(`${envName} is not set`);
-  return value as Address;
-}
 
 /**
  * Catch up on missed events between the last processed block and the chain head,

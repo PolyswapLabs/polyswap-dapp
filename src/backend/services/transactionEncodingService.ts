@@ -4,6 +4,7 @@ import {
   encodeFunctionData,
   getAddress,
   keccak256,
+  zeroHash,
   type Address,
   type Hex,
 } from "viem";
@@ -34,7 +35,7 @@ const SAFE_SET_FALLBACK_HANDLER_ABI = [
 // must be exactly 32 bytes (66 hex chars including the 0x prefix).
 function formatBytes32(value: string): Hex {
   if (!value || value === "") {
-    return "0x0000000000000000000000000000000000000000000000000000000000000000";
+    return zeroHash;
   }
   const stripped = value.startsWith("0x") ? value.slice(2) : value;
   if (stripped.length > 64) {
@@ -76,9 +77,7 @@ export class TransactionEncodingService {
       t0: toBigInt(orderData.t0 || "0", "t0"),
       t: toBigInt(orderData.t || "0", "t"),
       polymarketOrderHash: formatBytes32(orderData.polymarketOrderHash),
-      appData: formatBytes32(
-        orderData.appData || "0x0000000000000000000000000000000000000000000000000000000000000000"
-      ),
+      appData: formatBytes32(orderData.appData || zeroHash),
       polymarketMakerAmount: toBigInt(orderData.polymarketMakerAmount, "polymarketMakerAmount"),
     });
   }

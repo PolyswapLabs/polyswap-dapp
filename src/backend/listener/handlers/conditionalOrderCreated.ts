@@ -10,6 +10,7 @@ import { calculateOrderHash, decodeStaticInput } from "@/backend/utils/condition
 import type { ConditionalOrderParams } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
 import { activateSentinel } from "@/backend/services/polymarketSentinelService";
+import { readPositiveInt } from "@/backend/utils/env";
 
 const log = createLogger("conditional-order");
 
@@ -63,11 +64,6 @@ function reportSkippedOrder(error: unknown, eventLog: Log): void {
     { ...eventContext, sentryEventId },
     normalizedError
   );
-}
-
-function safeAuthConfirmations(): number {
-  const parsed = Number.parseInt(process.env.SAFE_AUTH_CONFIRMATIONS ?? "3", 10);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 3;
 }
 
 interface DecodedConditionalOrderCreated {
@@ -135,7 +131,7 @@ async function processConditionalOrderCreated(
   try {
     const receipt = await client.waitForTransactionReceipt({
       hash: eventLog.transactionHash,
-      confirmations: safeAuthConfirmations(),
+      confirmations: readPositiveInt("SAFE_AUTH_CONFIRMATIONS", 3),
       timeout: 5 * 60 * 1000,
     });
     if (receipt.status !== "success") {

@@ -1,9 +1,9 @@
 import {
+  zeroHash,
   type Address,
   type Hex,
   ContractFunctionExecutionError,
   decodeErrorResult,
-  getAddress,
 } from "viem";
 import { getPublicClient } from "../blockchainProvider";
 import { encodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
@@ -15,12 +15,10 @@ import composableCowAbi from "@/abi/composableCoW.json";
 import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
 import { activateSentinel } from "@/backend/services/polymarketSentinelService";
+import { COMPOSABLE_COW } from "@/lib/contracts";
+import { createIntervalJob } from "./intervalJob";
 
 const log = createLogger("order-health");
-
-const COMPOSABLE_COW: Address = getAddress(
-  process.env.COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
-);
 
 const TERMINAL_ERRORS: ReadonlySet<CowConditionalErrorName> = new Set([
   "OrderNotValid",
@@ -90,11 +88,6 @@ async function classifySingleOrderNotAuthed(
   }
 }
 
-const ZERO_BYTES32: Hex = `0x${"00".repeat(32)}` as Hex;
-
-let timer: NodeJS.Timeout | null = null;
-let isRunning = false;
-
 /**
  * Reconstruct staticInput from a DB row, byte-identical to the on-chain commit (else H(params)
  * mismatches → SingleOrderNotAuthed). Pre-makerAmount orders have a null column → legacy 9-field layout.
@@ -108,8 +101,8 @@ export function reconstructStaticInput(order: DatabasePolyswapOrder): Hex {
     minBuyAmount: BigInt(order.min_buy_amount),
     t0: BigInt(Math.floor(new Date(order.start_time).getTime() / 1000)),
     t: BigInt(Math.floor(new Date(order.end_time).getTime() / 1000)),
-    polymarketOrderHash: (order.polymarket_order_hash ?? ZERO_BYTES32) as Hex,
-    appData: (order.app_data ?? ZERO_BYTES32) as Hex,
+    polymarketOrderHash: (order.polymarket_order_hash ?? zeroHash) as Hex,
+    appData: (order.app_data ?? zeroHash) as Hex,
     polymarketMakerAmount:
       order.polymarket_maker_amount == null ? null : BigInt(order.polymarket_maker_amount),
   });
@@ -352,29 +345,11 @@ async function runOrderHealthCheck(): Promise<void> {
   }
 }
 
-async function runScheduledOrderHealthCheck(): Promise<void> {
-  if (isRunning) {
-    log.warn("previous check is still running; skipping this tick");
-    return;
-  }
-
-  isRunning = true;
-  try {
-    await runOrderHealthCheck();
-  } catch (err) {
-    log.error("order health check failed; will retry on the next tick", err);
-  } finally {
-    isRunning = false;
-  }
-}
+const job = createIntervalJob("order-health", runOrderHealthCheck);
 
 export function startOrderHealthCheck(intervalSeconds = 60): void {
-  if (timer) return;
-  timer = setInterval(() => void runScheduledOrderHealthCheck(), intervalSeconds * 1000);
+  job.start(intervalSeconds * 1000);
   log.debug(`every ${intervalSeconds}s`);
 }
 
-export function stopOrderHealthCheck(): void {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
+export const stopOrderHealthCheck = job.stop;

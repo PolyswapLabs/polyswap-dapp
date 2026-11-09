@@ -1,5 +1,5 @@
 import { fetchNegRisk, updateBalanceAllowance } from "@polymarket/client/actions";
-import { createPublicClient, type Address, type Hex } from "viem";
+import { createPublicClient, type Address } from "viem";
 import { polygon } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { resilientHttp } from "../../lib/rpc/resilientHttp";
@@ -8,6 +8,7 @@ import { DatabaseService } from "./databaseService";
 import { createLogger } from "../logger";
 import { PolymarketInventory, inventoryKey, sharesFromBalance } from "../polymarket/inventory";
 import { getTradingConfig } from "../polymarket/config";
+import { toPrivateKeyHex } from "../utils/env";
 
 const log = createLogger("position-seller");
 
@@ -23,7 +24,7 @@ export class PolymarketPositionSellerService {
     if (this.inventory) return;
     const pk = process.env.PK;
     if (!pk) throw new Error("Private key (PK) is not configured");
-    const account = privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as Hex);
+    const account = privateKeyToAccount(toPrivateKeyHex(pk));
     const client = createPublicClient({
       chain: polygon,
       transport: resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org"),

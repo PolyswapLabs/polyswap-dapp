@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { parseAbiItem, type Address, type Log, type PublicClient } from "viem";
+import { parseAbiItem, type Log, type PublicClient } from "viem";
 import { verifyDatabaseConnection } from "@/backend/db/prisma";
 import { closeWebSocketClient, getWebSocketClient } from "./blockchainProvider";
 import { handleConditionalOrderCreated } from "./handlers/conditionalOrderCreated";
@@ -22,6 +22,7 @@ import {
 import { startDraftJanitor, stopDraftJanitor } from "./cron/draftJanitor";
 import { startOrderHealthCheck, stopOrderHealthCheck } from "./cron/orderHealthCheck";
 import { startWebSocketSupervisor, stopWebSocketSupervisor } from "./webSocketSupervisor";
+import { readPositiveInt, requireAddress } from "@/backend/utils/env";
 
 // Canonical event signatures used by `watchEvent`. Using `parseAbiItem` keeps
 // the resulting `AbiEvent` value strongly typed (no cast required) and
@@ -54,12 +55,6 @@ function readArgs(): RuntimeFlags {
   return { listenerOnly, marketUpdateOnly };
 }
 
-function requireAddress(envName: string): Address {
-  const v = process.env[envName];
-  if (!v) throw new Error(`${envName} is not set`);
-  return v as Address;
-}
-
 function requireEnv(names: readonly string[]): void {
   const missing = names.filter((n) => !process.env[n]);
   if (missing.length > 0) {
@@ -81,13 +76,6 @@ const ORDER_PLACEMENT_ENV: readonly string[] = [
   "CLOB_SECRET",
   "CLOB_PASS_PHRASE",
 ];
-
-function readPositiveInt(envName: string, fallback: number): number {
-  const raw = process.env[envName];
-  if (!raw) return fallback;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
 
 const MARKET_UPDATE_INTERVAL_MIN = readPositiveInt("MARKET_UPDATE_INTERVAL_MINUTES", 60);
 const POSITION_SELL_INTERVAL_MIN = readPositiveInt("POSITION_SELL_INTERVAL_MINUTES", 10);

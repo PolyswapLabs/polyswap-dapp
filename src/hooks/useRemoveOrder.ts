@@ -1,15 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { encodeFunctionData, getAddress, type Address, type Hex } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
 import { apiService } from "@/services/api";
 import { useSignAction } from "@/hooks/useSignAction";
 import type { SafeCall } from "@/services/safe/types";
-
-const COMPOSABLE_COW: Address = getAddress(
-  process.env.NEXT_PUBLIC_COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
-);
+import { COMPOSABLE_COW } from "@/lib/contracts";
 
 interface UseRemoveOrder {
   /**

@@ -1,17 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getAddress, type Address, type Hex } from "viem";
+import { getAddress, type Hex } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { verifySignature } from "@/backend/utils/signatureVerification";
 import { getPublicClient } from "@/backend/listener/blockchainProvider";
 import { createApiErrorResponder } from "@/lib/apiError";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { COMPOSABLE_COW } from "@/lib/contracts";
 
 const apiError = createApiErrorResponder("api-order-notify-remove");
-
-const COMPOSABLE_COW: Address = getAddress(
-  process.env.COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
-);
 
 interface NotifyRemoveBody {
   signature: string;

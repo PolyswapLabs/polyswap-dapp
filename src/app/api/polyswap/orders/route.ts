@@ -24,6 +24,7 @@ import { createApiErrorResponder } from "@/lib/apiError";
 import { fetchClobBestAsk } from "@/services/polymarket";
 import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
 import { CowAppDataService } from "@/backend/services/cowAppDataService";
+import { COMPOSABLE_COW } from "@/lib/contracts";
 
 const log = createLogger("api-orders");
 const apiError = createApiErrorResponder("api-orders");
@@ -31,10 +32,6 @@ const apiError = createApiErrorResponder("api-orders");
 const VAULT_RELAYER: Address = getAddress(
   process.env.VAULT_RELAYER ?? "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110"
 );
-const COMPOSABLE_COW: Address = getAddress(
-  process.env.COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
-);
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DEADLINE_DAYS = 30;
 const MAX_DEADLINE_DAYS = 365;
@@ -223,6 +220,17 @@ export async function GET(request: NextRequest) {
  *               - betPercentage
  *               - marketId
  *               - owner
+ *             properties:
+ *               sellToken: { type: string, description: "ERC-20 address" }
+ *               buyToken: { type: string, description: "ERC-20 address" }
+ *               sellAmount: { type: string, description: "Integer amount in the token's smallest unit" }
+ *               minBuyAmount: { type: string, description: "Integer amount in the token's smallest unit" }
+ *               selectedOutcome: { type: string }
+ *               betPercentage: { type: integer, description: "Trigger probability, 1 to 100" }
+ *               startDate: { type: string, description: "ISO date, or now" }
+ *               deadline: { type: string, format: date-time }
+ *               marketId: { type: string }
+ *               owner: { type: string, description: "Safe address" }
  *     responses:
  *       200:
  *         description: Order bundle created

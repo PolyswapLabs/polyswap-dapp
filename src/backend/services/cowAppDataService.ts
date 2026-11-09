@@ -1,10 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { bytesToHex, keccak256, toBytes, type Hex } from "viem";
+import { zeroHash, bytesToHex, keccak256, toBytes, type Hex } from "viem";
 import { createLogger } from "../logger";
 
 const log = createLogger("cow-app-data");
 
-const ZERO_BYTES32: Hex = "0x0000000000000000000000000000000000000000000000000000000000000000";
 const DEFAULT_API_BASE = "https://api.cow.fi/polygon";
 const DEFAULT_APP_CODE = "PolySwap";
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -65,10 +64,10 @@ function configuredTimeoutMs(): number {
  */
 function configuredDefaultAppData(): Hex {
   const configured = process.env.APP_DATA?.trim();
-  if (!configured) return ZERO_BYTES32;
+  if (!configured) return zeroHash;
   if (!isBytes32(configured)) {
     log.warn("APP_DATA is not a bytes32 value; falling back to zero AppData");
-    return ZERO_BYTES32;
+    return zeroHash;
   }
   return configured.toLowerCase() as Hex;
 }

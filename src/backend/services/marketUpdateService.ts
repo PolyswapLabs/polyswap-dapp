@@ -2,17 +2,11 @@ import { PolymarketAPIService } from "./polymarketAPIService.js";
 import { DatabaseService } from "./databaseService.js";
 import { diffMarkets } from "./marketSyncDiff.js";
 import { createLogger } from "../logger.js";
+import { readPositiveInt } from "@/backend/utils/env";
 
 const log = createLogger("market-sync");
 
 const COMPARE_BATCH_SIZE = 1000;
-
-function readPositiveInt(envName: string, fallback: number): number {
-  const raw = process.env[envName];
-  if (!raw) return fallback;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
 
 interface MarketUpdateStats {
   fetched: number;

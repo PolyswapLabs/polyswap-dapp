@@ -3,19 +3,12 @@ import { getPublicClient } from "../blockchainProvider";
 import { DatabaseService } from "@/backend/services/databaseService";
 import composableCowAbi from "@/abi/composableCoW.json";
 import { createLogger } from "@/backend/logger";
+import { requireAddress } from "@/backend/utils/env";
+import { createIntervalJob } from "./intervalJob";
 
 const log = createLogger("draft-janitor");
 
 const STALE_AFTER_MS = 10 * 60 * 1000;
-
-let timer: NodeJS.Timeout | null = null;
-let isRunning = false;
-
-function requireComposableCow(): Address {
-  const v = process.env.COMPOSABLE_COW;
-  if (!v) throw new Error("COMPOSABLE_COW is not set");
-  return v as Address;
-}
 
 /**
  * Sweep stale draft orders: those still in `draft` status more than
@@ -33,7 +26,7 @@ async function sweepStaleDrafts(): Promise<void> {
   log.debug(`found ${stale.length} stale draft(s) older than ${STALE_AFTER_MS / 60_000}min`);
 
   const client = getPublicClient();
-  const composableCow = requireComposableCow();
+  const composableCow = requireAddress("COMPOSABLE_COW");
   for (const draft of stale) {
     try {
       // If a draft already has an order_hash and is authed on-chain, leave
@@ -57,29 +50,11 @@ async function sweepStaleDrafts(): Promise<void> {
   }
 }
 
-async function runScheduledSweep(): Promise<void> {
-  if (isRunning) {
-    log.warn("previous sweep is still running; skipping this tick");
-    return;
-  }
-
-  isRunning = true;
-  try {
-    await sweepStaleDrafts();
-  } catch (err) {
-    log.error("sweep failed; will retry on the next tick", err);
-  } finally {
-    isRunning = false;
-  }
-}
+const job = createIntervalJob("draft-janitor", sweepStaleDrafts);
 
 export function startDraftJanitor(intervalSeconds = 60): void {
-  if (timer) return;
-  timer = setInterval(() => void runScheduledSweep(), intervalSeconds * 1000);
+  job.start(intervalSeconds * 1000);
   log.debug(`sweep every ${intervalSeconds}s, stale > ${STALE_AFTER_MS / 60_000}min`);
 }
 
-export function stopDraftJanitor(): void {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
+export const stopDraftJanitor = job.stop;

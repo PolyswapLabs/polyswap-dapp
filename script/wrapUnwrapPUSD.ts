@@ -27,11 +27,11 @@ import {
   parseUnits,
   maxUint256,
   type Address,
-  type Hex,
 } from "viem";
 import { polygon } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { createLogger } from "../src/backend/logger.js";
+import { toPrivateKeyHex } from "../src/backend/utils/env";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -139,7 +139,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const privateKey: Hex = (pk.startsWith("0x") ? pk : `0x${pk}`) as Hex;
+  const privateKey = toPrivateKeyHex(pk);
   const account = privateKeyToAccount(privateKey);
   const owner: Address = account.address;
   const rpcUrl = process.env.RPC_URL ?? "https://polygon-rpc.com";

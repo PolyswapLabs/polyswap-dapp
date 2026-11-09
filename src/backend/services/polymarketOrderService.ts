@@ -38,6 +38,7 @@ import {
   parseStoredSignedOrder,
   type SignedOrderFormat,
 } from "../polymarket/orders";
+import { toPrivateKeyHex } from "../utils/env";
 
 interface PolymarketOrderConfig extends TradingContext {
   tokenID: string;
@@ -100,7 +101,7 @@ export class PolymarketOrderService {
     }
     const pk = process.env.PK;
     if (!pk) throw new Error("Private key (PK) is not configured");
-    const account = privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as Hex);
+    const account = privateKeyToAccount(toPrivateKeyHex(pk));
     const transport = resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org");
     const publicClient = createPublicClient({ chain: polygon, transport });
     const walletClient = createWalletClient({ account, chain: polygon, transport });

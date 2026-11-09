@@ -1,17 +1,18 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { createPublicClient, type Hex } from "viem";
+import { createPublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 import { resilientHttp } from "../src/lib/rpc/resilientHttp";
 import { getPolymarketOrderService } from "../src/backend/services/polymarketOrderService";
 import { PolymarketInventory, sharesFromBalance } from "../src/backend/polymarket/inventory";
 import { createLogger } from "../src/backend/logger";
+import { toPrivateKeyHex } from "../src/backend/utils/env";
 
 const log = createLogger("check-orders");
 const pk = process.env.PK;
 if (!pk) throw new Error("Private key (PK) is not configured");
-const owner = privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as Hex).address;
+const owner = privateKeyToAccount(toPrivateKeyHex(pk)).address;
 const client = createPublicClient({
   chain: polygon,
   transport: resilientHttp(process.env.RPC_URL ?? "https://polygon.drpc.org"),

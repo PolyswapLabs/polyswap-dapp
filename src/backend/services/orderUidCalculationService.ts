@@ -1,4 +1,11 @@
-import { encodePacked, getAddress, type Address, type Hex, type PublicClient } from "viem";
+import {
+  encodePacked,
+  getAddress,
+  zeroHash,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from "viem";
 import {
   type DatabasePolyswapOrder,
   type PolyswapOrderData,
@@ -7,8 +14,6 @@ import { createLogger } from "@/backend/logger";
 import { ORDER_DATA_LAYOUT, ORDER_DATA_LAYOUT_V2 } from "@/backend/utils/conditionalOrderCodec";
 
 const log = createLogger("order-uid");
-
-const ZERO_BYTES32: Hex = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const getOrderHashAbi = (components: readonly { name: string; type: string }[]) =>
   [
@@ -149,8 +154,8 @@ export class OrderUidCalculationService {
       minBuyAmount: dbOrder.min_buy_amount.toString(),
       t0: Math.floor(new Date(dbOrder.start_time).getTime() / 1000).toString(),
       t: Math.floor(new Date(dbOrder.end_time).getTime() / 1000).toString(),
-      polymarketOrderHash: dbOrder.polymarket_order_hash || ZERO_BYTES32,
-      appData: dbOrder.app_data || ZERO_BYTES32,
+      polymarketOrderHash: dbOrder.polymarket_order_hash || zeroHash,
+      appData: dbOrder.app_data || zeroHash,
       polymarketMakerAmount: dbOrder.polymarket_maker_amount ?? "",
     };
   }

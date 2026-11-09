@@ -50,6 +50,38 @@ function isDeleteBody(value: unknown): value is DeleteDraftBody {
  *         description: Invalid order ID
  *       404:
  *         description: Order not found
+ *   delete:
+ *     tags:
+ *       - Orders
+ *     summary: Cancel a draft order
+ *     description: Deletes an off-chain draft. Requires a signed cancel_draft message from the owner.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [signature, timestamp]
+ *             properties:
+ *               signature: { type: string }
+ *               timestamp: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Draft deleted
+ *       400:
+ *         description: Invalid id, body, or order state
+ *       401:
+ *         description: Bad signature
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Server error
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
