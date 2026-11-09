@@ -13,11 +13,16 @@ import {
   Status,
   Tape,
   TokenLogo,
+  ErrorAlert,
+  PageMessage,
+  BackLink,
+  OddsAxis,
+  DefinitionRow,
 } from "@/components/primitives";
 import { Icon, PolymarketIcon } from "@/components/icons";
-import { fmtDate, fmtNum, fmtPointsAway } from "@/lib/format";
+import { fmtDate, fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
 import { apiService } from "@/services/api";
-import { useOrder } from "@/hooks/useOrders";
+import { useOrder, ordersQueryKey } from "@/hooks/useOrders";
 import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
 import { useRemoveOrder } from "@/hooks/useRemoveOrder";
 import { useSignAction, type SignedAction } from "@/hooks/useSignAction";
@@ -62,7 +67,7 @@ export function SwapDetailPage({ orderId }: Props) {
     if (order.phase === "draft") {
       try {
         await deleteDraft(order.numericId);
-        queryClient.invalidateQueries({ queryKey: ["orders", address] });
+        queryClient.invalidateQueries({ queryKey: ordersQueryKey(address) });
         router.push("/dashboard");
       } catch {
         // error surfaced via hook state
@@ -100,7 +105,7 @@ export function SwapDetailPage({ orderId }: Props) {
       return;
     }
     pendingNotifySigRef.current = null;
-    queryClient.invalidateQueries({ queryKey: ["orders", address] });
+    queryClient.invalidateQueries({ queryKey: ordersQueryKey(address) });
     setSignOpen(false);
     setCalls(null);
     router.push("/dashboard");
@@ -118,11 +123,7 @@ export function SwapDetailPage({ orderId }: Props) {
   );
 
   if (!walletConnected) {
-    return (
-      <div className="py-16 text-center text-sm text-ink-3">
-        Connect your wallet to view this swap.
-      </div>
-    );
+    return <PageMessage>Connect your wallet to view this swap.</PageMessage>;
   }
 
   if (isLoading) {
@@ -131,7 +132,7 @@ export function SwapDetailPage({ orderId }: Props) {
 
   if (isError || !order) {
     return (
-      <div className="py-16 text-center text-sm text-ink-3">
+      <PageMessage>
         {isError
           ? `We couldn't load that swap. ${errorMessage ?? ""}`
           : "We couldn't find that swap."}{" "}
@@ -139,7 +140,7 @@ export function SwapDetailPage({ orderId }: Props) {
           Back to my swaps
         </Link>
         .
-      </div>
+      </PageMessage>
     );
   }
 
@@ -187,12 +188,7 @@ export function SwapDetailPage({ orderId }: Props) {
   return (
     <div className="space-y-8 py-8 lg:py-10">
       <div className="border-b border-ink pb-6 lg:pb-8">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink"
-        >
-          <Icon.arrowLeft size={12} aria-hidden /> Back to my swaps
-        </Link>
+        <BackLink href="/dashboard">Back to my swaps</BackLink>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-3">
@@ -218,9 +214,7 @@ export function SwapDetailPage({ orderId }: Props) {
               · expires {fmtDate(order.endTime)}
             </p>
             {order.phase === "errored" && order.lastErrorReason && (
-              <p className="mt-2 border border-no bg-no/10 px-3 py-2 text-xs text-no">
-                Errored: {order.lastErrorReason}
-              </p>
+              <ErrorAlert className="mt-2">Errored: {order.lastErrorReason}</ErrorAlert>
             )}
             {order.phase === "live" && order.lastErrorReason && (
               <p className="mt-2 text-xs text-ink-3">
@@ -267,11 +261,9 @@ export function SwapDetailPage({ orderId }: Props) {
                     animate
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="num text-3xl font-semibold lg:text-4xl">
-                      {Math.round(currentOdds * 100)}%
-                    </p>
+                    <p className="num text-3xl font-semibold lg:text-4xl">{fmtPct(currentOdds)}</p>
                     <p className="text-sm text-ink-3">
-                      Today · trigger at {Math.round(order.threshold * 100)}%
+                      Today · trigger at {fmtPct(order.threshold)}
                     </p>
                   </div>
                   <p className="num shrink-0 border border-ink bg-paper-2 px-3 py-2 text-sm">
@@ -283,13 +275,7 @@ export function SwapDetailPage({ orderId }: Props) {
                     icon (which floats above the chart top) isn't clipped by the
                     outer card. We deliberately don't use overflow-hidden here. */}
                 <div className="mt-5 flex gap-3 border border-rule-soft bg-paper-2 px-3 pt-7 pb-3">
-                  <div className="num flex shrink-0 flex-col justify-between py-1 text-[11px] text-ink-3">
-                    <span>100%</span>
-                    <span>75%</span>
-                    <span>50%</span>
-                    <span>25%</span>
-                    <span>0%</span>
-                  </div>
+                  <OddsAxis />
                   <div className="min-w-0 flex-1">
                     <Tape
                       data={chartData}
@@ -307,8 +293,8 @@ export function SwapDetailPage({ orderId }: Props) {
                 </div>
 
                 <div className="mt-5 grid grid-cols-3 border border-ink">
-                  <Stat label="High" value={`${Math.round(high * 100)}%`} />
-                  <Stat label="Low" value={`${Math.round(low * 100)}%`} />
+                  <Stat label="High" value={fmtPct(high)} />
+                  <Stat label="Low" value={fmtPct(low)} />
                   <Stat
                     label="Time waiting"
                     value={`${Math.max(0, Math.floor((Date.now() - order.startTime.getTime()) / 86_400_000))}d`}
@@ -360,62 +346,37 @@ export function SwapDetailPage({ orderId }: Props) {
                 </p>
               )}
               <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 border-t border-rule-soft pt-3 text-xs">
-                <Row k="Trigger" v={`${order.side} ≃ ${Math.round(order.threshold * 100)}%`} />
-                <Row k="Created" v={fmtDate(order.startTime)} />
-                <Row k="Expires" v={fmtDate(order.endTime)} />
+                <DefinitionRow
+                  term="Trigger"
+                  value={`${order.side} ≃ ${fmtPct(order.threshold)}`}
+                />
+                <DefinitionRow term="Created" value={fmtDate(order.startTime)} />
+                <DefinitionRow term="Expires" value={fmtDate(order.endTime)} />
               </dl>
             </section>
 
             {market && (
               <section aria-label="Market" className="border border-ink bg-paper p-5">
                 <p className="eyebrow mb-3">Market</p>
-                <a
+                <ExternalLink
                   href={`https://polymarket.com/event/${market.eventSlug ?? market.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 text-sm hover:underline"
                 >
                   <PolymarketIcon size={16} className="text-ink" />
                   View on Polymarket
-                  <Icon.arrowUpRight
-                    size={12}
-                    className="text-ink-3 transition-colors group-hover:text-ink"
-                    aria-hidden
-                  />
-                </a>
+                </ExternalLink>
               </section>
             )}
 
             <section aria-label="Tracking" className="border border-ink bg-paper p-5">
               <p className="eyebrow mb-3">CoW order</p>
               {isFilled && order.orderUid ? (
-                <a
-                  href={`https://explorer.cow.fi/pol/orders/${order.orderUid}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 text-sm hover:underline"
-                >
+                <ExternalLink href={`https://explorer.cow.fi/pol/orders/${order.orderUid}`}>
                   View on CoW Explorer
-                  <Icon.arrowUpRight
-                    size={12}
-                    className="text-ink-3 transition-colors group-hover:text-ink"
-                    aria-hidden
-                  />
-                </a>
+                </ExternalLink>
               ) : address ? (
-                <a
-                  href={`https://explorer.cow.fi/pol/address/${address}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 text-sm hover:underline"
-                >
+                <ExternalLink href={`https://explorer.cow.fi/pol/address/${address}`}>
                   See this wallet&apos;s orders on CoW Explorer
-                  <Icon.arrowUpRight
-                    size={12}
-                    className="text-ink-3 transition-colors group-hover:text-ink"
-                    aria-hidden
-                  />
-                </a>
+                </ExternalLink>
               ) : (
                 <p className="text-sm text-ink-3">
                   Order will appear on CoW Explorer once the watch-tower picks it up.
@@ -464,15 +425,6 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <>
-      <dt className="text-ink-3">{k}</dt>
-      <dd className="text-right font-mono tabular-nums">{v}</dd>
-    </>
-  );
-}
-
 /**
  * Sized to the real Tracker so the swap-in causes no layout shift. The
  * trigger threshold caption is preserved (it's known from the order itself);
@@ -486,19 +438,13 @@ function TrackerSkeleton({ threshold }: { threshold: number }) {
         <Shimmer className="h-[88px] w-[88px] rounded-full" />
         <div className="min-w-0 flex-1 space-y-2">
           <Shimmer className="h-9 w-24" />
-          <p className="text-sm text-ink-3">Today · trigger at {Math.round(threshold * 100)}%</p>
+          <p className="text-sm text-ink-3">Today · trigger at {fmtPct(threshold)}</p>
         </div>
         <Shimmer className="h-9 w-32 shrink-0" />
       </div>
 
       <div className="mt-5 flex gap-3 border border-rule-soft bg-paper-2 px-3 pt-7 pb-3">
-        <div className="num flex shrink-0 flex-col justify-between py-1 text-[11px] text-ink-3">
-          <span>100%</span>
-          <span>75%</span>
-          <span>50%</span>
-          <span>25%</span>
-          <span>0%</span>
-        </div>
+        <OddsAxis />
         <div className="min-w-0 flex-1">
           <Shimmer className="h-[200px] w-full" />
         </div>
@@ -513,5 +459,23 @@ function TrackerSkeleton({ threshold }: { threshold: number }) {
         ))}
       </div>
     </>
+  );
+}
+
+function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group inline-flex items-center gap-2 text-sm hover:underline"
+    >
+      {children}
+      <Icon.arrowUpRight
+        size={12}
+        className="text-ink-3 transition-colors group-hover:text-ink"
+        aria-hidden
+      />
+    </a>
   );
 }

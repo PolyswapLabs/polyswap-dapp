@@ -57,6 +57,8 @@ export interface OrderViewModel {
 
 const STALE = 30_000;
 
+export const ordersQueryKey = (owner: string | undefined) => ["orders", owner] as const;
+
 function mapStatus(order: Pick<PublicPolyswapOrder, "status" | "gate_opened_at">): SwapStatus {
   switch (order.status) {
     case "filled":
@@ -162,7 +164,7 @@ export function useOrders(): UseOrdersResult {
   const tokensQ = useTokens();
 
   const query = useQuery({
-    queryKey: ["orders", address],
+    queryKey: ordersQueryKey(address),
     queryFn: async () => {
       if (!address) return [];
       const res = await apiService.getOrdersByOwner(address);

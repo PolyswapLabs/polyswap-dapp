@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useConnect, type Connector } from "wagmi";
-import { Modal, Button } from "@/components/primitives";
+import { Modal, Button, ErrorAlert } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
@@ -114,9 +114,7 @@ export function WalletModal({ open, onClose, onConnected }: Props) {
           })}
         </ul>
 
-        {error && (
-          <p className="border border-no bg-no/10 px-3 py-2 text-xs text-no">{error.message}</p>
-        )}
+        {error && <ErrorAlert>{error.message}</ErrorAlert>}
 
         <Button variant="paper" size="md" onClick={onClose} className="mt-3 w-full">
           Cancel

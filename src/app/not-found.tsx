@@ -11,7 +11,7 @@ export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col bg-paper">
       <header className="border-b border-ink">
-        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6 sm:px-8 lg:px-12">
+        <div className="page-container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Logo size={36} />
             <span className="font-serif text-2xl">Polyswap</span>
@@ -23,7 +23,7 @@ export default function NotFound() {
       </header>
 
       <main className="flex flex-1 items-center">
-        <div className="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-6 py-16 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:py-24">
+        <div className="page-container grid w-full items-center gap-10 py-16 lg:grid-cols-12 lg:gap-12 lg:py-24">
           <div className="lg:col-span-7">
             <p className="eyebrow mb-4">Issue · 404 · April edition</p>
             <h1 className="display text-5xl leading-[0.95] sm:text-6xl lg:text-[88px]">
@@ -65,7 +65,7 @@ export default function NotFound() {
       </main>
 
       <footer className="border-t border-ink">
-        <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-6 text-xs text-ink-3 sm:px-8 lg:px-12">
+        <div className="page-container flex items-center justify-between py-6 text-xs text-ink-3">
           <p>© {new Date().getFullYear()} Polyswap. Runs on Polygon.</p>
           <p className="num">404 · static</p>
         </div>

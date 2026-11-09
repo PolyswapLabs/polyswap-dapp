@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Dial, Shimmer, Status, Tape, TokenLogo } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { fmtNum, fmtPointsAway } from "@/lib/format";
+import { fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
 import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
 import type { OrderViewModel } from "@/hooks/useOrders";
 
@@ -67,14 +67,7 @@ export function SwapRow({ order }: Props) {
             {order.status === "waiting" && ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
-          <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
-          <span className="num text-sm">
-            {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-          </span>
-          <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
-          <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
-        </div>
+        <TokenPair order={order} />
         <div className="overflow-hidden">
           <Tape
             data={sparkData}
@@ -100,7 +93,7 @@ export function SwapRow({ order }: Props) {
         <div className="flex items-center justify-between gap-3">
           <Status kind={order.status} />
           <span className="num text-xs text-ink-3">
-            {Math.round(currentOdds * 100)}% / {Math.round(order.threshold * 100)}%
+            {fmtPct(currentOdds)} / {fmtPct(order.threshold)}
           </span>
         </div>
         <div className="flex items-start gap-3">
@@ -122,15 +115,7 @@ export function SwapRow({ order }: Props) {
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-2">
-            <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
-            <span className="num">
-              {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-            </span>
-            <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
-            <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />
-            <span className="font-mono">{order.buySymbol}</span>
-          </span>
+          <CompactTokenPair order={order} />
         </div>
         <div className="overflow-hidden">
           <Tape
@@ -166,14 +151,7 @@ function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel 
           </div>
           <Shimmer className="mt-2 h-3 w-40" />
         </div>
-        <div className="flex items-center gap-2.5">
-          <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
-          <span className="num text-sm">
-            {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-          </span>
-          <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
-          <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
-        </div>
+        <TokenPair order={order} />
         <Shimmer className="h-10 w-full" />
         <span aria-hidden className="text-ink-3">
           <Icon.arrowRight size={16} />
@@ -193,18 +171,37 @@ function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel 
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-2">
-            <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
-            <span className="num">
-              {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-            </span>
-            <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
-            <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />
-            <span className="font-mono">{order.buySymbol}</span>
-          </span>
+          <CompactTokenPair order={order} />
         </div>
         <Shimmer className="h-9 w-full" />
       </div>
     </Link>
+  );
+}
+
+function TokenPair({ order }: { order: OrderViewModel }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
+      <span className="num text-sm">
+        {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
+      </span>
+      <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
+      <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
+    </div>
+  );
+}
+
+function CompactTokenPair({ order }: { order: OrderViewModel }) {
+  return (
+    <span className="flex items-center gap-2">
+      <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
+      <span className="num">
+        {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
+      </span>
+      <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
+      <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />
+      <span className="font-mono">{order.buySymbol}</span>
+    </span>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Tape } from "@/components/primitives";
-import { fmtTokenAmount, fmtUSD } from "@/lib/format";
+import { Tape, ErrorAlert } from "@/components/primitives";
+import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
 import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";
 import { TokenPicker } from "./TokenPicker";
@@ -83,8 +83,8 @@ export function CreateForm({
       : postOnlyCheck.status === "unavailable"
         ? "The live order book is unavailable, so we can't verify that this order will wait."
         : postOnlyCheck.bestAsk === null
-          ? `There are no ${state.side} sell orders right now. Your ${Math.round(state.threshold * 100)}% trigger can wait on the book.`
-          : `The best available ${state.side} price is ${Math.round(postOnlyCheck.bestAsk * 100)}%. Your ${Math.round(state.threshold * 100)}% trigger can wait on the book.`;
+          ? `There are no ${state.side} sell orders right now. Your ${fmtPct(state.threshold)} trigger can wait on the book.`
+          : `The best available ${state.side} price is ${fmtPct(postOnlyCheck.bestAsk)}. Your ${fmtPct(state.threshold)} trigger can wait on the book.`;
   const thresholdBlocked = postOnlyEnabled && postOnlyCheck.status !== "rests";
 
   return (
@@ -169,14 +169,12 @@ export function CreateForm({
           </div>
         </div>
         {estimates.isQuoteError && derived.amountInNumber > 0 && (
-          <p className="mt-4 border border-no bg-no/10 px-3 py-2 text-xs text-no">
+          <ErrorAlert className="mt-4">
             {formatQuoteError(estimates.quoteErrorType, estimates.quoteErrorMessage)}
-          </p>
+          </ErrorAlert>
         )}
         {derived.validationMessage && (
-          <p className="mt-4 border border-no bg-no/10 px-3 py-2 text-xs text-no">
-            {derived.validationMessage}
-          </p>
+          <ErrorAlert className="mt-4">{derived.validationMessage}</ErrorAlert>
         )}
       </section>
 

@@ -26,7 +26,7 @@ export function LandingHeader() {
 
   return (
     <header className="border-b border-ink bg-paper">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6 sm:px-8 lg:px-12">
+      <div className="page-container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <Logo size={36} />
           <span className="font-serif text-2xl">Polyswap</span>

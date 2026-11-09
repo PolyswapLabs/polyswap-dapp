@@ -33,7 +33,7 @@ const CATS: Cat[] = [
 export function Categories() {
   return (
     <section className="border-b border-ink bg-paper-2">
-      <div className="mx-auto max-w-[1280px] px-6 py-12 sm:px-8 lg:px-12 lg:py-20">
+      <div className="page-container py-12 lg:py-20">
         <div className="mb-8 grid gap-6 lg:mb-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-4">
             <p className="eyebrow mb-3">Built for crypto</p>

@@ -37,7 +37,7 @@ export function Masthead({ onConnectWallet }: Props) {
   return (
     <header className="border-b border-ink bg-paper">
       {/* Main bar */}
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-4 sm:px-8 lg:px-12 lg:py-5">
+      <div className="page-container flex items-center justify-between gap-6 py-4 lg:py-5">
         <Link
           href="/"
           className="flex items-center gap-3 hover:no-underline"

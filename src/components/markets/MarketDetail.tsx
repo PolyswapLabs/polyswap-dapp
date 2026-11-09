@@ -4,7 +4,16 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
 import { cn } from "@/lib/cn";
-import { buttonVariants, DetailSkeleton, Tag, Tape, Dial } from "@/components/primitives";
+import {
+  buttonVariants,
+  DetailSkeleton,
+  Tag,
+  Tape,
+  Dial,
+  PageMessage,
+  BackLink,
+  OddsAxis,
+} from "@/components/primitives";
 import { CategoryIcon, Icon, PolymarketIcon } from "@/components/icons";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -33,7 +42,7 @@ export function MarketDetail({ identifier }: Props) {
   }
   if (isError || !data) {
     return (
-      <div className="py-16 text-center text-sm text-ink-3">
+      <PageMessage>
         {isError
           ? `We couldn't load that market. ${getErrorMessage(error, "Try again in a moment.")}`
           : "We couldn't find that market."}{" "}
@@ -41,7 +50,7 @@ export function MarketDetail({ identifier }: Props) {
           Back to markets
         </Link>
         .
-      </div>
+      </PageMessage>
     );
   }
 
@@ -60,12 +69,7 @@ export function MarketDetail({ identifier }: Props) {
   return (
     <div className="pb-24">
       <div className="border-b border-ink py-6 lg:py-8">
-        <Link
-          href="/markets"
-          className="inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink"
-        >
-          <Icon.arrowLeft size={12} aria-hidden /> Back to markets
-        </Link>
+        <BackLink href="/markets">Back to markets</BackLink>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Tag tone="ink">
             <CategoryIcon category={data.category} size={12} />
@@ -111,13 +115,7 @@ export function MarketDetail({ identifier }: Props) {
             <p className="eyebrow mb-3">Probability of YES · {chartRangeLabel}</p>
             <div className="overflow-hidden border border-ink bg-paper p-4 lg:p-6">
               <div className="flex items-stretch gap-3">
-                <div className="num flex flex-col justify-between py-1 text-[11px] text-ink-3">
-                  <span>100%</span>
-                  <span>75%</span>
-                  <span>50%</span>
-                  <span>25%</span>
-                  <span>0%</span>
-                </div>
+                <OddsAxis />
                 <div className="min-w-0 flex-1">
                   {history.length >= 2 ? (
                     <Tape

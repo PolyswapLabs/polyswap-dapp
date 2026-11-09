@@ -40,7 +40,7 @@ export function FAQ() {
 
   return (
     <section id="faq" className="border-b border-ink" style={{ scrollMarginTop: "5rem" }}>
-      <div className="mx-auto grid max-w-[1280px] gap-6 px-6 py-12 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:px-12 lg:py-20">
+      <div className="page-container grid gap-6 py-12 lg:grid-cols-12 lg:gap-10 lg:py-20">
         <div className="lg:col-span-3">
           <p className="eyebrow mb-3">Reasonable questions</p>
           <h2 className="display text-3xl sm:text-4xl lg:text-[40px]">FAQ.</h2>

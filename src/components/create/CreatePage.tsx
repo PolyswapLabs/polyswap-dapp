@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { erc20Abi, isAddress, type Address, type Hash, type Hex } from "viem";
 import { usePublicClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, DetailSkeleton } from "@/components/primitives";
+import { Button, DetailSkeleton, ErrorAlert, PageMessage, BackLink } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { useMarket } from "@/hooks/useMarketsData";
 import { useCreateOrder, describeSentence, type Slippage } from "@/hooks/useCreateOrder";
@@ -24,6 +24,7 @@ import { useRuntimeConfig } from "@/components/providers/RuntimeConfigProvider";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
 import { capturePostHogEvent } from "@/lib/posthog-client";
+import { ordersQueryKey } from "@/hooks/useOrders";
 
 interface Props {
   marketId: string;
@@ -257,7 +258,7 @@ export function CreatePage({ marketId }: Props) {
     // so the next refetch picks the new row up.
     // safeAddress is guaranteed truthy here — handleReview guards it before
     // opening the modal.
-    queryClient.invalidateQueries({ queryKey: ["orders", safeAddress] });
+    queryClient.invalidateQueries({ queryKey: ordersQueryKey(safeAddress) });
     setSignOpen(false);
     const orderId = orderIdRef.current;
     if (orderId !== null) {
@@ -277,7 +278,7 @@ export function CreatePage({ marketId }: Props) {
 
   if (isError || !market) {
     return (
-      <div className="py-16 text-center text-sm text-ink-3">
+      <PageMessage>
         {isError
           ? `We couldn't load that market. ${getErrorMessage(marketError, "Try again in a moment.")}`
           : "We couldn't find that market."}{" "}
@@ -285,7 +286,7 @@ export function CreatePage({ marketId }: Props) {
           Back to markets
         </Link>
         .
-      </div>
+      </PageMessage>
     );
   }
 
@@ -293,12 +294,7 @@ export function CreatePage({ marketId }: Props) {
     <div className="pb-32 lg:pb-16">
       {/* Header */}
       <div className="border-b border-ink py-6 lg:py-8">
-        <Link
-          href={`/markets/${market.id}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink"
-        >
-          <Icon.arrowLeft size={12} aria-hidden /> Back to market
-        </Link>
+        <BackLink href={`/markets/${market.id}`}>Back to market</BackLink>
         <h1 className="mt-3 font-serif text-3xl leading-[1.1] sm:text-4xl lg:text-[44px]">
           Set up a <span className="italic">swap</span>.
         </h1>
@@ -321,7 +317,7 @@ export function CreatePage({ marketId }: Props) {
           />
 
           {(orderCreationDisabled || signingError) && (
-            <div role="alert" className="border border-no bg-no/10 px-3 py-2 text-xs text-no">
+            <ErrorAlert>
               <p>{orderCreationDisabled ? creationPausedMessage : signingError}</p>
               {signingError?.toLowerCase().includes("polymarket") && (
                 <a
@@ -333,7 +329,7 @@ export function CreatePage({ marketId }: Props) {
                   Check Polymarket status ↗
                 </a>
               )}
-            </div>
+            </ErrorAlert>
           )}
 
           {/* Desktop CTA */}

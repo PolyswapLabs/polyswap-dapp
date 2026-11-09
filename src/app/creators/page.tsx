@@ -14,7 +14,7 @@ export default function CreatorsRoute() {
   return (
     <div className="flex min-h-screen flex-col">
       <LandingHeader />
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-6 sm:px-8 lg:px-12">
+      <main className="page-container w-full flex-1">
         <CreatorsPage />
       </main>
       <Footer />

@@ -22,7 +22,7 @@ const ITEMS: Guarantee[] = [
 export function Guarantees() {
   return (
     <section className="border-b border-ink">
-      <div className="mx-auto grid max-w-[1280px] gap-10 px-6 py-12 sm:px-8 lg:grid-cols-12 lg:px-12 lg:py-20">
+      <div className="page-container grid gap-10 py-12 lg:grid-cols-12 lg:py-20">
         <div className="lg:col-span-5">
           <p className="eyebrow mb-3">Two guarantees</p>
           <h2 className="display text-4xl leading-[1.0] sm:text-5xl lg:text-[60px]">

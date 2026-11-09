@@ -1,6 +1,6 @@
 import { Icon } from "@/components/icons";
-import { InfoTip } from "@/components/primitives";
-import { fmtTokenAmount, fmtUSD } from "@/lib/format";
+import { InfoTip, DefinitionRow } from "@/components/primitives";
+import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
 import { describeSentence, type CreateFormState } from "@/hooks/useCreateOrder";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
 import type { MarketViewModel } from "@/types/design";
@@ -35,13 +35,13 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
       <section aria-label="Order recap" className="border border-ink bg-paper p-5">
         <p className="eyebrow mb-3">Recap</p>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-          <Row
-            k="Trigger"
-            v={`${state.side} ${triggerVerb} ${Math.round(state.threshold * 100)}%`}
+          <DefinitionRow
+            term="Trigger"
+            value={`${state.side} ${triggerVerb} ${fmtPct(state.threshold)}`}
           />
-          <Row k="You send" v={`${state.amountIn || "0"} ${fromSymbol}`} />
-          <Row
-            k={
+          <DefinitionRow term="You send" value={`${state.amountIn || "0"} ${fromSymbol}`} />
+          <DefinitionRow
+            term={
               <span className="inline-flex items-center gap-1.5">
                 You receive
                 <InfoTip
@@ -50,16 +50,19 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
                 />
               </span>
             }
-            v={
+            value={
               estimates.amountOutEstimate > 0
                 ? `~${fmtTokenAmount(estimates.amountOutEstimate)} ${toSymbol}`
                 : `— ${toSymbol}`
             }
           />
-          <Row k="Notional" v={estimates.amountInUsd > 0 ? fmtUSD(estimates.amountInUsd) : "—"} />
-          <Row k="Expires" v={expiryLabel} />
-          <Row
-            k={
+          <DefinitionRow
+            term="Notional"
+            value={estimates.amountInUsd > 0 ? fmtUSD(estimates.amountInUsd) : "—"}
+          />
+          <DefinitionRow term="Expires" value={expiryLabel} />
+          <DefinitionRow
+            term={
               <span className="inline-flex items-center gap-1.5">
                 Price wiggle
                 <InfoTip
@@ -69,7 +72,7 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
                 />
               </span>
             }
-            v={state.slippagePct === "auto" ? "Auto" : `${state.slippagePct}%`}
+            value={state.slippagePct === "auto" ? "Auto" : `${state.slippagePct}%`}
           />
         </dl>
       </section>
@@ -85,14 +88,5 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
         </p>
       </section>
     </div>
-  );
-}
-
-function Row({ k, v }: { k: React.ReactNode; v: string }) {
-  return (
-    <>
-      <dt className="text-ink-3">{k}</dt>
-      <dd className="text-right font-mono tabular-nums">{v}</dd>
-    </>
   );
 }

@@ -12,3 +12,4 @@ export { CountUp } from "./CountUp";
 export { MotionList, MotionItem } from "./MotionList";
 export { Reveal, RevealStack, RevealItem } from "./Reveal";
 export { InfoTip } from "./InfoTip";
+export { BackLink, DefinitionRow, ErrorAlert, OddsAxis, PageMessage } from "./PageBlocks";

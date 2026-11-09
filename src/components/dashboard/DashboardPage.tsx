@@ -7,7 +7,7 @@ import { PortfolioStrip } from "./PortfolioStrip";
 import { StatusTabs, type DashboardTab } from "./StatusTabs";
 import { SwapRow } from "./SwapRow";
 import { EmptyState } from "./EmptyState";
-import { MotionList, MotionItem } from "@/components/primitives";
+import { MotionList, MotionItem, ErrorAlert } from "@/components/primitives";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -45,9 +45,9 @@ export function DashboardPage() {
       {isLoading && <DashboardSkeleton />}
 
       {!isLoading && isError && (
-        <p className="border border-no bg-no/10 px-4 py-3 text-sm text-no">
+        <ErrorAlert className="px-4 py-3 text-sm">
           Couldn&rsquo;t load your swaps. {errorMessage ?? "Try again in a moment."}
-        </p>
+        </ErrorAlert>
       )}
 
       {!isLoading && !isError && (

@@ -3,7 +3,7 @@ import Link from "next/link";
 export function FinalCTA() {
   return (
     <section className="border-b border-ink bg-accent text-paper">
-      <div className="mx-auto grid max-w-[1280px] items-center gap-8 px-6 py-16 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:px-12 lg:py-24">
+      <div className="page-container grid items-center gap-8 py-16 lg:grid-cols-12 lg:gap-10 lg:py-24">
         <h2 className="display text-5xl leading-[0.96] sm:text-6xl lg:col-span-8 lg:text-[80px]">
           Set up your
           <br />

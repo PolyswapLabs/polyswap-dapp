@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
-import { fmtDateTime, fmtDuration } from "@/lib/format";
+import { fmtDateTime, fmtDuration, fmtPct } from "@/lib/format";
 import type { OrderViewModel } from "@/hooks/useOrders";
 
 interface Step {
@@ -64,7 +64,7 @@ function buildSteps(order: OrderViewModel): Step[] {
         ? order.gateOpenedAt
           ? fmtDateTime(order.gateOpenedAt)
           : "Trigger confirmed · time unavailable"
-        : `when ${order.side} drops to ${Math.round(order.threshold * 100)}%`,
+        : `when ${order.side} drops to ${fmtPct(order.threshold)}`,
       state: triggerHit ? "past" : "future",
     });
     steps.push({

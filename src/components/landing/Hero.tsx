@@ -8,7 +8,7 @@ import { Icon } from "@/components/icons";
 export function Hero() {
   return (
     <section className="border-b border-ink">
-      <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-6 py-12 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:py-20">
+      <div className="page-container grid items-center gap-10 py-12 lg:grid-cols-12 lg:gap-12 lg:py-20">
         <RevealStack className="lg:col-span-7" stagger={0.09} delay={0.05}>
           <RevealItem>
             <h1 className="display text-5xl sm:text-6xl lg:text-[96px]">

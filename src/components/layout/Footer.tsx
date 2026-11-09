@@ -30,7 +30,7 @@ const BUILT_WITH: ExternalLink[] = [
 export function Footer() {
   return (
     <footer className="mt-16 border-t border-ink bg-paper">
-      <div className="mx-auto max-w-[1280px] px-6 py-12 sm:px-8 lg:px-12">
+      <div className="page-container py-12">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <div className="flex items-center gap-3">
