@@ -148,7 +148,7 @@ hide the database fallback behind the unavailable dialog.
 Run the focused regression tests without database or network access:
 
 ```bash
-node --import tsx --test tests/*.test.ts
+pnpm test
 ```
 
 ### Database Management

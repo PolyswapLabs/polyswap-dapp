@@ -107,8 +107,9 @@ export class PolymarketInventory {
             options.onScanError?.(single.reason, protocolVersion);
           }
           if (batch.status === "fulfilled") {
-            for (const log of batch.value)
+            for (const log of batch.value) {
               for (const id of log.args.ids ?? []) ids.add(id.toString());
+            }
           } else {
             options.onScanError?.(batch.reason, protocolVersion);
           }

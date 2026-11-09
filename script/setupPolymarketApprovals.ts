@@ -1,4 +1,4 @@
-#!/usr/bin/env node --import tsx
+#!/usr/bin/env tsx
 import "dotenv/config";
 import { getPolymarketOrderService } from "../src/backend/services/polymarketOrderService";
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env node --import tsx
+#!/usr/bin/env tsx
 // Public, read-only smoke check: no dotenv, private key, SDK auth or database import.
 import assert from "node:assert/strict";
 import { PROTOCOL_VERSIONS, getTradingAssetIds } from "../src/lib/polymarket/protocol";

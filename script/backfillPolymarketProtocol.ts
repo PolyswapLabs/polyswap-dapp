@@ -1,4 +1,4 @@
-#!/usr/bin/env node --import tsx
+#!/usr/bin/env tsx
 // Intentionally does not load .env before selecting an explicit database target.
 import {
   getTradingAssetIds,
