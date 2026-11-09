@@ -1,24 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAddress, type Hex } from "viem";
-import composableCowAbi from "@/abi/composableCoW.json";
+import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
+import { authenticateOrderAction } from "@/backend/orders/orderActionAuth";
+import { isSingleOrderAuthed } from "@/backend/rpc/composableCow";
 import { DatabaseService } from "@/backend/services/databaseService";
-import { verifySignature } from "@/backend/utils/signatureVerification";
-import { getPublicClient } from "@/backend/rpc/clients";
-import { createApiErrorResponder } from "@/lib/apiError";
+import { createApiErrorResponder, type ApiErrorOptions } from "@/lib/apiError";
 import { getPostHogClient } from "@/lib/posthog-server";
-import { COMPOSABLE_COW } from "@/lib/contracts";
 
 const apiError = createApiErrorResponder("api-order-notify-remove");
 
-interface NotifyRemoveBody {
-  signature: string;
-  timestamp: number;
-}
-
-function isNotifyBody(value: unknown): value is NotifyRemoveBody {
-  if (value === null || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return typeof v.signature === "string" && typeof v.timestamp === "number";
+function rejectUnremovableOrder(order: DatabasePolyswapOrder): ApiErrorOptions | null {
+  if (order.status !== "live") {
+    return { status: 400, error: "Only live orders can be notified for removal" };
+  }
+  if (!order.order_hash) {
+    return { status: 400, error: "Order has no on-chain hash yet; cannot verify removal" };
+  }
+  return null;
 }
 
 /**
@@ -52,62 +50,20 @@ function isNotifyBody(value: unknown): value is NotifyRemoveBody {
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
-    const orderId = Number(id);
-    if (!Number.isInteger(orderId) || orderId <= 0) {
-      return apiError({ status: 400, error: "Invalid order id" });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch (error) {
-      return apiError({ status: 400, error: "Invalid JSON body", cause: error });
-    }
-    if (!isNotifyBody(body)) {
-      return apiError({
-        status: 400,
-        error: "Invalid request body",
-        message: "Body must include { signature: string, timestamp: number }",
-      });
-    }
-
-    const order = await DatabaseService.getPolyswapOrderById(orderId);
-    if (!order) {
-      return apiError({ status: 404, error: "Order not found" });
-    }
-    if (order.status !== "live") {
-      return apiError({ status: 400, error: "Only live orders can be notified for removal" });
-    }
-    if (!order.order_hash) {
-      return apiError({
-        status: 400,
-        error: "Order has no on-chain hash yet; cannot verify removal",
-      });
-    }
-
-    const publicClient = getPublicClient();
-    const verification = await verifySignature({
+    const auth = await authenticateOrderAction(request, params, {
       action: "notify_remove",
-      orderIdentifier: String(orderId),
-      timestamp: body.timestamp,
-      chainId: 137,
-      signature: body.signature,
-      expectedAddress: order.owner,
-      publicClient,
+      apiError,
+      rejectOrder: rejectUnremovableOrder,
     });
-    if (!verification.valid) {
-      return apiError({ status: 401, error: verification.error ?? "Unauthorized" });
-    }
+    if ("response" in auth) return auth.response;
+    const { orderId, order } = auth;
 
     // ComposableCoW.remove() emits no event, and Safe-wrapped txs hide the inner call,
     // so we verify removal by reading singleOrders[owner][orderHash] (true after create, false after remove).
-    const isStillActive = await publicClient.readContract({
-      address: COMPOSABLE_COW,
-      abi: composableCowAbi,
-      functionName: "singleOrders",
-      args: [getAddress(order.owner), order.order_hash as Hex],
-    });
+    const isStillActive = await isSingleOrderAuthed(
+      getAddress(order.owner),
+      order.order_hash as Hex
+    );
 
     if (isStillActive === true) {
       return apiError({
