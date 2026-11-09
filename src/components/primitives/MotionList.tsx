@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
-import { springInVariants, staggerVariants } from "@/lib/motion";
+import { springInVariants, staggerVariants } from "@/client/motion";
 
 const containerVariants = staggerVariants(0.05);
 const itemVariants = springInVariants({ y: 8 }, 220);

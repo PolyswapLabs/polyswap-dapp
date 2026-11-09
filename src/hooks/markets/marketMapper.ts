@@ -1,11 +1,12 @@
-import { getDisplayAssetIds, type ProtocolVersion } from "@/lib/polymarket/protocol";
+import { getDisplayAssetIds, type ProtocolVersion } from "@/shared/polymarket/protocol";
 import {
   getClobPrice,
   type ClobPriceRequest,
   type ClobPricesResponse,
-} from "@/services/polymarket";
-import { MARKET_CATEGORIES, type MarketCategory, type MarketViewModel } from "@/types/design";
-import type { DatabaseRecommendationMarket } from "@/lib/marketRecommendations";
+} from "@/shared/polymarket/clob";
+import { MARKET_CATEGORIES, type MarketCategory } from "@/shared/markets/categories";
+import { type MarketViewModel } from "@/types/viewModels";
+import type { RecommendationMarketRow } from "@/shared/markets/recommendationPolicy";
 
 export interface PricedMarket {
   id: string;
@@ -53,7 +54,7 @@ function bestAskPercent(
   return ask === null ? undefined : ask * 100;
 }
 
-function displayTokenIds(row: DatabaseRecommendationMarket): string[] {
+function displayTokenIds(row: RecommendationMarketRow): string[] {
   return getDisplayAssetIds({
     protocolVersion: row.protocol_version,
     clobTokenIds: row.clob_token_ids,
@@ -71,7 +72,7 @@ function yesNoIndexes(outcomes: string[]): [number, number] {
 
 /** Returns null for anything but a two-outcome market: the UI only trades those. */
 export function toPricedMarket(
-  row: DatabaseRecommendationMarket,
+  row: RecommendationMarketRow,
   prices: ClobPricesResponse
 ): PricedMarket | null {
   if (row.outcomes.length !== 2) return null;
@@ -85,7 +86,7 @@ export function toPricedMarket(
     id: row.id,
     title: row.question,
     // Postgres NUMERIC arrives as string over JSON — coerce up-front so
-    // downstream formatters (fmtUSD) don't fall back to the em-dash placeholder.
+    // downstream formatters (formatUsd) don't fall back to the em-dash placeholder.
     volume: Number(row.volume) || 0,
     endDate: row.end_date ?? "",
     category: row.category ?? "",
@@ -126,7 +127,7 @@ export function isMarketViewModel(market: MarketViewModel | null): market is Mar
   return market !== null;
 }
 
-export function tokenPriceRequests(rows: DatabaseRecommendationMarket[]): ClobPriceRequest[] {
+export function tokenPriceRequests(rows: RecommendationMarketRow[]): ClobPriceRequest[] {
   return rows.flatMap(displayTokenIds).flatMap((tokenId): ClobPriceRequest[] => [
     { token_id: tokenId, side: "BUY" },
     { token_id: tokenId, side: "SELL" },

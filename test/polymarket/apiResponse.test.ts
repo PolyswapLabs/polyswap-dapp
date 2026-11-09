@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readApiResponse } from "../../src/services/api";
+import { readApiResponse } from "../../src/client/api/polyswapApi";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const hasSuccess = (value: unknown): value is { success: true } =>

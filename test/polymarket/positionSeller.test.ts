@@ -18,8 +18,7 @@ const { PolymarketInventory } = await import("../../src/backend/polymarket/inven
 const { orderRepository } = await import("../../src/backend/db/orderRepository");
 const { computeSellPrice, PolymarketPositionSellerService: Seller } =
   await import("../../src/backend/services/polymarketPositionSellerService");
-const { PolymarketOrderService } =
-  await import("../../src/backend/services/polymarketOrderService");
+const { PolymarketOrderService } = await import("../../src/backend/polymarket/clob");
 const { startPositionSeller, subscribePositionReceipts, stopPositionSeller } =
   await import("../../src/backend/listener/cron/positionSeller");
 const { handleTrade, handleLiveTrade } = await import("../../src/backend/listener/handlers/trade");

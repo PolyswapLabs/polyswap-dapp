@@ -2,14 +2,15 @@ import {
   fetchClobPriceHistory,
   fetchClobPrices,
   type ClobHistoryPoint,
-} from "@/services/polymarket";
-import { apiService, isSuccessEnvelope, readApiResponse } from "@/services/api";
-import type { MarketCategory, MarketViewModel } from "@/types/design";
+} from "@/shared/polymarket/clob";
+import { isSuccessEnvelope, readApiResponse, getMarketBySlug } from "@/client/api/polyswapApi";
+import type { MarketCategory } from "@/shared/markets/categories";
+import type { MarketViewModel } from "@/types/viewModels";
 import type {
-  DatabaseRecommendationMarket,
+  RecommendationMarketRow,
   OddsRange,
   RecommendationPage,
-} from "@/lib/marketRecommendations";
+} from "@/shared/markets/recommendationPolicy";
 import {
   isMarketViewModel,
   toMarketViewModel,
@@ -31,7 +32,7 @@ interface MarketSearchParams {
 }
 
 interface MarketSearchPayload {
-  markets: DatabaseRecommendationMarket[];
+  markets: RecommendationMarketRow[];
   count: number;
   total: number;
 }
@@ -47,7 +48,7 @@ export interface RecommendedMarketsQuery extends OddsRange {
   category: MarketCategory | null;
 }
 
-export interface TagSuggestion {
+interface TagSuggestion {
   tag: string;
   count: number;
 }
@@ -79,9 +80,9 @@ export async function fetchPricedMarket(
   slug: string,
   opts: { track?: boolean } = {}
 ): Promise<PricedMarket | null> {
-  const market = await apiService.getMarketBySlug(slug, opts);
+  const market = await getMarketBySlug(slug, opts);
   if (!market) return null;
-  const row: DatabaseRecommendationMarket = {
+  const row: RecommendationMarketRow = {
     ...market,
     // Typed as Date, but the API response delivers an ISO string at runtime.
     end_date: market.end_date instanceof Date ? market.end_date.toISOString() : market.end_date,
@@ -90,7 +91,7 @@ export async function fetchPricedMarket(
   return toPricedMarket(row, prices);
 }
 
-async function pricedViewModels(rows: DatabaseRecommendationMarket[]): Promise<MarketViewModel[]> {
+async function pricedViewModels(rows: RecommendationMarketRow[]): Promise<MarketViewModel[]> {
   const prices = rows.length ? await fetchClobPrices(tokenPriceRequests(rows)) : {};
   return rows
     .map((row) => toMarketViewModel(toPricedMarket(row, prices)))

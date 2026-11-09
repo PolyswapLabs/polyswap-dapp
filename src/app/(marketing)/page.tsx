@@ -7,7 +7,7 @@ import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Premise } from "@/components/landing/Premise";
 import { PullQuote } from "@/components/landing/PullQuote";
 import { Reveal } from "@/components/landing/Reveal";
-import { publicPageMetadata } from "@/lib/seo";
+import { publicPageMetadata } from "@/server/seo";
 
 export const metadata = publicPageMetadata({
   title: "Polyswap | Polymarket-triggered token swaps on Polygon",

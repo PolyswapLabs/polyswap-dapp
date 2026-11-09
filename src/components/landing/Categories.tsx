@@ -1,5 +1,5 @@
 import { CategoryIllustration } from "./CategoryIllustration";
-import type { MarketCategory } from "@/types/design";
+import type { MarketCategory } from "@/shared/markets/categories";
 
 interface Cat {
   k: MarketCategory;

@@ -2,8 +2,8 @@
 
 import { motion } from "motion/react";
 import { useId } from "react";
-import { cn } from "@/lib/cn";
-import type { SwapStatus } from "@/types/design";
+import { cn } from "@/utils/cn";
+import type { SwapStatus } from "@/types/viewModels";
 
 export type DashboardTab = "all" | SwapStatus;
 

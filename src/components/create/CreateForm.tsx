@@ -2,7 +2,7 @@
 
 import { Tape } from "@/components/charts/Tape";
 import { ErrorAlert } from "@/components/primitives/PageBlocks";
-import { fmtTokenAmount, fmtUSD } from "@/lib/format";
+import { formatTokenAmount, formatUsd } from "@/utils/format";
 import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";
 import { TokenPicker } from "./TokenPicker";
@@ -10,11 +10,11 @@ import { AdvancedOptions } from "./AdvancedOptions";
 import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrderForm";
 import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { useDefaultTokens } from "@/hooks/useDefaultTokens";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
-import type { MarketViewModel } from "@/types/design";
-import { describePostOnlyStatus, type PostOnlyBuyCheck } from "@/lib/postOnlyOrder";
-import { formatQuoteError } from "@/lib/quoteErrors";
+import type { MarketViewModel } from "@/types/viewModels";
+import type { PostOnlyBuyCheck } from "@/shared/orders/postOnly";
+import { describePostOnlyStatus, formatQuoteError } from "@/client/orders/quoteErrors";
 
 interface Props {
   market: MarketViewModel;
@@ -104,7 +104,7 @@ export function CreateForm({
               />
             </label>
             {estimates.amountInUsd > 0 && (
-              <p className="num mt-1 text-xs text-ink-3">≈ {fmtUSD(estimates.amountInUsd)}</p>
+              <p className="num mt-1 text-xs text-ink-3">≈ {formatUsd(estimates.amountInUsd)}</p>
             )}
           </div>
 
@@ -122,7 +122,7 @@ export function CreateForm({
             )}
             <div className="mt-3 border border-ink bg-paper-2 px-3 py-3 font-mono text-2xl tabular-nums sm:text-3xl">
               {estimates.amountOutEstimate > 0
-                ? fmtTokenAmount(estimates.amountOutEstimate)
+                ? formatTokenAmount(estimates.amountOutEstimate)
                 : derived.amountInNumber > 0 && !estimates.isQuoteError
                   ? "—"
                   : "0.00"}

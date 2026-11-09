@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
-import { EDITORIAL_EASE } from "@/lib/motion";
+import { EDITORIAL_EASE } from "@/client/motion";
 
 interface Props {
   to: number;

@@ -1,11 +1,11 @@
 "use client";
 
 import { WagmiProvider, useAccount } from "wagmi";
-import { config } from "../../wagmi/config";
+import { config } from "@/client/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import posthog from "posthog-js";
-import { isPostHogEnabled } from "@/lib/posthog-client";
+import { isPostHogEnabled } from "@/client/analytics";
 
 function PostHogIdentity() {
   const { address, connector, isConnected } = useAccount();

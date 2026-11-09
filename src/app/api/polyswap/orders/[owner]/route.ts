@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { orderRepository } from "@/backend/db/orderRepository";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
-import { createApiErrorResponder } from "@/lib/apiError";
+import { createApiErrorResponder } from "@/server/apiError";
 
 const apiError = createApiErrorResponder("api-orders-owner");
 

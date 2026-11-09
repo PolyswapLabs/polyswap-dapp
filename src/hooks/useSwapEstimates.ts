@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { formatUnits, isAddress, parseUnits } from "viem";
 import { useQuote } from "@/hooks/useQuote";
 import { useTokenPrice } from "@/hooks/useTokenPrice";
-import { CowQuoteError, type CowQuoteParams } from "@/services/cowApi";
-import type { TokenViewModel } from "@/types/design";
+import { CowQuoteError, type CowQuoteParams } from "@/client/api/cowApi";
+import type { TokenViewModel } from "@/types/viewModels";
 
 export interface SwapEstimates {
   amountInUsd: number;

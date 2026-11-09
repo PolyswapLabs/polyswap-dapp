@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fmtPct, fmtRelative, formatAddress } from "../../src/lib/format";
+import { formatPercent, formatRelative, formatAddress } from "../../src/utils/format";
 
-test("fmtPct renders a probability as a whole percent", () => {
-  assert.equal(fmtPct(0.284), "28%");
-  assert.equal(fmtPct(0.286), "29%");
+test("formatPercent renders a probability as a whole percent", () => {
+  assert.equal(formatPercent(0.284), "28%");
+  assert.equal(formatPercent(0.286), "29%");
 });
 
-test("fmtPct renders an unknown value as a dash", () => {
-  assert.equal(fmtPct(Number.NaN), "—");
+test("formatPercent renders an unknown value as a dash", () => {
+  assert.equal(formatPercent(Number.NaN), "—");
 });
 
 const NOW = Date.UTC(2026, 0, 1);
@@ -17,13 +17,13 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-test("fmtRelative walks from seconds up to years", () => {
-  assert.equal(fmtRelative(ago(30_000), NOW), "Just now");
-  assert.equal(fmtRelative(ago(5 * MINUTE), NOW), "5m ago");
-  assert.equal(fmtRelative(ago(3 * HOUR), NOW), "3h ago");
-  assert.equal(fmtRelative(ago(2 * DAY), NOW), "2d ago");
-  assert.equal(fmtRelative(ago(60 * DAY), NOW), "2mo ago");
-  assert.equal(fmtRelative(ago(800 * DAY), NOW), "2y ago");
+test("formatRelative walks from seconds up to years", () => {
+  assert.equal(formatRelative(ago(30_000), NOW), "Just now");
+  assert.equal(formatRelative(ago(5 * MINUTE), NOW), "5m ago");
+  assert.equal(formatRelative(ago(3 * HOUR), NOW), "3h ago");
+  assert.equal(formatRelative(ago(2 * DAY), NOW), "2d ago");
+  assert.equal(formatRelative(ago(60 * DAY), NOW), "2mo ago");
+  assert.equal(formatRelative(ago(800 * DAY), NOW), "2y ago");
 });
 
 test("formatAddress keeps the prefix and last four characters", () => {

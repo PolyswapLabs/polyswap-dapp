@@ -1,7 +1,7 @@
-import { MarketDetail } from "@/components/markets/MarketDetail";
+import { MarketDetailView } from "@/components/markets/MarketDetailView";
 import type { Metadata } from "next";
 import { marketRepository } from "@/backend/db/marketRepository";
-import { PRIVATE_PAGE_ROBOTS, publicPageMetadata } from "@/lib/seo";
+import { PRIVATE_PAGE_ROBOTS, publicPageMetadata } from "@/server/seo";
 
 interface Props {
   params: Promise<{ marketId: string }>;
@@ -9,7 +9,7 @@ interface Props {
 
 export default async function MarketDetailPage({ params }: Props) {
   const { marketId } = await params;
-  return <MarketDetail marketIdOrSlug={marketId} />;
+  return <MarketDetailView marketIdOrSlug={marketId} />;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { isAddress } from "viem";
 import { polygon } from "wagmi/chains";
-import { isRecord } from "@/services/api";
+import { isRecord } from "@/shared/guards";
 
 /** CoW Protocol BFF API base URL. */
 const BFF_BASE_URL = "https://bff.cow.fi";

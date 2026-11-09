@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/cn";
-import type { SwapStatus } from "@/types/design";
+import { cn } from "@/utils/cn";
+import type { SwapStatus } from "@/types/viewModels";
 
 const status = cva(
   "inline-flex min-h-6 items-center gap-1.5 border border-ink px-2.5 py-1 text-[11px] leading-none font-semibold tracking-[0.1em]",

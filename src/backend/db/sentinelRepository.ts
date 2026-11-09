@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { toPolymarketSentinelRow } from "./rowMappers";
-import type { DatabasePolymarketSentinel } from "@/backend/interfaces/PolyswapOrder";
-import type { ProtocolVersion } from "@/lib/polymarket/protocol";
+import type { PolymarketSentinelRow } from "@/backend/interfaces/PolyswapOrder";
+import type { ProtocolVersion } from "@/shared/polymarket/protocol";
 
 export const sentinelRepository = {
   // ============================================================
@@ -16,7 +16,7 @@ export const sentinelRepository = {
     priceCents: number;
     postOnly: boolean;
     minimumExpiration: Date;
-  }): Promise<DatabasePolymarketSentinel | null> {
+  }): Promise<PolymarketSentinelRow | null> {
     const row = await prisma.polymarketSentinel.findFirst({
       where: {
         marketId: input.marketId,
@@ -66,7 +66,7 @@ export const sentinelRepository = {
     exchangeAddress: string;
     signedOrderFormat: string;
     expiration: Date;
-  }): Promise<DatabasePolymarketSentinel> {
+  }): Promise<PolymarketSentinelRow> {
     const row = await prisma.polymarketSentinel.create({
       data: {
         marketId: input.marketId,
@@ -89,7 +89,7 @@ export const sentinelRepository = {
     return toPolymarketSentinelRow(row);
   },
 
-  async getSentinelById(id: number): Promise<DatabasePolymarketSentinel | null> {
+  async getSentinelById(id: number): Promise<PolymarketSentinelRow | null> {
     const row = await prisma.polymarketSentinel.findUnique({ where: { id } });
     return row ? toPolymarketSentinelRow(row) : null;
   },

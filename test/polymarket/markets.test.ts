@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getTradingAssetIds } from "../../src/lib/polymarket/protocol";
-import { PolymarketAPIService } from "../../src/backend/services/polymarketAPIService";
+import { getTradingAssetIds } from "../../src/shared/polymarket/protocol";
+import { gammaApi } from "../../src/backend/polymarket/gamma";
 import { enrichRecommendation } from "../../src/backend/services/marketRecommendationScoring";
-import type { DatabaseMarket } from "../../src/backend/interfaces/Database";
+import type { MarketRow } from "../../src/backend/interfaces/Market";
 import {
   toMarketViewModel,
   toPricedMarket,
@@ -141,7 +141,7 @@ test("Gamma independently walks both protocols and preserves their metadata", as
       next_cursor: null,
     });
   });
-  const markets = await PolymarketAPIService.getOpenMarkets({ limit: 1 });
+  const markets = await gammaApi.getOpenMarkets({ limit: 1 });
   assert.equal(calls.length, 2);
   assert.deepEqual(markets.map((market) => market.protocolVersion).sort(), ["v1", "v2"]);
   assert.equal(markets[1]?.conditionId, "0xcondition");
@@ -149,7 +149,7 @@ test("Gamma independently walks both protocols and preserves their metadata", as
 
 test("recommendations accept V2 position IDs, preserve outcome order and reject protocol changes", () => {
   const now = Date.now();
-  const candidate: DatabaseMarket = {
+  const candidate: MarketRow = {
     id: "1",
     slug: "test",
     event_slug: "event",
@@ -216,7 +216,7 @@ test("Gamma uses after_cursor and keeps cursor walks independent for each versio
       next_cursor: count === 1 ? `${version}-next` : null,
     });
   });
-  const markets = await PolymarketAPIService.getOpenMarkets({ limit: 1 });
+  const markets = await gammaApi.getOpenMarkets({ limit: 1 });
   assert.equal(markets.length, 4);
   assert.equal(calls.get("v1"), 2);
   assert.equal(calls.get("v2"), 2);
@@ -242,7 +242,7 @@ test("maxNb caps each protocol walk and the merged result", async (t) => {
     });
   });
 
-  const markets = await PolymarketAPIService.getOpenMarkets({ maxNb: 2 });
+  const markets = await gammaApi.getOpenMarkets({ maxNb: 2 });
 
   assert.equal(markets.length, 2);
   assert.equal(calls.get("v1"), 1, "reaching maxNb stops the walk");
@@ -253,7 +253,7 @@ test("a repeated Gamma cursor fails the sync instead of looping forever", async 
   t.mock.method(globalThis, "fetch", async () =>
     Response.json({ events: [{ markets: [] }], next_cursor: "same" })
   );
-  await assert.rejects(PolymarketAPIService.getOpenMarkets({}), (error: AggregateError) => {
+  await assert.rejects(gammaApi.getOpenMarkets({}), (error: AggregateError) => {
     assert.match(String(error.errors[0]), /same cursor twice/);
     return true;
   });
@@ -265,7 +265,7 @@ test("a Gamma page without events and an HTTP error both fail the sync", async (
     () => new Response("nope", { status: 502, statusText: "Bad Gateway" }),
   ]) {
     const mocked = t.mock.method(globalThis, "fetch", async () => response());
-    await assert.rejects(PolymarketAPIService.getOpenMarkets({ versions: ["v1"] }));
+    await assert.rejects(gammaApi.getOpenMarkets({ versions: ["v1"] }));
     mocked.mock.restore();
   }
 });
@@ -277,7 +277,7 @@ test("the keyset request carries the filters Gamma needs", async (t) => {
     return Response.json({ events: [], next_cursor: null });
   });
 
-  await PolymarketAPIService.getOpenMarkets({
+  await gammaApi.getOpenMarkets({
     versions: ["v2"],
     endDateMin: "2030-01-01T00:00:00.000Z",
     limit: 500,

@@ -2,9 +2,9 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { useSearchSuggestions } from "@/hooks/markets/useMarkets";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   value: string;

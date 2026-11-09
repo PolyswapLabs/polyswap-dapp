@@ -3,8 +3,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { useModalDismiss } from "@/hooks/useModalDismiss";
-import { cn } from "@/lib/cn";
-import { EDITORIAL_EASE } from "@/lib/motion";
+import { cn } from "@/utils/cn";
+import { EDITORIAL_EASE } from "@/client/motion";
 
 interface Props {
   open: boolean;

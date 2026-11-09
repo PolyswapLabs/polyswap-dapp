@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { maxUint256, type PublicClient, type WalletClient } from "viem";
 import { getPolymarketContracts, getTradingConfig } from "../../src/backend/polymarket/config";
-import { PolymarketOrderService } from "../../src/backend/services/polymarketOrderService";
+import { PolymarketOrderService } from "../../src/backend/polymarket/clob";
 import { account, sdkHarness } from "./fixtures";
 
 for (const context of [

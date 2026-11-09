@@ -2,7 +2,7 @@
 
 import { useAccount, useSignMessage } from "wagmi";
 import { useCallback } from "react";
-import { createActionSignatureMessage } from "@/lib/actionSignature";
+import { createActionSignatureMessage } from "@/shared/orders/actionSignature";
 
 export interface SignedAction {
   signature: string;

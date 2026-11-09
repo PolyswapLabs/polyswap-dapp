@@ -1,5 +1,5 @@
 import { createLogger } from "@/backend/logger";
-import { MarketUpdateService } from "@/backend/services/marketUpdateService";
+import { MarketSyncService } from "@/backend/services/marketSyncService";
 
 const log = createLogger("market-sync");
 
@@ -10,9 +10,9 @@ export function startMarketSync(intervalMinutes = 60): void {
   if (updateInterval) return;
 
   log.debug(`routine started (${intervalMinutes} min interval)`);
-  void MarketUpdateService.updateMarkets();
+  void MarketSyncService.updateMarkets();
   updateInterval = setInterval(
-    () => void MarketUpdateService.updateMarkets(),
+    () => void MarketSyncService.updateMarkets(),
     intervalMinutes * 60_000
   );
 }

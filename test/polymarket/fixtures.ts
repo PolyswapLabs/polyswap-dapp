@@ -5,7 +5,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { maxUint256, type PublicClient, type WalletClient } from "viem";
 import { getTradingConfig, type TradingContext } from "../../src/backend/polymarket/config";
 import { computePolymarketOrderHash } from "../../src/backend/polymarket/orders";
-import { PolymarketOrderService } from "../../src/backend/services/polymarketOrderService";
+import { PolymarketOrderService } from "../../src/backend/polymarket/clob";
 
 // Public deterministic test key. Never loads .env or uses an operator wallet.
 export const TEST_KEY = `0x${"11".repeat(32)}` as const;

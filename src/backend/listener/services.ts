@@ -13,7 +13,7 @@ import { createLogger } from "@/backend/logger";
 
 const log = createLogger("listener");
 
-export interface Service {
+interface Service {
   start: () => void | Promise<void>;
   stop: () => void;
 }

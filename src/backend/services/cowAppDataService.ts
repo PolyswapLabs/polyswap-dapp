@@ -170,68 +170,66 @@ async function confirmAppData(url: string, appData: CowAppData, timeoutMs: numbe
   }
 }
 
-export class CowAppDataService {
-  /** Create the exact JSON pre-image and the bytes32 hash used in the CoW order. */
-  static create(options: CowAppDataOptions = {}): CowAppData {
-    const nonce = normalizeNonce(options.nonce);
-    const document: CowAppDataDocument = {
-      version: APP_DATA_VERSION,
-      appCode: options.appCode?.trim() || DEFAULT_APP_CODE,
-      environment: options.environment?.trim() || configuredEnvironment(),
-      metadata: {},
-      polyswap: {
-        version: POLYSWAP_METADATA_VERSION,
-        nonce,
-      },
-    };
-
-    const fullAppData = JSON.stringify(document);
-    const byteLength = Buffer.byteLength(fullAppData, "utf8");
-    if (byteLength > MAX_FULL_APP_DATA_BYTES) {
-      throw new Error(`Full AppData is ${byteLength} bytes; maximum is ${MAX_FULL_APP_DATA_BYTES}`);
-    }
-
-    return {
+/** Create the exact JSON pre-image and the bytes32 hash used in the CoW order. */
+export function createCowAppData(options: CowAppDataOptions = {}): CowAppData {
+  const nonce = normalizeNonce(options.nonce);
+  const document: CowAppDataDocument = {
+    version: APP_DATA_VERSION,
+    appCode: options.appCode?.trim() || DEFAULT_APP_CODE,
+    environment: options.environment?.trim() || configuredEnvironment(),
+    metadata: {},
+    polyswap: {
+      version: POLYSWAP_METADATA_VERSION,
       nonce,
-      document,
-      fullAppData,
-      appDataHash: keccak256(toBytes(fullAppData)),
-    };
+    },
+  };
+
+  const fullAppData = JSON.stringify(document);
+  const byteLength = Buffer.byteLength(fullAppData, "utf8");
+  if (byteLength > MAX_FULL_APP_DATA_BYTES) {
+    throw new Error(`Full AppData is ${byteLength} bytes; maximum is ${MAX_FULL_APP_DATA_BYTES}`);
   }
 
-  /** Register an AppData pre-image and confirm that CoW returns the exact same content. */
-  static async registerAndConfirm(
-    appData: CowAppData,
-    options: CowAppDataOptions = {}
-  ): Promise<void> {
-    const apiBase = normalizeApiBase(options.apiBase);
-    const timeoutMs = resolveTimeoutMs(options.timeoutMs);
-    const url = `${apiBase}/api/v1/app_data/${appData.appDataHash}`;
+  return {
+    nonce,
+    document,
+    fullAppData,
+    appDataHash: keccak256(toBytes(fullAppData)),
+  };
+}
 
-    await putAppData(url, appData, timeoutMs);
-    await confirmAppData(url, appData, timeoutMs);
-  }
+/** Register an AppData pre-image and confirm that CoW returns the exact same content. */
+export async function registerAndConfirmCowAppData(
+  appData: CowAppData,
+  options: CowAppDataOptions = {}
+): Promise<void> {
+  const apiBase = normalizeApiBase(options.apiBase);
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs);
+  const url = `${apiBase}/api/v1/app_data/${appData.appDataHash}`;
 
-  /** Create, register, and confirm a unique AppData. Throws on any failure. */
-  static async createRegistered(options: CowAppDataOptions = {}): Promise<CowAppData> {
-    const appData = this.create(options);
-    await this.registerAndConfirm(appData, options);
-    return appData;
-  }
+  await putAppData(url, appData, timeoutMs);
+  await confirmAppData(url, appData, timeoutMs);
+}
 
-  /**
-   * Return a confirmed unique hash for a new order. If registration cannot be
-   * confirmed, return APP_DATA from the environment (zero by default).
-   */
-  static async createHashOrDefault(options: CowAppDataOptions = {}): Promise<Hex> {
-    try {
-      const appData = await this.createRegistered(options);
-      log.info(`registered and confirmed AppData ${appData.appDataHash}`);
-      return appData.appDataHash;
-    } catch (error) {
-      const fallback = configuredDefaultAppData();
-      log.warn(`could not register and confirm a unique AppData; using default ${fallback}`, error);
-      return fallback;
-    }
+/** Create, register, and confirm a unique AppData. Throws on any failure. */
+async function createRegisteredCowAppData(options: CowAppDataOptions = {}): Promise<CowAppData> {
+  const appData = createCowAppData(options);
+  await registerAndConfirmCowAppData(appData, options);
+  return appData;
+}
+
+/**
+ * Return a confirmed unique hash for a new order. If registration cannot be
+ * confirmed, return APP_DATA from the environment (zero by default).
+ */
+export async function createCowAppDataHashOrDefault(options: CowAppDataOptions = {}): Promise<Hex> {
+  try {
+    const appData = await createRegisteredCowAppData(options);
+    log.info(`registered and confirmed AppData ${appData.appDataHash}`);
+    return appData.appDataHash;
+  } catch (error) {
+    const fallback = configuredDefaultAppData();
+    log.warn(`could not register and confirm a unique AppData; using default ${fallback}`, error);
+    return fallback;
   }
 }

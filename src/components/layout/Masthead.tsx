@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
 import { Wordmark } from "./Logo";
 import { WalletButton } from "./WalletButton";
 import { MobileNav, type MobileNavLink } from "./MobileNav";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/markets", label: "Markets" },

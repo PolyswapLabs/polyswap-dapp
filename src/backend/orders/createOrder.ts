@@ -1,31 +1,34 @@
 import { encodeFunctionData, erc20Abi, getAddress, maxUint256, type Address } from "viem";
-import type { DatabaseMarket } from "@/backend/interfaces/Database";
+import type { MarketRow } from "@/backend/interfaces/Market";
 import type {
   ConditionalOrderParams,
-  DatabasePolymarketSentinel,
+  PolymarketSentinelRow,
   PolyswapOrderData,
 } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
 import type { CreateOrderInput } from "@/backend/orders/createOrderRequest";
 import { getPolyswapHandlerAddress } from "@/backend/polymarket/config";
-import { CowAppDataService } from "@/backend/services/cowAppDataService";
+import { createCowAppDataHashOrDefault } from "@/backend/services/cowAppDataService";
 import { marketRepository } from "@/backend/db/marketRepository";
 import { orderRepository } from "@/backend/db/orderRepository";
 import { getOrCreateSentinel } from "@/backend/services/polymarketSentinelService";
-import { getClobAvailability } from "@/backend/services/polymarketStatusService";
+import { getClobAvailability } from "@/backend/polymarket/status";
 import { buildFallbackHandlerSetupTx } from "@/backend/services/safeFallbackHandlerService";
-import { TransactionEncodingService } from "@/backend/services/transactionEncodingService";
+import {
+  createConditionalOrderParams,
+  encodeCreateWithContextCallData,
+} from "@/backend/services/transactionEncodingService";
 import { calculateOrderHash } from "@/backend/utils/conditionalOrderCodec";
-import type { ApiErrorOptions } from "@/lib/apiError";
-import { COMPOSABLE_COW } from "@/lib/contracts";
+import type { ApiErrorOptions } from "@/server/apiError";
+import { COMPOSABLE_COW } from "@/shared/contracts";
 import {
   getTradingAssetIds,
   parseProtocolVersion,
   type ProtocolVersion,
-} from "@/lib/polymarket/protocol";
-import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/lib/postOnlyOrder";
-import { isPolymarketSentinelPostOnly } from "@/lib/runtimeFlags";
-import { fetchClobBestAsk } from "@/services/polymarket";
+} from "@/shared/polymarket/protocol";
+import { checkPostOnlyBuy, postOnlyCrossingMessage } from "@/shared/orders/postOnly";
+import { isPolymarketSentinelPostOnly } from "@/shared/env";
+import { fetchClobBestAsk } from "@/shared/polymarket/clob";
 
 const log = createLogger("api-orders");
 
@@ -50,7 +53,7 @@ function reject(rejection: ApiErrorOptions): never {
 
 interface OrderPlan {
   input: CreateOrderInput;
-  market: DatabaseMarket;
+  market: MarketRow;
   protocolVersion: ProtocolVersion;
   tokenId: string;
   postOnly: boolean;
@@ -58,7 +61,7 @@ interface OrderPlan {
   explicitDeadline: boolean;
 }
 
-async function loadMarket(marketId: string): Promise<DatabaseMarket> {
+async function loadMarket(marketId: string): Promise<MarketRow> {
   const market = await marketRepository.getMarketById(marketId);
   if (market) return market;
   reject({
@@ -68,7 +71,7 @@ async function loadMarket(marketId: string): Promise<DatabaseMarket> {
   });
 }
 
-function defaultDeadline(market: DatabaseMarket, startDate: Date): Date {
+function defaultDeadline(market: MarketRow, startDate: Date): Date {
   const marketEnd = market.end_date ? new Date(market.end_date) : null;
   const deadline =
     marketEnd && marketEnd.getTime() > startDate.getTime()
@@ -80,7 +83,7 @@ function defaultDeadline(market: DatabaseMarket, startDate: Date): Date {
 
 function resolveDeadline(
   requestedDeadline: string | undefined,
-  market: DatabaseMarket,
+  market: MarketRow,
   startDate: Date
 ): { deadline: Date; explicitDeadline: boolean } {
   const explicitDeadline = Boolean(requestedDeadline);
@@ -94,7 +97,7 @@ function resolveDeadline(
   return { deadline, explicitDeadline };
 }
 
-function resolveTradingIntegration(market: DatabaseMarket): {
+function resolveTradingIntegration(market: MarketRow): {
   protocolVersion: ProtocolVersion;
   tradingIds: string[];
 } {
@@ -125,7 +128,7 @@ function assertDeadlineIsReachable(deadline: Date): void {
 }
 
 function resolveOutcomeTokenId(
-  market: DatabaseMarket,
+  market: MarketRow,
   selectedOutcome: string,
   tradingIds: string[]
 ): string {
@@ -205,7 +208,7 @@ async function rejectSentinelFailure(polymarketError: unknown): Promise<never> {
   });
 }
 
-async function prepareSentinel(plan: OrderPlan): Promise<DatabasePolymarketSentinel> {
+async function prepareSentinel(plan: OrderPlan): Promise<PolymarketSentinelRow> {
   const { input, market, tokenId } = plan;
   try {
     log.info(
@@ -233,7 +236,7 @@ async function prepareSentinel(plan: OrderPlan): Promise<DatabasePolymarketSenti
 
 function buildOrderParams(
   plan: OrderPlan,
-  sentinel: DatabasePolymarketSentinel,
+  sentinel: PolymarketSentinelRow,
   appData: string
 ): ConditionalOrderParams {
   const { input, market, protocolVersion, deadline } = plan;
@@ -249,7 +252,7 @@ function buildOrderParams(
     appData,
     polymarketMakerAmount: sentinel.polymarket_maker_amount,
   };
-  return TransactionEncodingService.createConditionalOrderParams(orderData, {
+  return createConditionalOrderParams(orderData, {
     negRisk: market.neg_risk,
     protocolVersion,
   });
@@ -257,7 +260,7 @@ function buildOrderParams(
 
 async function saveDraftOrder(
   plan: OrderPlan,
-  sentinel: DatabasePolymarketSentinel,
+  sentinel: PolymarketSentinelRow,
   params: ConditionalOrderParams,
   orderHash: string,
   appData: string
@@ -310,11 +313,11 @@ async function planOrder(input: CreateOrderInput): Promise<OrderPlan> {
 export async function createOrder(input: CreateOrderInput) {
   const plan = await planOrder(input);
   const sentinel = await prepareSentinel(plan);
-  const appData = await CowAppDataService.createHashOrDefault();
+  const appData = await createCowAppDataHashOrDefault();
 
   const params = buildOrderParams(plan, sentinel, appData);
   const orderHash = calculateOrderHash(params);
-  const createCalldata = TransactionEncodingService.encodeCreateWithContextCallData(params);
+  const createCalldata = encodeCreateWithContextCallData(params);
   const approveCalldata = encodeFunctionData({
     abi: erc20Abi,
     functionName: "approve",

@@ -9,7 +9,7 @@ import {
   expiryRecapLabel,
   toSafeCall,
   toWei,
-} from "../../src/lib/createOrder";
+} from "../../src/client/orders/createOrder";
 
 const tx = (to: string, value = "0") => ({ to: to as Address, data: "0x01" as Hex, value });
 

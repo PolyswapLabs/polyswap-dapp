@@ -1,6 +1,6 @@
 import { createPublicClient, webSocket, type PublicClient } from "viem";
 import { polygon } from "viem/chains";
-import { resilientHttp } from "@/lib/rpc/resilientHttp";
+import { resilientHttp } from "@/shared/rpc/resilientHttp";
 import { createLogger } from "@/backend/logger";
 
 const log = createLogger("rpc");

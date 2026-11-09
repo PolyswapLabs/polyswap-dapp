@@ -2,7 +2,7 @@ import type { Address, Hex } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
 import type { ConditionalOrderParams } from "@/backend/interfaces/PolyswapOrder";
 import { getPublicClient } from "@/backend/rpc/clients";
-import { COMPOSABLE_COW } from "@/lib/contracts";
+import { COMPOSABLE_COW } from "@/shared/contracts";
 
 /**
  * Reads `singleOrders[owner][hash]`: true after create, false after remove.

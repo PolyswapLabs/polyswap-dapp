@@ -3,11 +3,11 @@
 import { useCallback, useMemo, useState } from "react";
 import { encodeFunctionData, type Hex } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
-import { apiService } from "@/services/api";
+import { deleteDraftOrder } from "@/client/api/polyswapApi";
 import { useSignAction } from "@/hooks/useSignAction";
-import type { SafeCall } from "@/services/safe/types";
-import { COMPOSABLE_COW } from "@/lib/contracts";
-import { getErrorMessage } from "@/lib/errorMessage";
+import type { SafeCall } from "@/client/safe/types";
+import { COMPOSABLE_COW } from "@/shared/contracts";
+import { getErrorMessage } from "@/utils/errors";
 
 interface UseRemoveOrder {
   /**
@@ -19,7 +19,7 @@ interface UseRemoveOrder {
   /**
    * Build the SafeCall list for `ComposableCoW.remove(orderHash)`. The caller
    * passes this to <SafeSignModal calls={...} />. After the modal fires
-   * onConfirmed, the caller MUST notify the server (`apiService.notifyRemoveOrder`)
+   * onConfirmed, the caller MUST notify the server (`notifyRemoveOrder`)
    * to finalise server-side state (Polymarket cancel + DB update).
    */
   buildRemoveLiveCalls: (orderHash: Hex) => SafeCall[];
@@ -39,7 +39,7 @@ export function useRemoveOrder(): UseRemoveOrder {
       setError(null);
       try {
         const signed = await signAction("cancel_draft", String(orderId));
-        await apiService.deleteDraftOrder(orderId, signed.signature, signed.timestamp);
+        await deleteDraftOrder(orderId, signed.signature, signed.timestamp);
       } catch (e) {
         setError(getErrorMessage(e, "Failed to delete draft order"));
         throw e;

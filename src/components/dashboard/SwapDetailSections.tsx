@@ -6,9 +6,9 @@ import { BackLink, DefinitionRow, ErrorAlert } from "@/components/primitives/Pag
 import { Shimmer } from "@/components/primitives/Shimmer";
 import { TokenLogo } from "@/components/primitives/TokenLogo";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
-import { fmtDate, fmtDateTime, fmtNum, fmtPct } from "@/lib/format";
-import { polymarketEventUrl } from "@/lib/links";
-import type { MarketViewModel } from "@/types/design";
+import { formatDate, formatDateTime, formatNumber, formatPercent } from "@/utils/format";
+import { polymarketEventUrl } from "@/utils/links";
+import type { MarketViewModel } from "@/types/viewModels";
 import { Status } from "./Status";
 
 interface SwapHeaderProps {
@@ -53,9 +53,9 @@ export function SwapHeader({
           <p className="mt-2 text-xs text-ink-3 sm:text-sm">
             {marketQuestion ? <>{order.nickname} · </> : null}
             <span className="num">
-              {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
+              {formatNumber(order.sellAmount, 2)} {order.sellSymbol}
             </span>{" "}
-            · expires {fmtDate(order.endTime)}
+            · expires {formatDate(order.endTime)}
           </p>
           <OrderErrorNotice order={order} />
         </div>
@@ -83,7 +83,7 @@ function OrderErrorNotice({ order }: { order: OrderViewModel }) {
     <p className="mt-2 text-xs text-ink-3">
       Waiting: {order.lastErrorReason}
       {order.lastErrorRetryAt && order.lastErrorRetryAt > Math.floor(Date.now() / 1000) && (
-        <> · retry around {fmtDateTime(order.lastErrorRetryAt * 1000)}</>
+        <> · retry around {formatDateTime(order.lastErrorRetryAt * 1000)}</>
       )}
     </p>
   );
@@ -99,8 +99,8 @@ export function DealCard({ order }: { order: OrderViewModel }) {
         <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={28} />
         <span className="num text-lg">
           {isFilled
-            ? fmtNum(order.actualSellAmount ?? order.sellAmount, 2)
-            : fmtNum(order.sellAmount, 2)}{" "}
+            ? formatNumber(order.actualSellAmount ?? order.sellAmount, 2)
+            : formatNumber(order.sellAmount, 2)}{" "}
           {order.sellSymbol}
         </span>
         <span className="flex justify-center" aria-hidden>
@@ -110,7 +110,7 @@ export function DealCard({ order }: { order: OrderViewModel }) {
         <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={28} />
         <span className="num text-lg">
           {isFilled && order.actualBuyAmount !== null
-            ? `${fmtNum(order.actualBuyAmount, 6)} ${order.buySymbol}`
+            ? `${formatNumber(order.actualBuyAmount, 6)} ${order.buySymbol}`
             : order.buySymbol}
         </span>
       </div>
@@ -118,15 +118,15 @@ export function DealCard({ order }: { order: OrderViewModel }) {
         <p className="mt-3 text-xs text-ink-3">
           Filled at{" "}
           <span className="num text-ink-2">
-            1 {order.sellSymbol} = {fmtNum(order.actualBuyAmount / order.actualSellAmount, 6)}{" "}
+            1 {order.sellSymbol} = {formatNumber(order.actualBuyAmount / order.actualSellAmount, 6)}{" "}
             {order.buySymbol}
           </span>
         </p>
       )}
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 border-t border-rule-soft pt-3 text-xs">
-        <DefinitionRow term="Trigger" value={`${order.side} ≃ ${fmtPct(order.threshold)}`} />
-        <DefinitionRow term="Created" value={fmtDate(order.startTime)} />
-        <DefinitionRow term="Expires" value={fmtDate(order.endTime)} />
+        <DefinitionRow term="Trigger" value={`${order.side} ≃ ${formatPercent(order.threshold)}`} />
+        <DefinitionRow term="Created" value={formatDate(order.startTime)} />
+        <DefinitionRow term="Expires" value={formatDate(order.endTime)} />
       </dl>
     </section>
   );

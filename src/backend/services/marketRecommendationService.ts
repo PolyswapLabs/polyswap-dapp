@@ -1,21 +1,21 @@
-import type { DatabaseMarket } from "../interfaces/Database";
-import type { MarketCategory } from "../../types/design";
+import type { MarketRow } from "@/backend/interfaces/Market";
+import type { MarketCategory } from "@/shared/markets/categories";
 import {
   RECOMMENDATION_POLICY,
-  type DatabaseRecommendationMarket,
+  type RecommendationMarketRow,
   type RecommendationOptions,
   type RecommendationPage,
   type RecommendedMarket,
-} from "../../lib/marketRecommendations";
+} from "@/shared/markets/recommendationPolicy";
 import { createLogger } from "../logger";
 import { getRetryAt } from "../utils/httpRetry";
 import { diversifyRecommendations, enrichRecommendation } from "./marketRecommendationScoring";
-import { GAMMA_API_URL } from "./polymarketAPIService";
+import { GAMMA_API_URL } from "@/backend/polymarket/gamma";
 
 const log = createLogger("market-recommendations");
 
 interface RecommendationCandidates {
-  markets: DatabaseMarket[];
+  markets: MarketRow[];
   truncated: boolean;
 }
 
@@ -39,7 +39,7 @@ type Snapshot = SnapshotMetadata &
     | {
         source: "database";
         fallbackReason: "rate_limit";
-        markets: DatabaseRecommendationMarket[];
+        markets: RecommendationMarketRow[];
       }
   );
 
@@ -60,7 +60,7 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
   // Gamma's cooldown spans categories so changing filters cannot hammer the API.
   let gammaBlockedUntil = 0;
 
-  async function fetchBatch(markets: DatabaseMarket[]): Promise<unknown[]> {
+  async function fetchBatch(markets: MarketRow[]): Promise<unknown[]> {
     const url = new URL("/markets", dependencies.baseUrl ?? GAMMA_API_URL);
     for (const market of markets) url.searchParams.append("id", market.id);
     url.searchParams.set("limit", String(RECOMMENDATION_POLICY.gammaBatchSize));
@@ -108,8 +108,8 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
   }
 
   /** Returns null when Gamma rate limited any batch; the cooldown is recorded before returning. */
-  async function fetchGammaPayload(shortlist: DatabaseMarket[]): Promise<unknown[] | null> {
-    const batches: DatabaseMarket[][] = [];
+  async function fetchGammaPayload(shortlist: MarketRow[]): Promise<unknown[] | null> {
+    const batches: MarketRow[][] = [];
     for (
       let offset = 0;
       offset < shortlist.length;
@@ -143,7 +143,7 @@ export function createMarketRecommendationService(dependencies: Dependencies) {
     return payload;
   }
 
-  function enrichShortlist(shortlist: DatabaseMarket[], payload: unknown[], timestamp: number) {
+  function enrichShortlist(shortlist: MarketRow[], payload: unknown[], timestamp: number) {
     const byId = new Map<string, unknown>();
     for (const raw of payload) {
       if (raw && typeof raw === "object" && !Array.isArray(raw) && "id" in raw) {

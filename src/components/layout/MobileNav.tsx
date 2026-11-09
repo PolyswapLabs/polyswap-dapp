@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { useModalDismiss } from "@/hooks/useModalDismiss";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 export interface MobileNavLink {
   href: string;

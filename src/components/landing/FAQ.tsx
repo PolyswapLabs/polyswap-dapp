@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
-import { EDITORIAL_EASE } from "@/lib/motion";
+import { cn } from "@/utils/cn";
+import { EDITORIAL_EASE } from "@/client/motion";
 
 interface QA {
   q: string;

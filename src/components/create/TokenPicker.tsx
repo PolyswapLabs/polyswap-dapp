@@ -4,13 +4,13 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
 import { TokenLogo } from "@/components/primitives/TokenLogo";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
-import { formatAddress } from "@/lib/format";
-import { polygonscanTokenUrl } from "@/lib/links";
-import { groupTokens, tokenKey } from "@/lib/tokenGroups";
+import { cn } from "@/utils/cn";
+import { formatAddress } from "@/utils/format";
+import { polygonscanTokenUrl } from "@/utils/links";
+import { groupTokens, tokenKey } from "@/client/tokenGroups";
 import { useModalDismiss } from "@/hooks/useModalDismiss";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
-import type { TokenViewModel } from "@/types/design";
+import type { TokenViewModel } from "@/types/viewModels";
 
 interface Props {
   value: TokenViewModel;

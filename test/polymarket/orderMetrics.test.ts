@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { OrderViewModel } from "../../src/hooks/orders/orderMapper";
-import { computePortfolioMetrics, describeTriggerDistance } from "../../src/lib/orderMetrics";
-import { DAY_MS } from "../../src/lib/time";
+import {
+  computePortfolioMetrics,
+  describeTriggerDistance,
+} from "../../src/client/orders/orderMetrics";
+import { DAY_MS } from "../../src/utils/time";
 
 const NOW = Date.UTC(2026, 5, 15);
 const live = { phase: "live", gateOpenedAt: null, threshold: 0.4 } as const;

@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { parseAbiItem, type Address, type Hash } from "viem";
 import { usePublicClient, useWaitForCallsStatus } from "wagmi";
-import { fetchMultisigTransaction, type FetchResult } from "@/services/safe/safeTxService";
-import type { SafeTxStatus } from "@/services/safe/types";
+import { fetchMultisigTransaction, type FetchResult } from "@/client/api/safeTxService";
+import type { SafeTxStatus } from "@/client/safe/types";
 import { callsStatusToSafeTxStatus, multisigTxToSafeTxStatus } from "./safeTxState";
 
 const POLL_INTERVAL_MS = 4_000;

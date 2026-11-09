@@ -2,8 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { toMarketRow } from "./rowMappers";
 import { createLogger } from "@/backend/logger";
-import type { DatabaseMarket } from "@/backend/interfaces/Database";
-import type { Market } from "@/backend/interfaces/Market";
+import type { MarketRow, Market } from "@/backend/interfaces/Market";
 import type { StoredMarket } from "@/backend/services/marketSyncDiff";
 
 const log = createLogger("db-markets");
@@ -135,12 +134,12 @@ export const marketRepository = {
     return count;
   },
 
-  async getMarketById(id: string): Promise<DatabaseMarket | null> {
+  async getMarketById(id: string): Promise<MarketRow | null> {
     const row = await prisma.market.findUnique({ where: { id } });
     return row ? toMarketRow(row) : null;
   },
 
-  async getMarketBySlug(slug: string): Promise<DatabaseMarket | null> {
+  async getMarketBySlug(slug: string): Promise<MarketRow | null> {
     const row = await prisma.market.findUnique({ where: { slug } });
     return row ? toMarketRow(row) : null;
   },

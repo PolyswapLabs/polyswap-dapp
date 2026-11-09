@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { orderRepository } from "@/backend/db/orderRepository";
 import { authenticateOrderAction } from "@/backend/orders/orderActionAuth";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
-import { createApiErrorResponder } from "@/lib/apiError";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { createApiErrorResponder } from "@/server/apiError";
+import { getPostHogClient } from "@/server/posthog";
 
 const apiError = createApiErrorResponder("api-order-id");
 

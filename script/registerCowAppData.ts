@@ -15,7 +15,8 @@
 
 import type { Hex } from "viem";
 import {
-  CowAppDataService,
+  createCowAppData,
+  registerAndConfirmCowAppData,
   type CowAppDataOptions,
 } from "../src/backend/services/cowAppDataService.js";
 
@@ -94,7 +95,7 @@ function parseArgs(args: string[]): CliOptions {
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
-  const appData = CowAppDataService.create(options);
+  const appData = createCowAppData(options);
 
   console.log(`Nonce         ${appData.nonce}`);
   console.log(`AppData hash  ${appData.appDataHash}`);
@@ -105,7 +106,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  await CowAppDataService.registerAndConfirm(appData, options);
+  await registerAndConfirmCowAppData(appData, options);
   console.log("Result        AppData registered and confirmed");
 }
 

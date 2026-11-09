@@ -3,7 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import Sentry from "@sentry/nextjs";
-import { isProductionEnvironment, SENTRY_DSN } from "./src/lib/env";
+import { isProductionEnvironment, SENTRY_DSN } from "./src/shared/env";
 
 if (isProductionEnvironment()) {
   const isListener = process.env.POLYSWAP_SENTRY_RUNTIME === "listener";

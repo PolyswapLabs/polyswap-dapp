@@ -10,8 +10,8 @@ import type { prisma as PrismaClient } from "../../src/backend/db/prisma";
 import type { marketRepository as marketRepositoryType } from "../../src/backend/db/marketRepository";
 import type { orderRepository as orderRepositoryType } from "../../src/backend/db/orderRepository";
 import type { Market } from "../../src/backend/interfaces/Market";
-import type { MarketUpdateService as MarketUpdateServiceType } from "../../src/backend/services/marketUpdateService";
-import type { PolymarketAPIService as PolymarketAPIServiceType } from "../../src/backend/services/polymarketAPIService";
+import type { MarketSyncService as MarketSyncServiceType } from "../../src/backend/services/marketSyncService";
+import type { gammaApi as GammaApiType } from "../../src/backend/polymarket/gamma";
 import { diffMarkets, type StoredMarket } from "../../src/backend/services/marketSyncDiff";
 
 const market = (overrides: Partial<Market> = {}): Market => ({
@@ -126,8 +126,8 @@ let db: { close: () => Promise<void> };
 let prisma: typeof PrismaClient;
 let marketRepository: typeof marketRepositoryType;
 let orderRepository: typeof orderRepositoryType;
-let MarketUpdateService: typeof MarketUpdateServiceType;
-let PolymarketAPIService: typeof PolymarketAPIServiceType;
+let MarketSyncService: typeof MarketSyncServiceType;
+let gammaApi: typeof GammaApiType;
 
 before(async () => {
   const { PGlite } = await import(pathToFileURL(join(socketRoot, "pglite/dist/index.js")).href);
@@ -153,8 +153,8 @@ before(async () => {
   ({ prisma } = await import("../../src/backend/db/prisma"));
   ({ marketRepository } = await import("../../src/backend/db/marketRepository"));
   ({ orderRepository } = await import("../../src/backend/db/orderRepository"));
-  ({ MarketUpdateService } = await import("../../src/backend/services/marketUpdateService"));
-  ({ PolymarketAPIService } = await import("../../src/backend/services/polymarketAPIService"));
+  ({ MarketSyncService } = await import("../../src/backend/services/marketSyncService"));
+  ({ gammaApi } = await import("../../src/backend/polymarket/gamma"));
 });
 
 after(async () => {
@@ -169,8 +169,8 @@ beforeEach(async () => {
 });
 
 async function runSync(t: TestContext, markets: Market[]) {
-  const mocked = t.mock.method(PolymarketAPIService, "getOpenMarkets", async () => markets);
-  const result = await MarketUpdateService.updateMarkets();
+  const mocked = t.mock.method(gammaApi, "getOpenMarkets", async () => markets);
+  const result = await MarketSyncService.updateMarkets();
   mocked.mock.restore();
   return result;
 }
@@ -285,13 +285,13 @@ test("a failed search refresh is repaired by the next sync", async (t) => {
 test("a sync requested during another reports it is already running and fetches nothing", async (t) => {
   let release = (_markets: Market[]) => {};
   const fetched = t.mock.method(
-    PolymarketAPIService,
+    gammaApi,
     "getOpenMarkets",
     () => new Promise<Market[]>((resolve) => (release = resolve))
   );
 
-  const running = MarketUpdateService.updateMarkets();
-  assert.deepEqual(await MarketUpdateService.updateMarkets(), { status: "already_running" });
+  const running = MarketSyncService.updateMarkets();
+  assert.deepEqual(await MarketSyncService.updateMarkets(), { status: "already_running" });
   assert.equal(fetched.mock.callCount(), 1);
 
   release([]);
@@ -303,7 +303,7 @@ test("a sync requested during another reports it is already running and fetches 
 test("the market-sync cron runs at once, then on every interval until stopped", async (t) => {
   t.mock.timers.enable({ apis: ["setInterval"] });
   const update = t.mock.method(
-    MarketUpdateService,
+    MarketSyncService,
     "updateMarkets",
     async () => ({ status: "already_running" }) as const
   );

@@ -4,8 +4,8 @@ import {
   createMarketRecommendationService,
   RecommendationUnavailableError,
 } from "@/backend/services/marketRecommendationService";
-import { parseRecommendationOptions } from "@/lib/marketRecommendations";
-import { createApiErrorResponder } from "@/lib/apiError";
+import { parseRecommendationOptions } from "@/shared/markets/recommendationPolicy";
+import { createApiErrorResponder } from "@/server/apiError";
 
 const apiError = createApiErrorResponder("api-market-recommendations");
 const recommendations = createMarketRecommendationService({

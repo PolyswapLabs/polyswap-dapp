@@ -1,4 +1,4 @@
-import { createActionSignatureMessage } from "@/lib/actionSignature";
+import { createActionSignatureMessage } from "@/shared/orders/actionSignature";
 import {
   hashMessage,
   recoverMessageAddress,

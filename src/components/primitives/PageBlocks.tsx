@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 export function ErrorAlert({ children, className }: { children: ReactNode; className?: string }) {
   return (

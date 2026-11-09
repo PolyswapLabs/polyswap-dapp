@@ -2,7 +2,7 @@
 
 import { motion, type HTMLMotionProps } from "motion/react";
 import type { ReactNode } from "react";
-import { EDITORIAL_EASE } from "@/lib/motion";
+import { EDITORIAL_EASE } from "@/client/motion";
 
 interface RevealProps extends Omit<HTMLMotionProps<"div">, "children"> {
   children: ReactNode;

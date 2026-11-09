@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { MarketCategory } from "@/types/design";
-import { RECOMMENDATION_POLICY } from "@/lib/marketRecommendations";
+import type { MarketCategory } from "@/shared/markets/categories";
+import { RECOMMENDATION_POLICY } from "@/shared/markets/recommendationPolicy";
 import {
   fetchPricedMarket,
   fetchRecentPriceHistory,
@@ -58,7 +58,7 @@ export function useRecommendedMarkets(query: RecommendedMarketsQuery) {
 /**
  * `opts.track` opts the caller into server-side view counting (passed as
  * `?track=1` on the GET). Included in the query key so the tracked variant
- * never dedupes against side-traffic from `SwapRow`/`CreatePage` — visiting
+ * never dedupes against side-traffic from `SwapRow`/`CreateSwapView` — visiting
  * the market detail page is always a real fetch and a real increment.
  */
 export function useMarket(identifier: string, opts: { track?: boolean } = {}) {

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/primitives/Button";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   onConnect: () => void;

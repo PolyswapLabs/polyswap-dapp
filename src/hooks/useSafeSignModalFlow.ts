@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSafeSignFlow } from "@/hooks/safe/useSafeSignFlow";
-import { getErrorMessage } from "@/lib/errorMessage";
-import type { SafeCall } from "@/services/safe/types";
+import { getErrorMessage } from "@/utils/errors";
+import type { SafeCall } from "@/client/safe/types";
 
 export interface SafeSignPrepare {
   run: () => Promise<void>;

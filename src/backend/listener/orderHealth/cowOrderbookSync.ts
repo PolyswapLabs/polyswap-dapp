@@ -1,4 +1,4 @@
-import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
+import type { PolyswapOrderRow } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
 import { getPublicClient } from "@/backend/rpc/clients";
 import { DEFAULT_API_BASE } from "@/backend/services/cowAppDataService";
@@ -7,14 +7,14 @@ import { storeDbOrderUid } from "@/backend/services/orderUidCalculationService";
 
 const log = createLogger("order-health");
 
-const ORDER_STATUS_BY_COW_STATUS = new Map<string, DatabasePolyswapOrder["status"]>([
+const ORDER_STATUS_BY_COW_STATUS = new Map<string, PolyswapOrderRow["status"]>([
   ["fulfilled", "filled"],
   ["expired", "expired"],
   ["cancelled", "canceled"],
 ]);
 
 // Compute + persist the CoW UID when missing (event-time and backfill may have skipped it).
-async function ensureOrderUid(order: DatabasePolyswapOrder): Promise<string | null> {
+async function ensureOrderUid(order: PolyswapOrderRow): Promise<string | null> {
   if (order.order_uid) return order.order_uid;
   if (!order.order_hash || !order.handler) return null;
   try {
@@ -32,7 +32,7 @@ async function ensureOrderUid(order: DatabasePolyswapOrder): Promise<string | nu
 }
 
 async function fetchCowOrderStatus(
-  order: DatabasePolyswapOrder,
+  order: PolyswapOrderRow,
   orderUid: string
 ): Promise<string | null> {
   let res: Response;
@@ -55,7 +55,7 @@ async function fetchCowOrderStatus(
 }
 
 // Sync the CoW orderbook status onto our row (fill/expiry/cancel), recovering the UID if missing.
-export async function syncCowOrderStatus(order: DatabasePolyswapOrder): Promise<void> {
+export async function syncCowOrderStatus(order: PolyswapOrderRow): Promise<void> {
   const orderUid = await ensureOrderUid(order);
   if (!orderUid) return;
 

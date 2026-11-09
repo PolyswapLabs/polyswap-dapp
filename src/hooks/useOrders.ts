@@ -2,8 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
-import { apiService } from "@/services/api";
-import { getErrorMessage } from "@/lib/errorMessage";
+import { getOrdersByOwner } from "@/client/api/polyswapApi";
+import { getErrorMessage } from "@/utils/errors";
 import { useTokens } from "@/hooks/useTokens";
 import { buildTokenMap, toOrderView, type OrderViewModel } from "@/hooks/orders/orderMapper";
 
@@ -27,7 +27,7 @@ export function useOrders(): UseOrdersResult {
     queryKey: ordersQueryKey(address),
     queryFn: async () => {
       if (!address) return [];
-      const res = await apiService.getOrdersByOwner(address);
+      const res = await getOrdersByOwner(address);
       if (!res.success || !res.data) return [];
       return res.data;
     },

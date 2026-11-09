@@ -69,7 +69,7 @@ pnpm db:migrate
 
 ### Running the Application
 
-1. **Start the backend services** (blockchain listener + market updater + position seller):
+1. **Start the backend services** (blockchain listener + market sync + position seller):
 
    ```bash
    pnpm start:listener
@@ -99,9 +99,9 @@ pnpm lint         # Run ESLint
 ### Backend Services
 
 ```bash
-pnpm start:listener               # Start blockchain listener + market updater
+pnpm start:listener               # Start blockchain listener + market sync
 pnpm start:listener-only          # Start only blockchain listener
-pnpm start:market-updater         # Start only market updater (via listener)
+pnpm start:market-sync            # Start only the market sync (via listener)
 ```
 
 ### Market Data Management

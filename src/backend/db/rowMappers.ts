@@ -4,23 +4,20 @@ import type {
   PolyswapOrder as PrismaPolyswapOrder,
   Prisma,
 } from "@prisma/client";
-import { parseProtocolVersion } from "@/lib/polymarket/protocol";
-import type { DatabaseMarket } from "@/backend/interfaces/Database";
-import type {
-  DatabasePolymarketSentinel,
-  DatabasePolyswapOrder,
-} from "@/backend/interfaces/PolyswapOrder";
+import { parseProtocolVersion } from "@/shared/polymarket/protocol";
+import type { MarketRow } from "@/backend/interfaces/Market";
+import type { PolymarketSentinelRow, PolyswapOrderRow } from "@/backend/interfaces/PolyswapOrder";
 
 export type OrderStatus = "draft" | "live" | "filled" | "canceled" | "errored" | "expired";
 
-export type CowOrderStatus = NonNullable<DatabasePolyswapOrder["cow_order_status"]>;
+type CowOrderStatus = NonNullable<PolyswapOrderRow["cow_order_status"]>;
 
-export function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
+function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value === null || value === undefined) return 0;
   return typeof value === "number" ? value : value.toNumber();
 }
 
-export function toMarketRow(m: PrismaMarket): DatabaseMarket {
+export function toMarketRow(m: PrismaMarket): MarketRow {
   return {
     id: m.id,
     slug: m.slug,
@@ -43,7 +40,7 @@ export function toMarketRow(m: PrismaMarket): DatabaseMarket {
   };
 }
 
-export function toPolyswapOrderRow(o: PrismaPolyswapOrder): DatabasePolyswapOrder {
+export function toPolyswapOrderRow(o: PrismaPolyswapOrder): PolyswapOrderRow {
   return {
     id: o.id,
     order_hash: o.orderHash,
@@ -84,7 +81,7 @@ export function toPolyswapOrderRow(o: PrismaPolyswapOrder): DatabasePolyswapOrde
   };
 }
 
-export function toPolymarketSentinelRow(s: PrismaPolymarketSentinel): DatabasePolymarketSentinel {
+export function toPolymarketSentinelRow(s: PrismaPolymarketSentinel): PolymarketSentinelRow {
   return {
     id: s.id,
     market_id: s.marketId,
@@ -101,7 +98,7 @@ export function toPolymarketSentinelRow(s: PrismaPolymarketSentinel): DatabasePo
     polymarket_maker_amount: s.polymarketMakerAmount.toString(),
     signed_order: s.signedOrder,
     expiration: s.expiration,
-    status: s.status as DatabasePolymarketSentinel["status"],
+    status: s.status as PolymarketSentinelRow["status"],
     activation_tx_hash: s.activationTxHash,
     last_error: s.lastError,
     activated_at: s.activatedAt,

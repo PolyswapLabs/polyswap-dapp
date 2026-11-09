@@ -8,7 +8,7 @@ import {
   isDappMaintenanceMode,
   isOrderCreationDisabled,
   isPolymarketSentinelPostOnly,
-} from "@/lib/runtimeFlags";
+} from "@/shared/env";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isDappMaintenanceMode()) {

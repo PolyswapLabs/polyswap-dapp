@@ -4,9 +4,9 @@ import { OddsAxis } from "@/components/primitives/PageBlocks";
 import { Shimmer } from "@/components/primitives/Shimmer";
 import type { OrderOddsSeries } from "@/hooks/useOrderOddsSeries";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
-import { fmtPct } from "@/lib/format";
-import { describeTriggerDistance } from "@/lib/orderMetrics";
-import { DAY_MS } from "@/lib/time";
+import { formatPercent } from "@/utils/format";
+import { describeTriggerDistance } from "@/client/orders/orderMetrics";
+import { DAY_MS } from "@/utils/time";
 
 interface Props {
   order: OrderViewModel;
@@ -42,8 +42,8 @@ function TrackerContent({ order, series }: Props) {
           animate
         />
         <div className="min-w-0 flex-1">
-          <p className="num text-3xl font-semibold lg:text-4xl">{fmtPct(currentOdds)}</p>
-          <p className="text-sm text-ink-3">Today · trigger at {fmtPct(order.threshold)}</p>
+          <p className="num text-3xl font-semibold lg:text-4xl">{formatPercent(currentOdds)}</p>
+          <p className="text-sm text-ink-3">Today · trigger at {formatPercent(order.threshold)}</p>
         </div>
         <p className="num shrink-0 border border-ink bg-paper-2 px-3 py-2 text-sm">
           {describeTriggerDistance(order, currentOdds)}
@@ -72,8 +72,8 @@ function TrackerContent({ order, series }: Props) {
       </div>
 
       <div className="mt-5 grid grid-cols-3 border border-ink">
-        <Stat label="High" value={fmtPct(Math.max(...odds))} />
-        <Stat label="Low" value={fmtPct(Math.min(...odds))} />
+        <Stat label="High" value={formatPercent(Math.max(...odds))} />
+        <Stat label="Low" value={formatPercent(Math.min(...odds))} />
         <Stat label="Time waiting" value={`${daysWaiting}d`} />
       </div>
     </>
@@ -102,7 +102,7 @@ function OddsTrackerSkeleton({ threshold }: { threshold: number }) {
         <Shimmer className="h-[88px] w-[88px] rounded-full" />
         <div className="min-w-0 flex-1 space-y-2">
           <Shimmer className="h-9 w-24" />
-          <p className="text-sm text-ink-3">Today · trigger at {fmtPct(threshold)}</p>
+          <p className="text-sm text-ink-3">Today · trigger at {formatPercent(threshold)}</p>
         </div>
         <Shimmer className="h-9 w-32 shrink-0" />
       </div>

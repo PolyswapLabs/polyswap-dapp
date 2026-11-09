@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { InfoTip } from "@/components/primitives/InfoTip";
-import { cn } from "@/lib/cn";
-import { EXPIRY_OPTIONS } from "@/lib/createOrder";
+import { cn } from "@/utils/cn";
+import { EXPIRY_OPTIONS } from "@/client/orders/createOrder";
 import type { CreateFormState } from "@/hooks/useCreateOrderForm";
 
 interface Props {

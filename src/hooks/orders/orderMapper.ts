@@ -1,6 +1,6 @@
 import type { Hex } from "viem";
 import type { PublicPolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
-import type { SwapStatus } from "@/types/design";
+import type { SwapStatus } from "@/types/viewModels";
 import type { Token } from "@/hooks/useTokens";
 
 export interface OrderViewModel {

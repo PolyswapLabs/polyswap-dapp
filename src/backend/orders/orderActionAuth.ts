@@ -1,9 +1,9 @@
 import type { NextRequest, NextResponse } from "next/server";
-import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
+import type { PolyswapOrderRow } from "@/backend/interfaces/PolyswapOrder";
 import { getPublicClient } from "@/backend/rpc/clients";
 import { orderRepository } from "@/backend/db/orderRepository";
 import { verifySignature } from "@/backend/utils/signatureVerification";
-import type { ApiErrorOptions, ApiErrorResponder } from "@/lib/apiError";
+import type { ApiErrorOptions, ApiErrorResponder } from "@/server/apiError";
 
 interface SignedActionBody {
   signature: string;
@@ -20,12 +20,12 @@ interface OrderActionRules {
   action: "cancel_draft" | "notify_remove";
   apiError: ApiErrorResponder;
   /** Checked before the signature, so an order in the wrong state is reported first. */
-  rejectOrder: (order: DatabasePolyswapOrder) => ApiErrorOptions | null;
+  rejectOrder: (order: PolyswapOrderRow) => ApiErrorOptions | null;
 }
 
 interface AuthenticatedOrderAction {
   orderId: number;
-  order: DatabasePolyswapOrder;
+  order: PolyswapOrderRow;
 }
 
 /** Resolves the order behind a signed action, or the error response to send instead. */

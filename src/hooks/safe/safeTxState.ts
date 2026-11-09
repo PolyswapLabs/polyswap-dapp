@@ -1,5 +1,5 @@
 import type { Hash } from "viem";
-import type { SafeMultisigTxResponse, SafeTxStatus } from "@/services/safe/types";
+import type { SafeMultisigTxResponse, SafeTxStatus } from "@/client/safe/types";
 
 const PENDING_TX_MAX_AGE_MS = 60 * 60 * 1000;
 const SAFE_TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;

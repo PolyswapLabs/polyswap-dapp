@@ -30,7 +30,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { MarketCategory } from "@/types/design";
+import type { MarketCategory } from "@/shared/markets/categories";
 
 export const Icon = {
   ai: BrainCircuit,

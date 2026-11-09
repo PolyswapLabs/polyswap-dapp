@@ -4,12 +4,12 @@ import {
   type TradingContext,
 } from "../polymarket/config";
 import { hasReachedFillGate } from "../polymarket/orders";
-import type { ProtocolVersion } from "../../lib/polymarket/protocol";
+import type { ProtocolVersion } from "@/shared/polymarket/protocol";
 import { Prisma } from "@prisma/client";
 import type { Hex } from "viem";
 import { sentinelRepository } from "@/backend/db/sentinelRepository";
-import { getPolymarketOrderService, type PolymarketOrderService } from "./polymarketOrderService";
-import type { DatabasePolymarketSentinel } from "../interfaces/PolyswapOrder";
+import { getPolymarketOrderService, type PolymarketOrderService } from "@/backend/polymarket/clob";
+import type { PolymarketSentinelRow } from "../interfaces/PolyswapOrder";
 import { createLogger } from "../logger";
 
 const log = createLogger("polymarket-sentinel");
@@ -33,12 +33,12 @@ interface SentinelAuthorization {
 }
 
 type ReusableLookup =
-  | { outcome: "reusable"; sentinel: DatabasePolymarketSentinel }
+  | { outcome: "reusable"; sentinel: PolymarketSentinelRow }
   /** The match had already filled and is now marked so: look again before preparing. */
   | { outcome: "consumed" }
   | { outcome: "none" };
 
-function sentinelContext(sentinel: DatabasePolymarketSentinel): TradingContext {
+function sentinelContext(sentinel: PolymarketSentinelRow): TradingContext {
   return {
     protocolVersion: sentinel.protocol_version,
     negRisk: sentinel.neg_risk,
@@ -54,7 +54,7 @@ async function initializedOrderService(): Promise<PolymarketOrderService> {
 
 async function isFilledOnChain(
   polymarket: PolymarketOrderService,
-  sentinel: DatabasePolymarketSentinel
+  sentinel: PolymarketSentinelRow
 ): Promise<boolean> {
   const chainStatus = await polymarket.getOnChainOrderStatus(
     sentinel.polymarket_order_hash as Hex,
@@ -92,9 +92,7 @@ async function findValidReusableSentinel(bucket: SentinelBucket): Promise<Reusab
 }
 
 /** Returns null when a concurrent request created the same sentinel first. */
-async function prepareNewSentinel(
-  bucket: SentinelBucket
-): Promise<DatabasePolymarketSentinel | null> {
+async function prepareNewSentinel(bucket: SentinelBucket): Promise<PolymarketSentinelRow | null> {
   const epoch = await sentinelRepository.getNextSentinelEpoch(bucket);
   const polymarket = await initializedOrderService();
   const prepared = await polymarket.prepareGTDOrder({
@@ -135,9 +133,7 @@ async function prepareNewSentinel(
  * Reuse a live/prepared trigger whenever it covers the requested lifetime.
  * Creating a new sentinel signs an order but deliberately does not submit it.
  */
-export async function getOrCreateSentinel(
-  bucket: SentinelBucket
-): Promise<DatabasePolymarketSentinel> {
+export async function getOrCreateSentinel(bucket: SentinelBucket): Promise<PolymarketSentinelRow> {
   for (let attempt = 0; attempt < PREPARE_ATTEMPTS; attempt++) {
     const lookup = await findValidReusableSentinel(bucket);
     if (lookup.outcome === "reusable") return lookup.sentinel;
@@ -150,7 +146,7 @@ export async function getOrCreateSentinel(
 }
 
 function assertAuthorizationMatches(
-  sentinel: DatabasePolymarketSentinel,
+  sentinel: PolymarketSentinelRow,
   authorization: SentinelAuthorization
 ): void {
   const handler = getPolyswapHandlerAddress(sentinelContext(sentinel));
@@ -165,7 +161,7 @@ function assertAuthorizationMatches(
 }
 
 async function submitSentinel(
-  sentinel: DatabasePolymarketSentinel,
+  sentinel: PolymarketSentinelRow,
   authorizationTxHash: string
 ): Promise<void> {
   const polymarket = await initializedOrderService();

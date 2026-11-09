@@ -52,76 +52,73 @@ function toBigInt(value: string, field: string): bigint {
   }
 }
 
-export class TransactionEncodingService {
-  static encodePolyswapOrderData(orderData: PolyswapOrderData): string {
-    if (!orderData.sellToken || !orderData.buyToken || !orderData.polymarketOrderHash) {
-      throw new Error(
-        "Missing required order data fields: sellToken, buyToken, or polymarketOrderHash"
-      );
-    }
-    if (!orderData.polymarketMakerAmount) {
-      throw new Error("Missing required order data field: polymarketMakerAmount");
-    }
-
-    const sellToken = orderData.sellToken as Address;
-    const buyToken = orderData.buyToken as Address;
-    const receiver = (orderData.receiver ||
-      "0x0000000000000000000000000000000000000000") as Address;
-
-    return encodeStaticInput({
-      sellToken,
-      buyToken,
-      receiver,
-      sellAmount: toBigInt(orderData.sellAmount || "0", "sellAmount"),
-      minBuyAmount: toBigInt(orderData.minBuyAmount || "0", "minBuyAmount"),
-      t0: toBigInt(orderData.t0 || "0", "t0"),
-      t: toBigInt(orderData.t || "0", "t"),
-      polymarketOrderHash: formatBytes32(orderData.polymarketOrderHash),
-      appData: formatBytes32(orderData.appData || zeroHash),
-      polymarketMakerAmount: toBigInt(orderData.polymarketMakerAmount, "polymarketMakerAmount"),
-    });
+export function encodePolyswapOrderData(orderData: PolyswapOrderData): string {
+  if (!orderData.sellToken || !orderData.buyToken || !orderData.polymarketOrderHash) {
+    throw new Error(
+      "Missing required order data fields: sellToken, buyToken, or polymarketOrderHash"
+    );
+  }
+  if (!orderData.polymarketMakerAmount) {
+    throw new Error("Missing required order data field: polymarketMakerAmount");
   }
 
-  static createConditionalOrderParams(
-    orderData: PolyswapOrderData,
-    options: TradingContext & { salt?: string }
-  ): ConditionalOrderParams {
-    const orderSalt =
-      options.salt ??
-      keccak256(
-        encodeAbiParameters(
-          [{ type: "string" }, { type: "uint256" }],
-          ["Polyswap", BigInt(Date.now())]
-        )
-      );
+  const sellToken = orderData.sellToken as Address;
+  const buyToken = orderData.buyToken as Address;
+  const receiver = (orderData.receiver || "0x0000000000000000000000000000000000000000") as Address;
 
-    const staticInput = this.encodePolyswapOrderData(orderData);
+  return encodeStaticInput({
+    sellToken,
+    buyToken,
+    receiver,
+    sellAmount: toBigInt(orderData.sellAmount || "0", "sellAmount"),
+    minBuyAmount: toBigInt(orderData.minBuyAmount || "0", "minBuyAmount"),
+    t0: toBigInt(orderData.t0 || "0", "t0"),
+    t: toBigInt(orderData.t || "0", "t"),
+    polymarketOrderHash: formatBytes32(orderData.polymarketOrderHash),
+    appData: formatBytes32(orderData.appData || zeroHash),
+    polymarketMakerAmount: toBigInt(orderData.polymarketMakerAmount, "polymarketMakerAmount"),
+  });
+}
 
-    return {
-      handler: getPolyswapHandlerAddress(options),
-      salt: orderSalt,
-      staticInput,
-    };
-  }
+export function createConditionalOrderParams(
+  orderData: PolyswapOrderData,
+  options: TradingContext & { salt?: string }
+): ConditionalOrderParams {
+  const orderSalt =
+    options.salt ??
+    keccak256(
+      encodeAbiParameters(
+        [{ type: "string" }, { type: "uint256" }],
+        ["Polyswap", BigInt(Date.now())]
+      )
+    );
 
-  static encodeCreateWithContextCallData(
-    params: ConditionalOrderParams,
-    valueFactory: Address = VALUE_FACTORY_ADDRESS,
-    data: Hex = "0x",
-    dispatch: boolean = true
-  ): string {
-    return encodeFunctionData({
-      abi: composableCowAbi,
-      functionName: "createWithContext",
-      args: [params, valueFactory, data, dispatch],
-    });
-  }
+  const staticInput = encodePolyswapOrderData(orderData);
 
-  static encodeSetFallbackHandlerCalldata(handler: Address): Hex {
-    return encodeFunctionData({
-      abi: SAFE_SET_FALLBACK_HANDLER_ABI,
-      functionName: "setFallbackHandler",
-      args: [getAddress(handler)],
-    });
-  }
+  return {
+    handler: getPolyswapHandlerAddress(options),
+    salt: orderSalt,
+    staticInput,
+  };
+}
+
+export function encodeCreateWithContextCallData(
+  params: ConditionalOrderParams,
+  valueFactory: Address = VALUE_FACTORY_ADDRESS,
+  data: Hex = "0x",
+  dispatch: boolean = true
+): string {
+  return encodeFunctionData({
+    abi: composableCowAbi,
+    functionName: "createWithContext",
+    args: [params, valueFactory, data, dispatch],
+  });
+}
+
+export function encodeSetFallbackHandlerCalldata(handler: Address): Hex {
+  return encodeFunctionData({
+    abi: SAFE_SET_FALLBACK_HANDLER_ABI,
+    functionName: "setFallbackHandler",
+    args: [getAddress(handler)],
+  });
 }

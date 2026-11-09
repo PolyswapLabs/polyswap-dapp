@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/cn";
-import type { Side } from "@/types/design";
+import { cn } from "@/utils/cn";
+import type { Side } from "@/shared/markets/categories";
 
 interface Props {
   value: Side;

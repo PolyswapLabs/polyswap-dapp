@@ -2,9 +2,9 @@ import { Prisma, type Market as PrismaMarket } from "@prisma/client";
 import { prisma } from "./prisma";
 import { toMarketRow } from "./rowMappers";
 import { createLogger } from "@/backend/logger";
-import type { DatabaseMarket } from "@/backend/interfaces/Database";
-import { RECOMMENDATION_POLICY } from "@/lib/marketRecommendations";
-import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/types/design";
+import type { MarketRow } from "@/backend/interfaces/Market";
+import { RECOMMENDATION_POLICY } from "@/shared/markets/recommendationPolicy";
+import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/shared/markets/categories";
 
 const log = createLogger("db-market-search");
 
@@ -109,7 +109,7 @@ export const marketSearch = {
     return rows[0]?.total ?? 0;
   },
 
-  async searchMarkets(opts: SearchMarketsOptions): Promise<DatabaseMarket[]> {
+  async searchMarkets(opts: SearchMarketsOptions): Promise<MarketRow[]> {
     const { sort = "volume", limit = 50, offset = 0, category } = opts;
     // Search and its count share the same predicates. Editorial eligibility
     // belongs exclusively to getRecommendationCandidates.
@@ -132,7 +132,7 @@ export const marketSearch = {
   },
 
   async getRecommendationCandidates(category: MarketCategory | null): Promise<{
-    markets: DatabaseMarket[];
+    markets: MarketRow[];
     truncated: boolean;
   }> {
     const where = buildSearchWhere({

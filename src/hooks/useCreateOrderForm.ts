@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { Side, TokenViewModel } from "@/types/design";
+import type { Side } from "@/shared/markets/categories";
+import type { TokenViewModel } from "@/types/viewModels";
 
 export type Expiry = "7d" | "30d" | "until-resolution";
 

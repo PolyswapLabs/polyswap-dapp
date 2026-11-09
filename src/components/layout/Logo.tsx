@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 interface LogoProps {
   /** Rendered height in px. Width follows the SVG's natural 374:434 ratio. */

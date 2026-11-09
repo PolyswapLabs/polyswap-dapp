@@ -17,16 +17,8 @@
 !src/abi/**
 !src/backend/
 !src/backend/**
-!src/lib/
-!src/lib/env.ts
-!src/lib/contracts.ts
-!src/lib/polymarket/
-!src/lib/polymarket/**
-!src/lib/marketRecommendations.ts
-!src/lib/rpc/
-!src/lib/rpc/**
-!src/types/
-!src/types/design.ts
+!src/shared/
+!src/shared/**
 
 # Keep secret files excluded even if one is accidentally created below an
 # otherwise allowed source directory.

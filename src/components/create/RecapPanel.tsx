@@ -1,15 +1,15 @@
 import { Icon } from "@/components/icons";
 import { InfoTip } from "@/components/primitives/InfoTip";
 import { DefinitionRow } from "@/components/primitives/PageBlocks";
-import { expiryRecapLabel } from "@/lib/createOrder";
-import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
+import { expiryRecapLabel } from "@/client/orders/createOrder";
+import { formatTokenAmount, formatUsd, formatPercent } from "@/utils/format";
 import {
   describeImmediateFillSentence,
   describeTriggerSentence,
   type CreateFormState,
 } from "@/hooks/useCreateOrderForm";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
-import type { MarketViewModel } from "@/types/design";
+import type { MarketViewModel } from "@/types/viewModels";
 
 interface Props {
   market: MarketViewModel;
@@ -39,7 +39,7 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <DefinitionRow
             term="Trigger"
-            value={`${state.side} ${triggerVerb} ${fmtPct(state.threshold)}`}
+            value={`${state.side} ${triggerVerb} ${formatPercent(state.threshold)}`}
           />
           <DefinitionRow term="You send" value={`${state.amountIn || "0"} ${fromSymbol}`} />
           <DefinitionRow
@@ -54,13 +54,13 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
             }
             value={
               estimates.amountOutEstimate > 0
-                ? `~${fmtTokenAmount(estimates.amountOutEstimate)} ${toSymbol}`
+                ? `~${formatTokenAmount(estimates.amountOutEstimate)} ${toSymbol}`
                 : `— ${toSymbol}`
             }
           />
           <DefinitionRow
             term="Notional"
-            value={estimates.amountInUsd > 0 ? fmtUSD(estimates.amountInUsd) : "—"}
+            value={estimates.amountInUsd > 0 ? formatUsd(estimates.amountInUsd) : "—"}
           />
           <DefinitionRow term="Expires" value={expiryRecapLabel(state.expiry)} />
           <DefinitionRow

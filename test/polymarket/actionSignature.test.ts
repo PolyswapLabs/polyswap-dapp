@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createActionSignatureMessage } from "../../src/lib/actionSignature";
+import { createActionSignatureMessage } from "../../src/shared/orders/actionSignature";
 
 test("the signed action message keeps the format existing wallets sign", () => {
   assert.equal(

@@ -1,5 +1,5 @@
 import { erc1155Abi, formatUnits, parseAbiItem, type Address, type PublicClient } from "viem";
-import { PROTOCOL_VERSIONS, type ProtocolVersion } from "../../lib/polymarket/protocol";
+import { PROTOCOL_VERSIONS, type ProtocolVersion } from "@/shared/polymarket/protocol";
 import { getTradingConfig } from "./config";
 import { PolymarketDataClient, type PolymarketPosition } from "./data";
 

@@ -14,7 +14,7 @@
     "get-polymarket-creds": "tsx script/getPolymarketCreds.ts",
     "start:listener": "tsx src/backend/listener/index.ts",
     "start:listener-only": "tsx src/backend/listener/index.ts --listener-only",
-    "start:market-updater": "tsx src/backend/listener/index.ts --market-update-only",
+    "start:market-sync": "tsx src/backend/listener/index.ts --market-update-only",
     "markets:sync": "tsx script/syncMarkets.ts",
     "db:migrate": "prisma migrate deploy",
     "db:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",

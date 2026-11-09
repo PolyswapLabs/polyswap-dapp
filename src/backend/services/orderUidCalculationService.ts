@@ -6,10 +6,7 @@ import {
   type Hex,
   type PublicClient,
 } from "viem";
-import {
-  type DatabasePolyswapOrder,
-  type PolyswapOrderData,
-} from "@/backend/interfaces/PolyswapOrder";
+import { type PolyswapOrderRow, type PolyswapOrderData } from "@/backend/interfaces/PolyswapOrder";
 import { orderRepository } from "@/backend/db/orderRepository";
 import { ORDER_DATA_LAYOUT, ORDER_DATA_LAYOUT_V2 } from "@/backend/utils/conditionalOrderCodec";
 
@@ -69,7 +66,7 @@ async function readOrderDigest(
  * Reads the digest on-chain and packs the CoW Protocol UID:
  * digest (32 bytes) ‖ owner (20 bytes) ‖ validTo (4 bytes), with `t` (end time) as validTo.
  */
-export async function calculateOrderUidOnChain(
+async function calculateOrderUidOnChain(
   client: PublicClient,
   orderData: PolyswapOrderData,
   owner: Address,
@@ -89,9 +86,7 @@ export async function calculateOrderUidOnChain(
  * Defaults `polymarketOrderHash` and `appData` to bytes32 zero when null, matching the legacy
  * behavior used by drafts. In PolySwap the receiver is the owner.
  */
-export function createPolyswapOrderDataFromDbOrder(
-  dbOrder: DatabasePolyswapOrder
-): PolyswapOrderData {
+function createPolyswapOrderDataFromDbOrder(dbOrder: PolyswapOrderRow): PolyswapOrderData {
   return {
     sellToken: dbOrder.sell_token,
     buyToken: dbOrder.buy_token,
@@ -122,7 +117,7 @@ export async function storeOrderUid(client: PublicClient, source: OrderUidSource
 
 export async function storeDbOrderUid(
   client: PublicClient,
-  order: DatabasePolyswapOrder,
+  order: PolyswapOrderRow,
   orderHash: string
 ): Promise<Hex> {
   return storeOrderUid(client, {

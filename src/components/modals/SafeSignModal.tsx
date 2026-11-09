@@ -6,8 +6,8 @@ import { Button } from "@/components/primitives/Button";
 import { Modal } from "@/components/primitives/Modal";
 import { Icon } from "@/components/icons";
 import { useSafeSignModalFlow, type SafeSignPrepare } from "@/hooks/useSafeSignModalFlow";
-import { polygonscanTxUrl } from "@/lib/links";
-import type { SafeCall } from "@/services/safe/types";
+import { polygonscanTxUrl } from "@/utils/links";
+import type { SafeCall } from "@/client/safe/types";
 
 type SafeSignModalProps = {
   open: boolean;

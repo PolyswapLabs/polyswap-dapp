@@ -2,7 +2,7 @@
 
 import { Stamp } from "@/components/primitives/Stamp";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
-import { computePortfolioMetrics } from "@/lib/orderMetrics";
+import { computePortfolioMetrics } from "@/client/orders/orderMetrics";
 import { CountUp } from "./CountUp";
 
 interface Props {

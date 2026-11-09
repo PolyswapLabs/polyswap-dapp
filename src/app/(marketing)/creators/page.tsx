@@ -1,5 +1,5 @@
-import { CreatorsPage } from "@/components/creators/CreatorsPage";
-import { publicPageMetadata } from "@/lib/seo";
+import { CreatorsView } from "@/components/creators/CreatorsView";
+import { publicPageMetadata } from "@/server/seo";
 
 export const metadata = publicPageMetadata({
   title: "Meet the creators | Polyswap",
@@ -8,10 +8,10 @@ export const metadata = publicPageMetadata({
   path: "/creators",
 });
 
-export default function CreatorsRoute() {
+export default function CreatorsPage() {
   return (
     <main className="page-container w-full flex-1">
-      <CreatorsPage />
+      <CreatorsView />
     </main>
   );
 }

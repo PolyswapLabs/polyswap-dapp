@@ -1,5 +1,5 @@
 import { ContractFunctionExecutionError, decodeErrorResult, type Address, type Hex } from "viem";
-import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
+import type { PolyswapOrderRow } from "@/backend/interfaces/PolyswapOrder";
 import {
   decodePollError,
   type CowConditionalErrorName,
@@ -11,7 +11,7 @@ import { orderRepository } from "@/backend/db/orderRepository";
 
 const log = createLogger("order-health");
 
-export interface RevertClassification {
+interface RevertClassification {
   errorCode: string;
   reason: string;
   retryAt: number | null;
@@ -21,7 +21,7 @@ export interface RevertClassification {
   logDetail: string;
 }
 
-export type SingleOrderAuthVerdict = "canceled" | "reconstruction-mismatch" | "unknown";
+type SingleOrderAuthVerdict = "canceled" | "reconstruction-mismatch" | "unknown";
 
 const TERMINAL_POLL_ERRORS: ReadonlySet<CowConditionalErrorName> = new Set([
   "OrderNotValid",
@@ -153,7 +153,7 @@ export function extractRevertData(err: unknown): Hex | undefined {
 
 // false = removed on-chain by the owner (cancel); true = still authed (reconstruction drift).
 async function readSingleOrderAuthVerdict(
-  order: DatabasePolyswapOrder
+  order: PolyswapOrderRow
 ): Promise<SingleOrderAuthVerdict> {
   if (!order.order_hash) return "unknown";
   try {
@@ -171,14 +171,14 @@ async function readSingleOrderAuthVerdict(
 }
 
 async function resolveSingleOrderAuth(
-  order: DatabasePolyswapOrder,
+  order: PolyswapOrderRow,
   classification: RevertClassification
 ): Promise<RevertClassification> {
   if (classification.errorCode !== "SingleOrderNotAuthed") return classification;
   return classifySingleOrderNotAuthed(await readSingleOrderAuthVerdict(order));
 }
 
-export async function recordRevert(order: DatabasePolyswapOrder, data: Hex): Promise<void> {
+export async function recordRevert(order: PolyswapOrderRow, data: Hex): Promise<void> {
   const { errorCode, reason, retryAt, nextStatus, logLevel, logDetail } =
     await resolveSingleOrderAuth(order, classifyRevert(data));
 

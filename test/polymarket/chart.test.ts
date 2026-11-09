@@ -9,7 +9,7 @@ import {
   nearestIndex,
   oddsToY,
   type ChartFrame,
-} from "../../src/lib/chart";
+} from "../../src/client/chart";
 
 const frame: ChartFrame = { width: 104, height: 108, padX: 2, padY: 4 };
 

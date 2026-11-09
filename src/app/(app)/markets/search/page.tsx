@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { MarketsSearchResults } from "@/components/markets/MarketsSearchResults";
-import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
+import { MarketsSearchView } from "@/components/markets/MarketsSearchView";
+import { PRIVATE_PAGE_ROBOTS } from "@/server/seo";
 
 export const metadata = {
   title: "Search · Polyswap",
@@ -10,7 +10,7 @@ export const metadata = {
 export default function MarketsSearchPage() {
   return (
     <Suspense fallback={null}>
-      <MarketsSearchResults />
+      <MarketsSearchView />
     </Suspense>
   );
 }

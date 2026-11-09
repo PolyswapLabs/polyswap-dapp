@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { toPolyswapOrderRow, type OrderStatus } from "./rowMappers";
 import type {
-  DatabasePolyswapOrder,
+  PolyswapOrderRow,
   PolyswapOrderData,
   PolyswapOrderRecord,
   SoldPositionInput,
@@ -189,7 +189,7 @@ export const orderRepository = {
     ownerAddress: string,
     limit: number = 100,
     offset: number = 0
-  ): Promise<DatabasePolyswapOrder[]> {
+  ): Promise<PolyswapOrderRow[]> {
     const rows = await prisma.polyswapOrder.findMany({
       where: { owner: ownerAddress.toLowerCase() },
       orderBy: { createdAt: "desc" },
@@ -199,12 +199,12 @@ export const orderRepository = {
     return rows.map(toPolyswapOrderRow);
   },
 
-  async getPolyswapOrderByHash(orderHash: string): Promise<DatabasePolyswapOrder | null> {
+  async getPolyswapOrderByHash(orderHash: string): Promise<PolyswapOrderRow | null> {
     const row = await prisma.polyswapOrder.findUnique({ where: { orderHash } });
     return row ? toPolyswapOrderRow(row) : null;
   },
 
-  async getPolyswapOrderById(id: number): Promise<DatabasePolyswapOrder | null> {
+  async getPolyswapOrderById(id: number): Promise<PolyswapOrderRow | null> {
     const row = await prisma.polyswapOrder.findUnique({ where: { id } });
     return row ? toPolyswapOrderRow(row) : null;
   },
@@ -214,7 +214,7 @@ export const orderRepository = {
     toBlock: number,
     limit: number = 100,
     offset: number = 0
-  ): Promise<DatabasePolyswapOrder[]> {
+  ): Promise<PolyswapOrderRow[]> {
     const rows = await prisma.polyswapOrder.findMany({
       where: { blockNumber: { gte: BigInt(fromBlock), lte: BigInt(toBlock) } },
       orderBy: [{ blockNumber: "asc" }, { logIndex: "asc" }],
@@ -327,7 +327,7 @@ export const orderRepository = {
     await prisma.polyswapOrder.delete({ where: { id } });
   },
 
-  async findDraftsOlderThan(cutoff: Date): Promise<DatabasePolyswapOrder[]> {
+  async findDraftsOlderThan(cutoff: Date): Promise<PolyswapOrderRow[]> {
     const rows = await prisma.polyswapOrder.findMany({
       where: { status: "draft", createdAt: { lt: cutoff } },
       orderBy: { createdAt: "asc" },
@@ -343,12 +343,12 @@ export const orderRepository = {
     return result.count > 0;
   },
 
-  async getPolyswapOrderByUid(orderUid: string): Promise<DatabasePolyswapOrder | null> {
+  async getPolyswapOrderByUid(orderUid: string): Promise<PolyswapOrderRow | null> {
     const row = await prisma.polyswapOrder.findFirst({ where: { orderUid } });
     return row ? toPolyswapOrderRow(row) : null;
   },
 
-  async getLiveOrdersWithoutUid(): Promise<DatabasePolyswapOrder[]> {
+  async getLiveOrdersWithoutUid(): Promise<PolyswapOrderRow[]> {
     const rows = await prisma.polyswapOrder.findMany({
       where: {
         status: "live",
@@ -359,7 +359,7 @@ export const orderRepository = {
     return rows.map(toPolyswapOrderRow);
   },
 
-  async getLiveOrders(): Promise<DatabasePolyswapOrder[]> {
+  async getLiveOrders(): Promise<PolyswapOrderRow[]> {
     const rows = await prisma.polyswapOrder.findMany({
       where: { status: "live" },
       orderBy: { createdAt: "asc" },

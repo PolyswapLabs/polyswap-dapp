@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
-import type { DatabasePolymarketSentinel } from "../../src/backend/interfaces/PolyswapOrder";
+import type { PolymarketSentinelRow } from "../../src/backend/interfaces/PolyswapOrder";
 import { account, sdkHarness } from "./fixtures";
-import { PolymarketOrderService } from "../../src/backend/services/polymarketOrderService";
+import { PolymarketOrderService } from "../../src/backend/polymarket/clob";
 
 // Override before importing the DB module, even when this test is run directly.
 process.env.DATABASE_URL = "postgresql://test:test@127.0.0.1:1/polyswap_migration_test";
@@ -23,7 +23,7 @@ async function setup(t: TestContext) {
     expiration: Math.floor(Date.now() / 1000) + 3600,
     postOnly: true,
   });
-  const row: DatabasePolymarketSentinel = {
+  const row: PolymarketSentinelRow = {
     id: 1,
     market_id: "market",
     token_id: h.assetId,

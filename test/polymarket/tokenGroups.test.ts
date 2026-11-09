@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { groupTokens, tokenKey, type TokenGroup } from "../../src/lib/tokenGroups";
-import type { TokenViewModel } from "../../src/types/design";
+import { groupTokens, tokenKey, type TokenGroup } from "../../src/client/tokenGroups";
+import type { TokenViewModel } from "../../src/types/viewModels";
 
 const token = (symbol: string, address: string, name = `${symbol} token`) =>
   ({ symbol, name, address, decimals: 18 }) as TokenViewModel;

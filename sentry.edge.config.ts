@@ -4,7 +4,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
-import { isProductionEnvironment, SENTRY_DSN } from "./src/lib/env";
+import { isProductionEnvironment, SENTRY_DSN } from "./src/shared/env";
 
 if (isProductionEnvironment()) {
   Sentry.init({

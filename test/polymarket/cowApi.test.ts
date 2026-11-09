@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CowQuoteError, fetchCowQuote, parseCowError } from "../../src/services/cowApi";
+import { CowQuoteError, fetchCowQuote, parseCowError } from "../../src/client/api/cowApi";
 
 const NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const WPOL = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";

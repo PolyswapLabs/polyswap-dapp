@@ -9,14 +9,19 @@ import { useWalletModal } from "@/components/modals/WalletModalProvider";
 import type { CreateFormState } from "@/hooks/useCreateOrderForm";
 import { ordersQueryKey } from "@/hooks/useOrders";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
-import { buildSafeCalls, computeMinBuyAmount, deadlineFromExpiry, toWei } from "@/lib/createOrder";
-import { getErrorMessage } from "@/lib/errorMessage";
-import { postOnlyCrossingMessage, type PostOnlyBuyCheck } from "@/lib/postOnlyOrder";
-import { capturePostHogEvent } from "@/lib/posthog-client";
-import { formatQuoteError } from "@/lib/quoteErrors";
-import { apiService } from "@/services/api";
-import type { SafeCall } from "@/services/safe/types";
-import type { MarketViewModel } from "@/types/design";
+import {
+  buildSafeCalls,
+  computeMinBuyAmount,
+  deadlineFromExpiry,
+  toWei,
+} from "@/client/orders/createOrder";
+import { getErrorMessage } from "@/utils/errors";
+import { postOnlyCrossingMessage, type PostOnlyBuyCheck } from "@/shared/orders/postOnly";
+import { capturePostHogEvent } from "@/client/analytics";
+import { formatQuoteError } from "@/client/orders/quoteErrors";
+import { createPolyswapOrder } from "@/client/api/polyswapApi";
+import type { SafeCall } from "@/client/safe/types";
+import type { MarketViewModel } from "@/types/viewModels";
 
 export const CREATION_PAUSED_MESSAGE =
   "Order creation is temporarily blocked by the administrator. Existing orders are unaffected.";
@@ -119,7 +124,7 @@ export function useSubmitSwap({
     setSigningError(null);
     setIsPreparingTx(true);
     try {
-      const order = await apiService.createPolyswapOrder({
+      const order = await createPolyswapOrder({
         sellToken: requireAddress(fromToken.address, "Sell"),
         buyToken: requireAddress(toToken.address, "Buy"),
         sellAmount: toWei(state.amountIn, fromToken.decimals),

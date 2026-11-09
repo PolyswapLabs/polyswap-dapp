@@ -6,7 +6,7 @@ import { Tape } from "@/components/charts/Tape";
 import { Shimmer } from "@/components/primitives/Shimmer";
 import { TokenLogo } from "@/components/primitives/TokenLogo";
 import { Icon } from "@/components/icons";
-import { fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
+import { formatNumber, formatPointsAway, formatPercent } from "@/utils/format";
 import { useOrderOddsSeries } from "@/hooks/useOrderOddsSeries";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 import { Status } from "./Status";
@@ -49,7 +49,8 @@ export function SwapRow({ order }: Props) {
           </div>
           <p className="mt-1 truncate text-xs text-ink-3">
             {order.nickname}
-            {order.status === "waiting" && ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
+            {order.status === "waiting" &&
+              ` · ${formatPointsAway(currentOdds, order.threshold)} away`}
           </p>
         </div>
         <TokenPair order={order} />
@@ -78,7 +79,7 @@ export function SwapRow({ order }: Props) {
         <div className="flex items-center justify-between gap-3">
           <Status kind={order.status} />
           <span className="num text-xs text-ink-3">
-            {fmtPct(currentOdds)} / {fmtPct(order.threshold)}
+            {formatPercent(currentOdds)} / {formatPercent(order.threshold)}
           </span>
         </div>
         <div className="flex items-start gap-3">
@@ -95,7 +96,7 @@ export function SwapRow({ order }: Props) {
             <p className="mt-1 text-xs text-ink-3">
               {order.nickname}
               {order.status === "waiting" &&
-                ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
+                ` · ${formatPointsAway(currentOdds, order.threshold)} away`}
             </p>
           </div>
         </div>
@@ -169,7 +170,7 @@ function TokenPair({ order }: { order: OrderViewModel }) {
     <div className="flex items-center gap-2.5">
       <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
       <span className="num text-sm">
-        {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
+        {formatNumber(order.sellAmount, 2)} {order.sellSymbol}
       </span>
       <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
       <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
@@ -182,7 +183,7 @@ function CompactTokenPair({ order }: { order: OrderViewModel }) {
     <span className="flex items-center gap-2">
       <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
       <span className="num">
-        {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
+        {formatNumber(order.sellAmount, 2)} {order.sellSymbol}
       </span>
       <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
       <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />

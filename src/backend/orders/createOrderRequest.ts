@@ -1,5 +1,5 @@
 import { isAddress, type Address } from "viem";
-import type { ApiErrorOptions } from "@/lib/apiError";
+import type { ApiErrorOptions } from "@/server/apiError";
 
 const MAX_START_DATE_AGE_MS = 60_000;
 

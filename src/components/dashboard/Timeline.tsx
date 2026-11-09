@@ -2,9 +2,9 @@
 
 import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
-import { fmtDateTime, fmtDuration, fmtPct } from "@/lib/format";
-import { EDITORIAL_EASE, springInVariants, staggerVariants } from "@/lib/motion";
+import { cn } from "@/utils/cn";
+import { formatDateTime, formatDuration, formatPercent } from "@/utils/format";
+import { EDITORIAL_EASE, springInVariants, staggerVariants } from "@/client/motion";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 
 interface Step {
@@ -25,7 +25,7 @@ function buildSteps(order: OrderViewModel): Step[] {
     {
       Icon: Icon.plus,
       label: "You set up this swap",
-      caption: fmtDateTime(order.startTime),
+      caption: formatDateTime(order.startTime),
       state: "past",
     },
     {
@@ -33,7 +33,7 @@ function buildSteps(order: OrderViewModel): Step[] {
       label: "Watching the odds",
       caption:
         triggerHit && order.gateOpenedAt
-          ? fmtDuration(order.gateOpenedAt.getTime() - order.startTime.getTime())
+          ? formatDuration(order.gateOpenedAt.getTime() - order.startTime.getTime())
           : isWaiting
             ? "in progress"
             : isFilled
@@ -63,9 +63,9 @@ function buildSteps(order: OrderViewModel): Step[] {
       label: triggerHit ? "Trigger hit" : "Trigger not hit yet",
       caption: triggerHit
         ? order.gateOpenedAt
-          ? fmtDateTime(order.gateOpenedAt)
+          ? formatDateTime(order.gateOpenedAt)
           : "Trigger confirmed · time unavailable"
-        : `when ${order.side} drops to ${fmtPct(order.threshold)}`,
+        : `when ${order.side} drops to ${formatPercent(order.threshold)}`,
       state: triggerHit ? "past" : "future",
     });
     steps.push({
@@ -73,7 +73,7 @@ function buildSteps(order: OrderViewModel): Step[] {
       label: isFilled ? "Tokens are in your wallet" : "Tokens land in your wallet",
       caption: isFilled
         ? order.filledAt
-          ? fmtDateTime(order.filledAt)
+          ? formatDateTime(order.filledAt)
           : "Settlement confirmed · time unavailable"
         : triggerHit
           ? "Settlement pending"

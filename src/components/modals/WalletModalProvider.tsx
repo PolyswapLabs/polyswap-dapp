@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { WalletModal } from "./WalletModal";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface WalletModalCtx {
   open: () => void;

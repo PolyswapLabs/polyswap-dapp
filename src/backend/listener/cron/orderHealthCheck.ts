@@ -1,5 +1,5 @@
 import { zeroHash, type Address, type Hex } from "viem";
-import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
+import type { PolyswapOrderRow } from "@/backend/interfaces/PolyswapOrder";
 import { syncCowOrderStatus } from "@/backend/listener/orderHealth/cowOrderbookSync";
 import { expireIfNeeded } from "@/backend/listener/orderHealth/expiry";
 import { extractRevertData, recordRevert } from "@/backend/listener/orderHealth/revertClassifier";
@@ -17,7 +17,7 @@ const log = createLogger("order-health");
  * Reconstruct staticInput from a DB row, byte-identical to the on-chain commit (else H(params)
  * mismatches → SingleOrderNotAuthed). Pre-makerAmount orders have a null column → legacy 9-field layout.
  */
-export function reconstructStaticInput(order: DatabasePolyswapOrder): Hex {
+export function reconstructStaticInput(order: PolyswapOrderRow): Hex {
   return encodeStaticInput({
     sellToken: order.sell_token as Address,
     buyToken: order.buy_token as Address,
@@ -34,7 +34,7 @@ export function reconstructStaticInput(order: DatabasePolyswapOrder): Hex {
 }
 
 /** Returns false when the retry failed and this order should wait for the next tick. */
-async function retrySentinelActivation(order: DatabasePolyswapOrder): Promise<boolean> {
+async function retrySentinelActivation(order: PolyswapOrderRow): Promise<boolean> {
   if (order.sentinel_id === null || !order.transaction_hash) return true;
   try {
     await activateSentinel(order.sentinel_id, order.transaction_hash, {
@@ -51,7 +51,7 @@ async function retrySentinelActivation(order: DatabasePolyswapOrder): Promise<bo
 
 // The first success opens the gate, which lets the UI distinguish "still waiting for trigger"
 // from "trigger fired, waiting for the swap to settle".
-async function markFillable(order: DatabasePolyswapOrder): Promise<void> {
+async function markFillable(order: PolyswapOrderRow): Promise<void> {
   await orderRepository.clearOrderError(order.id);
   if (!order.gate_opened_at) {
     await orderRepository.markGateOpened(order.id);
@@ -59,7 +59,7 @@ async function markFillable(order: DatabasePolyswapOrder): Promise<void> {
   }
 }
 
-async function checkTradeability(order: DatabasePolyswapOrder): Promise<void> {
+async function checkTradeability(order: PolyswapOrderRow): Promise<void> {
   // Without these the conditional-order params can't be reconstructed.
   if (!order.handler || !order.salt) return;
 

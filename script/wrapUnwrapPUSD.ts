@@ -18,7 +18,7 @@
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import { resilientHttp } from "../src/lib/rpc/resilientHttp.js";
+import { resilientHttp } from "../src/shared/rpc/resilientHttp";
 import {
   createPublicClient,
   createWalletClient,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkPostOnlyBuy, describePostOnlyStatus } from "../../src/lib/postOnlyOrder";
+import { describePostOnlyStatus } from "../../src/client/orders/quoteErrors";
+import { checkPostOnlyBuy } from "../../src/shared/orders/postOnly";
 
 const rests = checkPostOnlyBuy(40, 0.55);
 

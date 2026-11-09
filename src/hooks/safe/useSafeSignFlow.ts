@@ -12,8 +12,8 @@ import {
   type SafeSignPhase,
   type SafeTxKind,
 } from "./safeTxState";
-import { encodeMultiSend } from "@/services/safe/multiSendEncoder";
-import type { SafeCall } from "@/services/safe/types";
+import { encodeMultiSend } from "@/client/safe/multiSend";
+import type { SafeCall } from "@/client/safe/types";
 
 const STORAGE_KEY_PREFIX = "polyswap.pendingSafeTx";
 

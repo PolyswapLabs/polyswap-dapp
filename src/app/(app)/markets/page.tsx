@@ -1,7 +1,7 @@
-import { MarketsList } from "@/components/markets/MarketsList";
+import { MarketsBrowseView } from "@/components/markets/MarketsBrowseView";
 import { Suspense } from "react";
 import { MarketsSkeleton } from "@/components/markets/MarketsSkeleton";
-import { publicPageMetadata } from "@/lib/seo";
+import { publicPageMetadata } from "@/server/seo";
 
 export const metadata = publicPageMetadata({
   title: "Browse Polymarket questions | Polyswap",
@@ -13,7 +13,7 @@ export const metadata = publicPageMetadata({
 export default function MarketsPage() {
   return (
     <Suspense fallback={<MarketsSkeleton />}>
-      <MarketsList />
+      <MarketsBrowseView />
     </Suspense>
   );
 }

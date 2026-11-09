@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { SearchInputWithSuggestions } from "./SearchInputWithSuggestions";
 
 export const MARKETS_PAGE_SIZE = 20;

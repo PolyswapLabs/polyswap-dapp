@@ -1,6 +1,6 @@
 import { getAddress, type Address, type Hex } from "viem";
 import { getPublicClient } from "@/backend/rpc/clients";
-import { TransactionEncodingService } from "./transactionEncodingService";
+import { encodeSetFallbackHandlerCalldata } from "./transactionEncodingService";
 import { createLogger } from "../logger";
 
 const log = createLogger("safe-fallback");
@@ -80,9 +80,7 @@ export async function buildFallbackHandlerSetupTx(
     `safe ${safeAddress} fallback handler is ${current}, prepending setFallbackHandler(${EXTENSIBLE_FALLBACK_HANDLER})`
   );
 
-  const data = TransactionEncodingService.encodeSetFallbackHandlerCalldata(
-    EXTENSIBLE_FALLBACK_HANDLER
-  );
+  const data = encodeSetFallbackHandlerCalldata(EXTENSIBLE_FALLBACK_HANDLER);
 
   return {
     to: safeAddress,

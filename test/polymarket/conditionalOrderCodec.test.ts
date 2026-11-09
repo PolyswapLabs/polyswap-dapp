@@ -6,7 +6,7 @@ process.env.DATABASE_URL = "postgresql://test:test@127.0.0.1:1/polyswap_migratio
 process.env.ENVIRONMENT = "local";
 const { calculateOrderHash, decodeStaticInput, encodeStaticInput } =
   await import("../../src/backend/utils/conditionalOrderCodec");
-const { TransactionEncodingService } =
+const { encodePolyswapOrderData } =
   await import("../../src/backend/services/transactionEncodingService");
 const { reconstructStaticInput } = await import("../../src/backend/listener/cron/orderHealthCheck");
 
@@ -66,7 +66,7 @@ test("the order hash matches the value computed before the codec was unified", (
 });
 
 test("a stored order rebuilds the exact bytes the API committed on-chain", () => {
-  const committed = TransactionEncodingService.encodePolyswapOrderData({
+  const committed = encodePolyswapOrderData({
     ...asStrings,
     polymarketMakerAmount: "42",
   });

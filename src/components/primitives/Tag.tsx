@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 const tag = cva(
   "inline-flex items-center gap-1.5 border border-ink px-2.5 py-[3px] text-[11px] font-semibold tracking-[0.05em] uppercase",

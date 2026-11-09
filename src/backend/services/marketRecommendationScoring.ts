@@ -2,10 +2,13 @@ import {
   getTradingAssetIds,
   parseProtocolVersion,
   parseStringArray,
-} from "../../lib/polymarket/protocol";
-import { RECOMMENDATION_POLICY, type RecommendedMarket } from "../../lib/marketRecommendations";
-import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "../../types/design";
-import type { DatabaseMarket } from "../interfaces/Database";
+} from "@/shared/polymarket/protocol";
+import {
+  RECOMMENDATION_POLICY,
+  type RecommendedMarket,
+} from "@/shared/markets/recommendationPolicy";
+import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/shared/markets/categories";
+import type { MarketRow } from "@/backend/interfaces/Market";
 
 function numeric(raw: unknown): number | null {
   if (typeof raw !== "number" && (typeof raw !== "string" || raw.trim() === "")) return null;
@@ -59,7 +62,7 @@ type EnrichmentResult =
 
 /** Gamma enrichments exist only in the response/cache, never in the market table. */
 export function enrichRecommendation(
-  candidate: DatabaseMarket,
+  candidate: MarketRow,
   raw: unknown,
   now: number
 ): EnrichmentResult {

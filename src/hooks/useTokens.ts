@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { polygon } from "wagmi/chains";
-import { isRecord } from "@/services/api";
+import { isRecord } from "@/shared/guards";
 
 export interface Token {
   chainId: number;

@@ -1,4 +1,4 @@
-import type { ProtocolVersion } from "../../lib/polymarket/protocol";
+import type { ProtocolVersion } from "@/shared/polymarket/protocol";
 
 export interface PolyswapOrderData {
   sellToken: string; // hex address
@@ -40,7 +40,7 @@ export interface PolyswapOrderRecord {
 }
 
 // Database interface for the polyswap_orders table
-export interface DatabasePolyswapOrder {
+export interface PolyswapOrderRow {
   id: number;
   order_hash: string | null;
   owner: string;
@@ -94,7 +94,7 @@ export interface PublicPolyswapOrder {
   market_id: string | null;
   outcome_selected: string | null;
   bet_percentage: number | null;
-  status: DatabasePolyswapOrder["status"];
+  status: PolyswapOrderRow["status"];
   order_uid: string | null;
   last_error_reason: string | null;
   last_error_retry_at: string | null;
@@ -112,7 +112,7 @@ export type PolymarketSentinelStatus =
   | "canceled"
   | "failed";
 
-export interface DatabasePolymarketSentinel {
+export interface PolymarketSentinelRow {
   id: number;
   market_id: string;
   token_id: string;

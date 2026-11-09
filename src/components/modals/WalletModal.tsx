@@ -6,9 +6,9 @@ import { Button } from "@/components/primitives/Button";
 import { Modal } from "@/components/primitives/Modal";
 import { ErrorAlert } from "@/components/primitives/PageBlocks";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   open: boolean;

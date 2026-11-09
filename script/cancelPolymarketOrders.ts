@@ -9,7 +9,7 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: resolve(__dirname, "..", ".env") });
 
-import { getPolymarketOrderService } from "../src/backend/services/polymarketOrderService";
+import { getPolymarketOrderService } from "../src/backend/polymarket/clob";
 import { createLogger } from "../src/backend/logger.js";
 
 const log = createLogger("cancel-orders");

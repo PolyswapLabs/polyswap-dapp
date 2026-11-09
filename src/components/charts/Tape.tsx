@@ -11,10 +11,10 @@ import {
   oddsToY,
   type ChartFrame,
   type ChartPoint,
-} from "@/lib/chart";
-import { cn } from "@/lib/cn";
-import { fmtDate } from "@/lib/format";
-import type { Side } from "@/types/design";
+} from "@/client/chart";
+import { cn } from "@/utils/cn";
+import { formatDate } from "@/utils/format";
+import type { Side } from "@/shared/markets/categories";
 import { ExecutionMarker } from "./ExecutionMarker";
 
 interface TapeProps {
@@ -149,7 +149,7 @@ export function Tape({
           <HoverOverlay
             point={hoverPoint}
             value={hoverValue}
-            dateLabel={hoverSeconds !== undefined ? fmtDate(hoverSeconds * 1000) : ""}
+            dateLabel={hoverSeconds !== undefined ? formatDate(hoverSeconds * 1000) : ""}
             frame={frame}
             stroke={stroke}
           />

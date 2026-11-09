@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import type { CreateFormState } from "@/hooks/useCreateOrderForm";
 import { useTokens } from "@/hooks/useTokens";
-import type { TokenViewModel } from "@/types/design";
+import type { TokenViewModel } from "@/types/viewModels";
 
 const DEFAULT_FROM_SYMBOLS = ["USDC", "USDC.e", "USDT", "DAI"] as const;
 const DEFAULT_TO_SYMBOLS = ["WETH", "WBTC", "WPOL"] as const;

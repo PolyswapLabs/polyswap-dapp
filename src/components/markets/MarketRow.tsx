@@ -3,13 +3,13 @@
 import { useRef } from "react";
 import { useInView } from "motion/react";
 import { Tape } from "@/components/charts/Tape";
-import { marketTitleTransitionName } from "@/lib/links";
+import { marketTitleTransitionName } from "@/utils/links";
 import { TransitionLink } from "@/components/layout/TransitionLink";
 import { CategoryIcon, Icon } from "@/components/icons";
 import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
-import { fmtUSD, fmtDate } from "@/lib/format";
-import type { MarketViewModel } from "@/types/design";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { formatUsd, formatDate } from "@/utils/format";
+import type { MarketViewModel } from "@/types/viewModels";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   market: MarketViewModel;
@@ -97,7 +97,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             {market.question}
           </p>
           <p className="mt-1 text-xs text-ink-3">
-            {category} · ends {fmtDate(market.endsAt)}
+            {category} · ends {formatDate(market.endsAt)}
           </p>
         </div>
         <div className="text-right">
@@ -109,7 +109,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
         </div>
         <p className="text-right text-sm">
           <span className="text-[11px] tracking-wide text-ink-3 uppercase">{volumeLabel} </span>
-          <span className="num">{fmtUSD(volume, { compact: true })}</span>
+          <span className="num">{formatUsd(volume, { compact: true })}</span>
         </p>
         <span
           aria-hidden
@@ -128,7 +128,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           </span>
           <span className="text-xs text-ink-3">
             <span className="tracking-wide uppercase">{volumeLabel} </span>
-            <span className="num">{fmtUSD(volume, { compact: true })}</span>
+            <span className="num">{formatUsd(volume, { compact: true })}</span>
           </span>
         </div>
         <p
@@ -151,7 +151,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             />
           </div>
         </div>
-        <p className="text-xs text-ink-3">Ends {fmtDate(market.endsAt)}</p>
+        <p className="text-xs text-ink-3">Ends {formatDate(market.endsAt)}</p>
       </div>
     </TransitionLink>
   );

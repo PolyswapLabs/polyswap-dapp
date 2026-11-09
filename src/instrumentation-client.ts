@@ -4,8 +4,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
-import { isProductionEnvironment, SENTRY_DSN } from "@/lib/env";
-import { isPostHogEnabled } from "@/lib/posthog-client";
+import { isProductionEnvironment, SENTRY_DSN } from "@/shared/env";
+import { isPostHogEnabled } from "@/client/analytics";
 
 const posthogProjectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;

@@ -6,7 +6,7 @@ import {
   fetchCowQuote,
   type CowQuote,
   type CowQuoteParams,
-} from "@/services/cowApi";
+} from "@/client/api/cowApi";
 
 /** Quotes expire quickly. */
 const QUOTE_STALE_MS = 30_000;

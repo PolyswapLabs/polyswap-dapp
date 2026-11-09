@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { ConsoleSignature } from "./ConsoleSignature";
-import { SITE_URL } from "@/lib/seo";
+import { SITE_URL } from "@/server/seo";
 
 const sans = Inter_Tight({
   subsets: ["latin"],

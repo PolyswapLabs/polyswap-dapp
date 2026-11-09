@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
-import type { TokenViewModel } from "@/types/design";
+import type { TokenViewModel } from "@/types/viewModels";
 
 const BALANCES_STALE_MS = 30_000;
 

@@ -33,6 +33,7 @@ export async function handleOrderInvalidated(eventLog: Log): Promise<void> {
     return;
   }
 
+  // The fill* columns record the settling transaction, here the cancellation.
   await orderRepository.updateOrderStatusById(order.id, "canceled", {
     fillTransactionHash: eventLog.transactionHash,
     fillBlockNumber: Number(eventLog.blockNumber),

@@ -1,7 +1,7 @@
 import { fetchNegRisk, updateBalanceAllowance } from "@polymarket/client/actions";
 import type { SecureClient } from "@polymarket/client";
 import type { Address } from "viem";
-import { getPolymarketOrderService, type PolymarketOrderService } from "./polymarketOrderService";
+import { getPolymarketOrderService, type PolymarketOrderService } from "@/backend/polymarket/clob";
 import { orderRepository } from "@/backend/db/orderRepository";
 import { createLogger } from "../logger";
 import {

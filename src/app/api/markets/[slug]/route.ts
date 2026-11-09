@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { marketRepository } from "@/backend/db/marketRepository";
-import { createApiErrorResponder } from "@/lib/apiError";
+import { createApiErrorResponder } from "@/server/apiError";
 import { createLogger } from "@/backend/logger";
 
 const apiError = createApiErrorResponder("api-market-detail");

@@ -1,15 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAddress, type Hex } from "viem";
-import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
+import type { PolyswapOrderRow } from "@/backend/interfaces/PolyswapOrder";
 import { authenticateOrderAction } from "@/backend/orders/orderActionAuth";
 import { isSingleOrderAuthed } from "@/backend/rpc/composableCow";
 import { orderRepository } from "@/backend/db/orderRepository";
-import { createApiErrorResponder, type ApiErrorOptions } from "@/lib/apiError";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { createApiErrorResponder, type ApiErrorOptions } from "@/server/apiError";
+import { getPostHogClient } from "@/server/posthog";
 
 const apiError = createApiErrorResponder("api-order-notify-remove");
 
-function rejectUnremovableOrder(order: DatabasePolyswapOrder): ApiErrorOptions | null {
+function rejectUnremovableOrder(order: PolyswapOrderRow): ApiErrorOptions | null {
   if (order.status !== "live") {
     return { status: 400, error: "Only live orders can be notified for removal" };
   }

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { MarketCategory } from "@/types/design";
+import type { MarketCategory } from "@/shared/markets/categories";
 
 interface Props {
   category: MarketCategory;

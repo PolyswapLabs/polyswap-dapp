@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { DatabaseMarket } from "../../src/backend/interfaces/Database";
+import type { MarketRow } from "../../src/backend/interfaces/Market";
 import {
   createMarketRecommendationService,
   RecommendationUnavailableError,
 } from "../../src/backend/services/marketRecommendationService";
-import { RECOMMENDATION_POLICY } from "../../src/lib/marketRecommendations";
+import { RECOMMENDATION_POLICY } from "../../src/shared/markets/recommendationPolicy";
 
 const NOW = Date.parse("2030-01-01T00:00:00.000Z");
 const END_DATE = new Date(NOW + 30 * 86_400_000);
 const OPTIONS = { oddsMin: 10, oddsMax: 90, limit: 20, offset: 0, category: null };
 
-const candidate = (id: string): DatabaseMarket => ({
+const candidate = (id: string): MarketRow => ({
   id,
   slug: `market-${id}`,
   event_slug: `event-${id}`,

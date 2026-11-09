@@ -1,7 +1,7 @@
 "use client";
 
 import { useAccount, useDisconnect } from "wagmi";
-import { formatAddress } from "@/lib/format";
+import { formatAddress } from "@/utils/format";
 
 interface WalletConnectionState {
   isConnected: boolean;

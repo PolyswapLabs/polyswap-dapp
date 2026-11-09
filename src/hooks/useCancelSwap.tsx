@@ -8,9 +8,9 @@ import { ordersQueryKey } from "@/hooks/useOrders";
 import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 import { useRemoveOrder } from "@/hooks/useRemoveOrder";
 import { useSignAction, type SignedAction } from "@/hooks/useSignAction";
-import { getErrorMessage } from "@/lib/errorMessage";
-import { apiService } from "@/services/api";
-import type { SafeCall } from "@/services/safe/types";
+import { getErrorMessage } from "@/utils/errors";
+import { notifyRemoveOrder } from "@/client/api/polyswapApi";
+import type { SafeCall } from "@/client/safe/types";
 
 /** Cancels a draft off-chain, or drives the Safe flow that removes a live order. */
 export function useCancelSwap(order: OrderViewModel | null) {
@@ -74,7 +74,7 @@ export function useCancelSwap(order: OrderViewModel | null) {
       return;
     }
     try {
-      await apiService.notifyRemoveOrder(order.numericId, signed.signature, signed.timestamp);
+      await notifyRemoveOrder(order.numericId, signed.signature, signed.timestamp);
     } catch (e) {
       setLocalError(getErrorMessage(e, "Failed to finalise cancel"));
       closeSignModal();

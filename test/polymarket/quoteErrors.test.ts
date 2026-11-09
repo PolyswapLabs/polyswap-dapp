@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatQuoteError } from "../../src/lib/quoteErrors";
+import { formatQuoteError } from "../../src/client/orders/quoteErrors";
 
 test("known quote errors use the friendly wording, not the API message", () => {
   assert.equal(

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Dial } from "@/components/charts/Dial";
 import { Tag } from "@/components/primitives/Tag";
 import { CategoryIcon } from "@/components/icons";
-import { fmtDate } from "@/lib/format";
-import type { MarketViewModel } from "@/types/design";
+import { formatDate } from "@/utils/format";
+import type { MarketViewModel } from "@/types/viewModels";
 
 interface Props {
   market: MarketViewModel;
@@ -31,7 +31,7 @@ export function MarketSummaryCard({ market }: Props) {
               <CategoryIcon category={market.category} size={11} />
               {market.category}
             </Tag>
-            <span>Ends {fmtDate(market.endsAt)}</span>
+            <span>Ends {formatDate(market.endsAt)}</span>
           </div>
         </div>
         <Link

@@ -1,8 +1,8 @@
 "use client";
 
 import { CategoryIcon } from "@/components/icons";
-import { cn } from "@/lib/cn";
-import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/types/design";
+import { cn } from "@/utils/cn";
+import { CRYPTO_RELEVANT_CATEGORIES, type MarketCategory } from "@/shared/markets/categories";
 
 export type CategoryFilterValue = MarketCategory | "All";
 

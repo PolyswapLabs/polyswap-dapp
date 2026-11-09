@@ -1,4 +1,4 @@
-import type { Side } from "@/types/design";
+import type { Side } from "@/shared/markets/categories";
 
 interface DialProps {
   current: number;
