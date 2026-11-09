@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { parseAbiItem, type Address, type Hash } from "viem";
 import { usePublicClient, useWaitForCallsStatus } from "wagmi";
 import { fetchMultisigTransaction, type FetchResult } from "@/client/api/safeTxService";
 import type { SafeTxStatus } from "@/client/safe/types";
-import { callsStatusToSafeTxStatus, multisigTxToSafeTxStatus } from "./safeTxState";
+import {
+  callsStatusToSafeTxStatus,
+  multisigTxToSafeTxStatus,
+  statusForHash,
+  type TrackedSafeTxStatus,
+} from "./safeTxState";
 
 const POLL_INTERVAL_MS = 4_000;
 const NOT_FOUND_GRACE_MS = 30_000; // Safe indexer lag tolerance
@@ -130,8 +135,14 @@ export function useSafeTransaction({
   safeAddress,
   use5792,
 }: UseSafeTransactionArgs): SafeTxStatus {
-  const [status, setStatus] = useState<SafeTxStatus>({ kind: "idle" });
-  useCallsStatus(safeTxHash, use5792, setStatus);
-  useSafeServicePolling(safeTxHash, safeAddress, !use5792, setStatus);
-  return status;
+  const [tracked, setTracked] = useState<TrackedSafeTxStatus | null>(null);
+  const report = useCallback<StatusListener>(
+    (status) => {
+      if (safeTxHash) setTracked({ hash: safeTxHash, status });
+    },
+    [safeTxHash]
+  );
+  useCallsStatus(safeTxHash, use5792, report);
+  useSafeServicePolling(safeTxHash, safeAddress, !use5792, report);
+  return statusForHash(tracked, safeTxHash);
 }

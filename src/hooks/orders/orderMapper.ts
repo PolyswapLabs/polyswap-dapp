@@ -72,9 +72,13 @@ function mapStatus(order: Pick<PublicPolyswapOrder, "status" | "gate_opened_at">
  * the order detail page and the row title on the My Swaps list — readable at
  * a glance without needing the market title (which lives in its own panel).
  */
-function shortNickname(buy: string, outcome: string | null, betPercentage: number | null): string {
+function shortNickname(
+  buy: string,
+  outcome: string | null,
+  betPercentage: number | null | undefined
+): string {
   const side = outcome ? outcome.toUpperCase() : "YES";
-  const pct = betPercentage !== null ? Math.round(betPercentage) : 0;
+  const pct = betPercentage == null ? 0 : Math.round(betPercentage);
   return `Buy ${buy} if ${side} ≃ ${pct}%`;
 }
 
@@ -138,8 +142,8 @@ export function toOrderView(o: PublicPolyswapOrder, tokenMap: Map<string, Token>
     filledAt: o.filled_at ? new Date(o.filled_at) : null,
     gateOpenedAt: o.gate_opened_at ? new Date(o.gate_opened_at) : null,
     actualSellAmount:
-      o.actual_sell_amount !== null ? toTokenUnits(o.actual_sell_amount, sellDecimals) : null,
+      o.actual_sell_amount != null ? toTokenUnits(o.actual_sell_amount, sellDecimals) : null,
     actualBuyAmount:
-      o.actual_buy_amount !== null ? toTokenUnits(o.actual_buy_amount, buyDecimals) : null,
+      o.actual_buy_amount != null ? toTokenUnits(o.actual_buy_amount, buyDecimals) : null,
   };
 }

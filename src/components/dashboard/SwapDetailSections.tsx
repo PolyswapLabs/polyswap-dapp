@@ -73,6 +73,11 @@ export function SwapHeader({
   );
 }
 
+export function RetryNote({ retryAt }: { retryAt: number | null }) {
+  if (retryAt === null || retryAt <= Math.floor(Date.now() / 1000)) return null;
+  return <> · retry around {formatDateTime(retryAt * 1000)}</>;
+}
+
 function OrderErrorNotice({ order }: { order: OrderViewModel }) {
   if (!order.lastErrorReason) return null;
   if (order.phase === "errored") {
@@ -82,9 +87,7 @@ function OrderErrorNotice({ order }: { order: OrderViewModel }) {
   return (
     <p className="mt-2 text-xs text-ink-3">
       Waiting: {order.lastErrorReason}
-      {order.lastErrorRetryAt && order.lastErrorRetryAt > Math.floor(Date.now() / 1000) && (
-        <> · retry around {formatDateTime(order.lastErrorRetryAt * 1000)}</>
-      )}
+      <RetryNote retryAt={order.lastErrorRetryAt} />
     </p>
   );
 }

@@ -25,12 +25,7 @@ export function useOrders(): UseOrdersResult {
 
   const query = useQuery({
     queryKey: ordersQueryKey(address),
-    queryFn: async () => {
-      if (!address) return [];
-      const res = await getOrdersByOwner(address);
-      if (!res.success || !res.data) return [];
-      return res.data;
-    },
+    queryFn: () => (address ? getOrdersByOwner(address) : []),
     enabled: Boolean(address),
     staleTime: ORDERS_STALE_MS,
   });

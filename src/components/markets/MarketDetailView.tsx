@@ -142,7 +142,7 @@ export function MarketDetailView({ marketIdOrSlug }: Props) {
             <p className="eyebrow mb-3">How it resolves</p>
             <p className="max-w-[640px] font-serif text-base leading-relaxed text-ink-2 lg:text-lg">
               This market resolves on Polymarket. Polyswap reads the same odds you see there. If you
-              set a swap and the YES odds cross your threshold before {formatDate(market.endsAt)},
+              set a swap and the odds drop to your threshold before {formatDate(market.endsAt)},
               your swap fires. Otherwise it expires and your tokens stay where they are.
             </p>
           </section>
@@ -160,7 +160,7 @@ export function MarketDetailView({ marketIdOrSlug }: Props) {
                 </div>
               </div>
               <p className="mt-4 font-serif text-lg leading-snug">
-                Set a swap that fires only when this question crosses your line.
+                Set a swap that fires only when the odds reach your line.
               </p>
               <Link
                 href={`/create/${market.id}`}

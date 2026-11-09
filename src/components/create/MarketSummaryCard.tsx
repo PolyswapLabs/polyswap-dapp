@@ -18,7 +18,7 @@ export function MarketSummaryCard({ market }: Props) {
       <div className="flex items-start gap-4 sm:gap-5">
         <Dial
           current={market.yesProbability}
-          threshold={0.7}
+          threshold={1}
           side="YES"
           size={56}
           className="shrink-0"

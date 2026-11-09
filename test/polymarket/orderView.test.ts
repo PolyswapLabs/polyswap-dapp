@@ -68,3 +68,18 @@ test("unknown tokens default to 18 decimals and unfilled amounts stay null", () 
   assert.equal(view.actualSellAmount, null);
   assert.equal(view.actualBuyAmount, null);
 });
+
+test("an order missing optional numbers still maps without NaN or a crash", () => {
+  const partial = {
+    ...row("filled", OPENED),
+    bet_percentage: undefined,
+    actual_sell_amount: undefined,
+    actual_buy_amount: undefined,
+  } as unknown as Row;
+
+  const view = toOrderView(partial, new Map());
+
+  assert.doesNotMatch(view.nickname, /NaN/);
+  assert.equal(view.actualSellAmount, null);
+  assert.equal(view.actualBuyAmount, null);
+});

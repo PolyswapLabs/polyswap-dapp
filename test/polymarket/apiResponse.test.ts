@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readApiResponse } from "../../src/client/api/polyswapApi";
+import { getOrdersByOwner, readApiResponse } from "../../src/client/api/polyswapApi";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const hasSuccess = (value: unknown): value is { success: true } =>
@@ -26,4 +26,16 @@ test("a success status with an unexpected body is rejected", async () => {
     readApiResponse(json({ success: false }), hasSuccess),
     /Invalid API response/
   );
+});
+
+test("a 200 response reporting failure is not treated as an empty order list", async (t) => {
+  t.mock.method(globalThis, "fetch", async () =>
+    json({ success: false, message: "Lookup failed" })
+  );
+  await assert.rejects(getOrdersByOwner("0xabc"), /Lookup failed/);
+});
+
+test("the owner's orders are returned", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => json({ success: true, data: [{ id: 1 }] }));
+  assert.deepEqual(await getOrdersByOwner("0xabc"), [{ id: 1 }]);
 });

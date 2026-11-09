@@ -122,3 +122,15 @@ export function multisigTxToSafeTxStatus(tx: MultisigTxProgress): SafeTxStatus |
   const need = tx.confirmationsRequired;
   return have >= need ? { kind: "awaitingExecution" } : { kind: "awaitingSignatures", have, need };
 }
+
+export type TrackedSafeTxStatus = { hash: Hash; status: SafeTxStatus };
+
+const IDLE_STATUS: SafeTxStatus = { kind: "idle" };
+
+/** A status only applies to the transaction it was observed for. */
+export function statusForHash(
+  tracked: TrackedSafeTxStatus | null,
+  safeTxHash: Hash | undefined
+): SafeTxStatus {
+  return tracked && tracked.hash === safeTxHash ? tracked.status : IDLE_STATUS;
+}

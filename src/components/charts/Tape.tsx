@@ -79,7 +79,7 @@ export function Tape({
   const pathD = linePath(points);
 
   const thresholdY = oddsToY(clampOdds(threshold), frame);
-  const lastY = oddsToY(data[data.length - 1] ?? 0, frame);
+  const lastY = oddsToY(clampOdds(data[data.length - 1] ?? 0), frame);
 
   const stroke = side === "YES" ? "var(--color-yes)" : "var(--color-no)";
   const fill = `color-mix(in srgb, ${stroke} 12%, transparent)`;

@@ -61,13 +61,18 @@ export function useRecommendedMarkets(query: RecommendedMarketsQuery) {
  * never dedupes against side-traffic from `SwapRow`/`CreateSwapView` — visiting
  * the market detail page is always a real fetch and a real increment.
  */
-export function useMarket(identifier: string, opts: { track?: boolean } = {}) {
-  return useQuery({
+export function marketQueryOptions(identifier: string, opts: { track?: boolean } = {}) {
+  return {
     queryKey: ["market", identifier, opts.track ? "tracked" : "untracked"],
     queryFn: () => fetchPricedMarket(identifier, opts),
     staleTime: MARKET_DATA_STALE_MS,
     select: toMarketViewModel,
-  });
+    enabled: identifier.length > 0,
+  };
+}
+
+export function useMarket(identifier: string, opts: { track?: boolean } = {}) {
+  return useQuery(marketQueryOptions(identifier, opts));
 }
 
 /**

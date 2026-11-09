@@ -49,15 +49,6 @@ interface ApiSuccessEnvelope<T> {
   data: T;
 }
 
-interface OrdersResponse {
-  success: boolean;
-  data?: PublicPolyswapOrder[];
-  count?: number;
-  pagination?: { limit: number; offset: number; hasMore: boolean };
-  message?: string;
-  error?: string;
-}
-
 function isPolyswapTxCall(value: unknown): value is PolyswapTxCall {
   return (
     isRecord(value) &&
@@ -105,8 +96,8 @@ function isMarketEnvelope(value: unknown): value is ApiSuccessEnvelope<MarketRow
   return isSuccessEnvelope(value) && isRecord(value.data);
 }
 
-function isOrdersResponse(value: unknown): value is OrdersResponse {
-  return isRecord(value);
+function isOrdersEnvelope(value: unknown): value is ApiSuccessEnvelope<PublicPolyswapOrder[]> {
+  return isSuccessEnvelope(value) && Array.isArray(value.data);
 }
 
 export async function readApiResponse<T>(
@@ -147,10 +138,10 @@ export async function getOrdersByOwner(
   ownerAddress: string,
   limit: number = 100,
   offset: number = 0
-): Promise<OrdersResponse> {
+): Promise<PublicPolyswapOrder[]> {
   const params = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() });
   const response = await fetch(`${API_BASE}/polyswap/orders/${ownerAddress}?${params}`);
-  return readApiResponse(response, isOrdersResponse);
+  return (await readApiResponse(response, isOrdersEnvelope)).data;
 }
 
 /**

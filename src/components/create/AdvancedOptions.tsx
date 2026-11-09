@@ -65,7 +65,7 @@ export function AdvancedOptions({ state, onChange }: Props) {
               How much price wiggle is OK
               <InfoTip
                 label="What does price wiggle mean?"
-                body="Auto lets the CoW solver pick the best executable price at fill time, with no minimum floor. A percentage caps the slippage: if the live price would give you less than the estimation minus choosen wiggle %, the swap waits until the price recovers or the order expires."
+                body="Auto lets the CoW solver pick the best executable price at fill time, with no minimum floor. A percentage caps the slippage: if the live price would give you less than the estimation minus chosen wiggle %, the swap waits until the price recovers or the order expires."
                 width="md"
               />
             </p>
