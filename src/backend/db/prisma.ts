@@ -61,13 +61,7 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-export async function testConnection(): Promise<boolean> {
-  try {
-    const rows = await prisma.$queryRaw<{ now: Date }[]>`SELECT NOW() AS now`;
-    log.info(`connected (server time ${rows[0]?.now.toISOString() ?? "unknown"})`);
-    return true;
-  } catch (error) {
-    log.error("connection failed:", error);
-    return false;
-  }
+export async function verifyDatabaseConnection(): Promise<void> {
+  const rows = await prisma.$queryRaw<{ now: Date }[]>`SELECT NOW() AS now`;
+  log.info(`connected (server time ${rows[0]?.now.toISOString() ?? "unknown"})`);
 }

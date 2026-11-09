@@ -4,22 +4,11 @@ import {
   type PolyswapOrderData,
 } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
+import { ORDER_DATA_LAYOUT, ORDER_DATA_LAYOUT_V2 } from "@/backend/utils/conditionalOrderCodec";
 
 const log = createLogger("order-uid");
 
 const ZERO_BYTES32: Hex = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
-const ORDER_COMPONENTS_V1 = [
-  { name: "sellToken", type: "address" },
-  { name: "buyToken", type: "address" },
-  { name: "receiver", type: "address" },
-  { name: "sellAmount", type: "uint256" },
-  { name: "minBuyAmount", type: "uint256" },
-  { name: "t0", type: "uint256" },
-  { name: "t", type: "uint256" },
-  { name: "polymarketOrderHash", type: "bytes32" },
-  { name: "appData", type: "bytes32" },
-] as const;
 
 const getOrderHashAbi = (components: readonly { name: string; type: string }[]) =>
   [
@@ -33,11 +22,8 @@ const getOrderHashAbi = (components: readonly { name: string; type: string }[]) 
   ] as const;
 
 // Legacy 9-field handler and the current 10-field handler (adds polymarketMakerAmount).
-const orderHashAbi = getOrderHashAbi(ORDER_COMPONENTS_V1);
-const orderHashAbiV2 = getOrderHashAbi([
-  ...ORDER_COMPONENTS_V1,
-  { name: "polymarketMakerAmount", type: "uint256" },
-]);
+const orderHashAbi = getOrderHashAbi(ORDER_DATA_LAYOUT);
+const orderHashAbiV2 = getOrderHashAbi(ORDER_DATA_LAYOUT_V2);
 
 /**
  * Service for calculating CoW Protocol order UIDs.

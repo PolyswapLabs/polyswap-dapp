@@ -2,6 +2,7 @@
 
 import { useAccount, useSignMessage } from "wagmi";
 import { useCallback, useState } from "react";
+import { createActionSignatureMessage } from "@/lib/actionSignature";
 
 export interface SignedAction {
   signature: string;
@@ -37,8 +38,7 @@ export function useSignAction() {
       try {
         const timestamp = Math.floor(Date.now() / 1000);
 
-        // Create the same message format as backend expects
-        const message = `PolySwap Action Request\nAction: ${action}\nOrder: ${orderIdentifier}\nTimestamp: ${timestamp}\nChain: ${chainId}`;
+        const message = createActionSignatureMessage(action, orderIdentifier, timestamp, chainId);
 
         // Sign the message using wagmi (works with Safe wallets too)
         const signature = await signMessageAsync({ message });

@@ -787,9 +787,8 @@ export class DatabaseService {
     limit: number = 100,
     offset: number = 0
   ): Promise<DatabasePolyswapOrder[]> {
-    const where = ownerAddress.trim() ? { owner: ownerAddress.toLowerCase() } : undefined;
     const rows = await prisma.polyswapOrder.findMany({
-      where,
+      where: { owner: ownerAddress.toLowerCase() },
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: offset,
@@ -881,8 +880,7 @@ export class DatabaseService {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
         return false;
       }
-      log.error(`failed to update order status for id ${orderId}:`, error);
-      return false;
+      throw error;
     }
   }
 

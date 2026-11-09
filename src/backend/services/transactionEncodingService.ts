@@ -9,6 +9,7 @@ import {
 } from "viem";
 import { type PolyswapOrderData, type ConditionalOrderParams } from "../interfaces/PolyswapOrder";
 import composableCowAbi from "../../abi/composableCoW.json";
+import { encodeStaticInput } from "../utils/conditionalOrderCodec";
 
 const VALUE_FACTORY_ADDRESS: Address = getAddress(
   process.env.VALUE_FACTORY ?? "0x52eD56Da04309Aca4c3FECC595298d80C2f16BAc"
@@ -66,35 +67,20 @@ export class TransactionEncodingService {
     const receiver = (orderData.receiver ||
       "0x0000000000000000000000000000000000000000") as Address;
 
-    // Field order must exactly match the on-chain PolyswapOrderData struct layout.
-    return encodeAbiParameters(
-      [
-        { type: "address" }, // sellToken
-        { type: "address" }, // buyToken
-        { type: "address" }, // receiver
-        { type: "uint256" }, // sellAmount
-        { type: "uint256" }, // minBuyAmount
-        { type: "uint256" }, // t0
-        { type: "uint256" }, // t
-        { type: "bytes32" }, // polymarketOrderHash
-        { type: "bytes32" }, // appData
-        { type: "uint256" }, // polymarketMakerAmount
-      ],
-      [
-        sellToken,
-        buyToken,
-        receiver,
-        toBigInt(orderData.sellAmount || "0", "sellAmount"),
-        toBigInt(orderData.minBuyAmount || "0", "minBuyAmount"),
-        toBigInt(orderData.t0 || "0", "t0"),
-        toBigInt(orderData.t || "0", "t"),
-        formatBytes32(orderData.polymarketOrderHash),
-        formatBytes32(
-          orderData.appData || "0x0000000000000000000000000000000000000000000000000000000000000000"
-        ),
-        toBigInt(orderData.polymarketMakerAmount, "polymarketMakerAmount"),
-      ]
-    );
+    return encodeStaticInput({
+      sellToken,
+      buyToken,
+      receiver,
+      sellAmount: toBigInt(orderData.sellAmount || "0", "sellAmount"),
+      minBuyAmount: toBigInt(orderData.minBuyAmount || "0", "minBuyAmount"),
+      t0: toBigInt(orderData.t0 || "0", "t0"),
+      t: toBigInt(orderData.t || "0", "t"),
+      polymarketOrderHash: formatBytes32(orderData.polymarketOrderHash),
+      appData: formatBytes32(
+        orderData.appData || "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ),
+      polymarketMakerAmount: toBigInt(orderData.polymarketMakerAmount, "polymarketMakerAmount"),
+    });
   }
 
   static createConditionalOrderParams(
@@ -138,29 +124,5 @@ export class TransactionEncodingService {
       functionName: "setFallbackHandler",
       args: [getAddress(handler)],
     });
-  }
-
-  static calculateOrderHash(params: ConditionalOrderParams): string {
-    const encoded = encodeAbiParameters(
-      [
-        {
-          type: "tuple",
-          components: [
-            { name: "handler", type: "address" },
-            { name: "salt", type: "bytes32" },
-            { name: "staticInput", type: "bytes" },
-          ],
-        },
-      ],
-      [
-        {
-          handler: params.handler as Address,
-          salt: params.salt as Hex,
-          staticInput: params.staticInput as Hex,
-        },
-      ]
-    );
-
-    return keccak256(encoded);
   }
 }

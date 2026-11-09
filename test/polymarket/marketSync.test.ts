@@ -299,3 +299,25 @@ test("the search sweep covers every null row across batches and stops on rows it
   await prisma.$executeRaw`UPDATE markets SET tags = '{}' WHERE id = 'c'`;
   assert.equal(await DatabaseService.refreshMissingSearchVectors(2), 1);
 });
+
+test("orders can only be listed for a given owner", async () => {
+  const owner = "0x1111111111111111111111111111111111111111";
+  await prisma.polyswapOrder.create({
+    data: {
+      owner,
+      sellToken: owner,
+      buyToken: owner,
+      sellAmount: "1",
+      minBuyAmount: "1",
+      startTime: new Date(1_000),
+      endTime: new Date(2_000),
+    },
+  });
+
+  assert.equal((await DatabaseService.getPolyswapOrdersByOwner(owner)).length, 1);
+  assert.deepEqual(await DatabaseService.getPolyswapOrdersByOwner(""), []);
+});
+
+test("updating the status of a deleted order reports false instead of failing", async () => {
+  assert.equal(await DatabaseService.updateOrderStatusById(987_654, "filled"), false);
+});

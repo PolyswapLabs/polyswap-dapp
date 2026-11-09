@@ -18,6 +18,7 @@ import { type PolyswapOrderData } from "../../../../backend/interfaces/PolyswapO
 import { createLogger } from "../../../../backend/logger";
 import { isOrderCreationDisabled, isPolymarketSentinelPostOnly } from "@/lib/runtimeFlags";
 import type { DatabasePolymarketSentinel } from "@/backend/interfaces/PolyswapOrder";
+import { calculateOrderHash } from "@/backend/utils/conditionalOrderCodec";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
 import { fetchClobBestAsk } from "@/services/polymarket";
@@ -69,9 +70,14 @@ function parseBoundedInt(
  *   get:
  *     tags:
  *       - Orders
- *     summary: Get all orders
- *     description: Returns all Polyswap orders with optional filters
+ *     summary: List orders by owner or block range
+ *     description: Returns Polyswap orders. Requires owner, or both fromBlock and toBlock.
  *     parameters:
+ *       - name: owner
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter orders by owner address
  *       - name: limit
  *         in: query
  *         schema:
@@ -94,21 +100,11 @@ function parseBoundedInt(
  *         schema:
  *           type: integer
  *         description: Filter orders up to this block number
- *       - name: sellToken
- *         in: query
- *         schema:
- *           type: string
- *         description: Filter by sell token address
- *       - name: buyToken
- *         in: query
- *         schema:
- *           type: string
- *         description: Filter by buy token address
  *     responses:
  *       200:
  *         description: List of orders
  *       400:
- *         description: Invalid block range
+ *         description: Missing filter, invalid owner or invalid block range
  *       500:
  *         description: Server error
  */
@@ -170,8 +166,14 @@ export async function GET(request: NextRequest) {
         limitNum,
         offsetNum
       );
+    } else if (ownerRaw !== null) {
+      orders = await DatabaseService.getPolyswapOrdersByOwner(ownerRaw, limitNum, offsetNum);
     } else {
-      orders = await DatabaseService.getPolyswapOrdersByOwner(ownerRaw ?? "", limitNum, offsetNum);
+      return apiError({
+        status: 400,
+        error: "Missing filter",
+        message: "Provide owner, or fromBlock and toBlock",
+      });
     }
 
     return NextResponse.json({
@@ -523,7 +525,7 @@ export async function POST(request: NextRequest) {
       protocolVersion,
     });
     const createCalldata = TransactionEncodingService.encodeCreateWithContextCallData(params);
-    const orderHash = TransactionEncodingService.calculateOrderHash(params);
+    const orderHash = calculateOrderHash(params);
     const approveCalldata = encodeFunctionData({
       abi: erc20Abi,
       functionName: "approve",

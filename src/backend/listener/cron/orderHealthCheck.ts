@@ -3,10 +3,10 @@ import {
   type Hex,
   ContractFunctionExecutionError,
   decodeErrorResult,
-  encodeAbiParameters,
   getAddress,
 } from "viem";
 import { getPublicClient } from "../blockchainProvider";
+import { encodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
 import { decodePollError, type CowConditionalErrorName } from "../eventDecoder";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { OrderUidCalculationService } from "@/backend/services/orderUidCalculationService";
@@ -95,41 +95,24 @@ const ZERO_BYTES32: Hex = `0x${"00".repeat(32)}` as Hex;
 let timer: NodeJS.Timeout | null = null;
 let isRunning = false;
 
-const ORDER_DATA_TUPLE = [
-  { type: "address" },
-  { type: "address" },
-  { type: "address" },
-  { type: "uint256" },
-  { type: "uint256" },
-  { type: "uint256" },
-  { type: "uint256" },
-  { type: "bytes32" },
-  { type: "bytes32" },
-] as const;
-
-const ORDER_DATA_TUPLE_V2 = [...ORDER_DATA_TUPLE, { type: "uint256" }] as const;
-
 /**
  * Reconstruct staticInput from a DB row, byte-identical to the on-chain commit (else H(params)
  * mismatches → SingleOrderNotAuthed). Pre-makerAmount orders have a null column → legacy 9-field layout.
  */
-function reconstructStaticInput(order: DatabasePolyswapOrder): Hex {
-  const base = [
-    order.sell_token as Address,
-    order.buy_token as Address,
-    order.owner as Address,
-    BigInt(order.sell_amount),
-    BigInt(order.min_buy_amount),
-    BigInt(Math.floor(new Date(order.start_time).getTime() / 1000)),
-    BigInt(Math.floor(new Date(order.end_time).getTime() / 1000)),
-    (order.polymarket_order_hash ?? ZERO_BYTES32) as Hex,
-    (order.app_data ?? ZERO_BYTES32) as Hex,
-  ] as const;
-
-  if (order.polymarket_maker_amount == null) {
-    return encodeAbiParameters(ORDER_DATA_TUPLE, base);
-  }
-  return encodeAbiParameters(ORDER_DATA_TUPLE_V2, [...base, BigInt(order.polymarket_maker_amount)]);
+export function reconstructStaticInput(order: DatabasePolyswapOrder): Hex {
+  return encodeStaticInput({
+    sellToken: order.sell_token as Address,
+    buyToken: order.buy_token as Address,
+    receiver: order.owner as Address,
+    sellAmount: BigInt(order.sell_amount),
+    minBuyAmount: BigInt(order.min_buy_amount),
+    t0: BigInt(Math.floor(new Date(order.start_time).getTime() / 1000)),
+    t: BigInt(Math.floor(new Date(order.end_time).getTime() / 1000)),
+    polymarketOrderHash: (order.polymarket_order_hash ?? ZERO_BYTES32) as Hex,
+    appData: (order.app_data ?? ZERO_BYTES32) as Hex,
+    polymarketMakerAmount:
+      order.polymarket_maker_amount == null ? null : BigInt(order.polymarket_maker_amount),
+  });
 }
 
 // Explicit deadline → end_time; otherwise expired only once the market is resolved.

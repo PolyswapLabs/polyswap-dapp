@@ -6,7 +6,7 @@ import composableCowAbi from "@/abi/composableCoW.json";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { OrderUidCalculationService } from "@/backend/services/orderUidCalculationService";
 import { getPublicClient } from "../blockchainProvider";
-import { calculateOrderHash, decodeStaticInput } from "../eventDecoder";
+import { calculateOrderHash, decodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
 import type { ConditionalOrderParams } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
 import { activateSentinel } from "@/backend/services/polymarketSentinelService";

@@ -1,3 +1,4 @@
+import { createActionSignatureMessage } from "@/lib/actionSignature";
 import {
   hashMessage,
   recoverMessageAddress,
@@ -35,26 +36,6 @@ interface SignatureVerificationParams {
 interface VerificationResult {
   valid: boolean;
   error?: string;
-}
-
-/**
- * Creates the standardized message that PolySwap clients sign for action
- * authorization (cancel draft, notify-remove, etc.).
- *
- * Format:
- *   PolySwap Action Request
- *   Action: {action}
- *   Order: {orderIdentifier}
- *   Timestamp: {timestamp}
- *   Chain: {chainId}
- */
-export function createSignatureMessage(
-  action: string,
-  orderIdentifier: string,
-  timestamp: number,
-  chainId: number
-): string {
-  return `PolySwap Action Request\nAction: ${action}\nOrder: ${orderIdentifier}\nTimestamp: ${timestamp}\nChain: ${chainId}`;
 }
 
 /** Validates that a timestamp is within the acceptable signing window. */
@@ -123,7 +104,7 @@ export async function verifySignature(
     return { valid: false, error: timestampValidation.error };
   }
 
-  const message = createSignatureMessage(
+  const message = createActionSignatureMessage(
     params.action,
     params.orderIdentifier,
     params.timestamp,
