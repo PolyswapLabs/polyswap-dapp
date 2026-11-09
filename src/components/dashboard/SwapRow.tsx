@@ -5,7 +5,7 @@ import { Dial, Shimmer, Status, Tape, TokenLogo } from "@/components/primitives"
 import { Icon } from "@/components/icons";
 import { fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
 import { useMarket, useMarketPriceHistory } from "@/hooks/markets/useMarkets";
-import type { OrderViewModel } from "@/hooks/useOrders";
+import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 
 interface Props {
   order: OrderViewModel;

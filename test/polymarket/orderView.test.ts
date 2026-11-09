@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { toOrderView } from "../../src/hooks/useOrders";
+import { buildTokenMap, toOrderView } from "../../src/hooks/orders/orderMapper";
 
 type Row = Parameters<typeof toOrderView>[0];
 
@@ -32,4 +32,39 @@ test("a live order still waiting for its trigger is waiting", () => {
 
 test("a filled order stays done even though its trigger fired", () => {
   assert.equal(toOrderView(row("filled", OPENED), new Map()).status, "done");
+});
+
+test("amounts convert to token units using each token's decimals", () => {
+  const tokens = buildTokenMap([
+    {
+      chainId: 137,
+      address: "0x1111111111111111111111111111111111111111",
+      name: "Sell",
+      symbol: "SELL",
+      decimals: 6,
+    },
+    {
+      chainId: 137,
+      address: "0x2222222222222222222222222222222222222222",
+      name: "Buy",
+      symbol: "BUY",
+      decimals: 2,
+    },
+  ]);
+  const filled = {
+    ...row("filled", OPENED),
+    actual_sell_amount: "500000",
+    actual_buy_amount: "250",
+  };
+  const view = toOrderView(filled, tokens);
+  assert.equal(view.sellAmount, 1);
+  assert.equal(view.actualSellAmount, 0.5);
+  assert.equal(view.actualBuyAmount, 2.5);
+});
+
+test("unknown tokens default to 18 decimals and unfilled amounts stay null", () => {
+  const view = toOrderView({ ...row("live", null), sell_amount: "2000000000000000000" }, new Map());
+  assert.equal(view.sellAmount, 2);
+  assert.equal(view.actualSellAmount, null);
+  assert.equal(view.actualBuyAmount, null);
 });
