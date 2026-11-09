@@ -1,3 +1,6 @@
+import { fmtPct } from "@/lib/format";
+import type { Side } from "@/types/design";
+
 export type PostOnlyBuyCheck =
   | { status: "rests"; bestAsk: number | null }
   | { status: "crosses"; bestAsk: number; suggestedMaxPrice: number }
@@ -40,4 +43,24 @@ export function postOnlyCrossingMessage(check: Extract<PostOnlyBuyCheck, { statu
   const bestAskPercent = Math.round(check.bestAsk * 100);
   const suggestedPercent = Math.floor(check.suggestedMaxPrice * 100 + Number.EPSILON);
   return `This threshold would fire immediately: the best available price is ${bestAskPercent}%. Choose ${suggestedPercent}% or less so the order can wait.`;
+}
+
+/** Explains what the chosen threshold will do, given the live order book. */
+export function describePostOnlyStatus(
+  postOnlyEnabled: boolean,
+  check: PostOnlyBuyCheck,
+  side: Side,
+  threshold: number
+): string {
+  if (!postOnlyEnabled) {
+    return "Immediate execution is enabled by the administrator. This order may fire as soon as it is confirmed.";
+  }
+  if (check.status === "crosses") return postOnlyCrossingMessage(check);
+  if (check.status === "unavailable") {
+    return "The live order book is unavailable, so we can't verify that this order will wait.";
+  }
+  const canWait = `Your ${fmtPct(threshold)} trigger can wait on the book.`;
+  return check.bestAsk === null
+    ? `There are no ${side} sell orders right now. ${canWait}`
+    : `The best available ${side} price is ${fmtPct(check.bestAsk)}. ${canWait}`;
 }

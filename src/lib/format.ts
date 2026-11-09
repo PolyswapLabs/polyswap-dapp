@@ -84,3 +84,21 @@ export function fmtPointsAway(current: number, threshold: number): string {
   const pts = Math.abs((threshold - current) * 100);
   return `${pts.toFixed(1)} pts`;
 }
+
+export function fmtRelative(date: Date, now = Date.now()): string {
+  const diff = now - date.getTime();
+  if (diff < 60_000) return "Just now";
+  const min = Math.floor(diff / 60_000);
+  if (min < 60) return `${min}m ago`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}h ago`;
+  const day = Math.floor(hour / 24);
+  if (day < 30) return `${day}d ago`;
+  const month = Math.floor(day / 30);
+  if (month < 12) return `${month}mo ago`;
+  return `${Math.floor(day / 365)}y ago`;
+}
+
+export function formatAddress(address: string): string {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
