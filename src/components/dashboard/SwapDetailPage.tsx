@@ -23,7 +23,7 @@ import { Icon, PolymarketIcon } from "@/components/icons";
 import { fmtDate, fmtNum, fmtPointsAway, fmtPct } from "@/lib/format";
 import { apiService } from "@/services/api";
 import { useOrder, ordersQueryKey } from "@/hooks/useOrders";
-import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
+import { useMarket, useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { useRemoveOrder } from "@/hooks/useRemoveOrder";
 import { useSignAction, type SignedAction } from "@/hooks/useSignAction";
 import { SafeSignModal } from "@/components/modals/SafeSignModal";

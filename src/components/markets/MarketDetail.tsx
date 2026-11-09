@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
+import { useMarket, useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { cn } from "@/lib/cn";
 import {
   buttonVariants,

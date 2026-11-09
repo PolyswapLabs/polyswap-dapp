@@ -8,7 +8,7 @@ import { ThresholdSlider } from "./ThresholdSlider";
 import { TokenPicker } from "./TokenPicker";
 import { AdvancedOptions } from "./AdvancedOptions";
 import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrder";
-import { useMarketPriceHistory } from "@/hooks/useMarketsData";
+import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { useTokens } from "@/hooks/useTokens";
 import { cn } from "@/lib/cn";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";

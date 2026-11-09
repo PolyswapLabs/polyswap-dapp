@@ -9,7 +9,7 @@ import { Pagination } from "./Pagination";
 import { MotionList, MotionItem } from "@/components/primitives";
 import { TransitionLink } from "@/components/layout";
 import { Icon } from "@/components/icons";
-import { useMarketsPage } from "@/hooks/useMarketsData";
+import { useMarketsPage } from "@/hooks/markets/useMarkets";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { capturePostHogEvent } from "@/lib/posthog-client";
 

@@ -8,7 +8,7 @@ import { usePublicClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, DetailSkeleton, ErrorAlert, PageMessage, BackLink } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { useMarket } from "@/hooks/useMarketsData";
+import { useMarket } from "@/hooks/markets/useMarkets";
 import { useCreateOrder, describeSentence, type Slippage } from "@/hooks/useCreateOrder";
 import { useSwapEstimates } from "@/hooks/useSwapEstimates";
 import { useSafeAccount } from "@/hooks/safe/useSafeAccount";

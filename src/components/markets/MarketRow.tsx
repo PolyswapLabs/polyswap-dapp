@@ -5,7 +5,7 @@ import { useInView } from "motion/react";
 import { Tape } from "@/components/primitives";
 import { TransitionLink } from "@/components/layout";
 import { CategoryIcon, Icon } from "@/components/icons";
-import { useMarketPriceHistory } from "@/hooks/useMarketsData";
+import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import type { MarketViewModel } from "@/types/design";
 import { capturePostHogEvent } from "@/lib/posthog-client";
