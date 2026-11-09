@@ -2,6 +2,7 @@ import { decodeEventLog, type Log, type Hex, type Address } from "viem";
 import gpv2Abi from "@/abi/GPV2Settlement.json";
 import { DatabaseService } from "@/backend/services/databaseService";
 import { createLogger } from "@/backend/logger";
+import { isMinedLog } from "@/backend/listener/events";
 
 const log = createLogger("trade");
 
@@ -29,13 +30,7 @@ function decodeLog(log: Log): DecodedTrade | null {
 export async function handleTrade(eventLog: Log): Promise<boolean> {
   const decoded = decodeLog(eventLog);
   if (!decoded) return false;
-  if (
-    eventLog.transactionHash === null ||
-    eventLog.blockNumber === null ||
-    eventLog.logIndex === null
-  ) {
-    return false;
-  }
+  if (!isMinedLog(eventLog)) return false;
 
   const order = await DatabaseService.getPolyswapOrderByUid(decoded.orderUid);
   if (!order) {

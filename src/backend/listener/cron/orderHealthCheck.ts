@@ -12,7 +12,7 @@ import {
   type CowConditionalErrorName,
 } from "@/backend/listener/orderHealth/pollErrors";
 import { DatabaseService } from "@/backend/services/databaseService";
-import { OrderUidCalculationService } from "@/backend/services/orderUidCalculationService";
+import { storeDbOrderUid } from "@/backend/services/orderUidCalculationService";
 import { PolymarketAPIService } from "@/backend/services/polymarketAPIService";
 import composableCowAbi from "@/abi/composableCoW.json";
 import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
@@ -275,14 +275,7 @@ async function ensureOrderUid(order: DatabasePolyswapOrder): Promise<string | nu
   if (order.order_uid) return order.order_uid;
   if (!order.order_hash || !order.handler) return null;
   try {
-    OrderUidCalculationService.initialize(getPublicClient());
-    const data = OrderUidCalculationService.createPolyswapOrderDataFromDbOrder(order);
-    const uid = await OrderUidCalculationService.calculateCompleteOrderUidOnChain(
-      data,
-      order.owner as Address,
-      order.handler as Address
-    );
-    await DatabaseService.updateOrderUid(order.order_hash, uid);
+    const uid = await storeDbOrderUid(getPublicClient(), order, order.order_hash);
     log.info(`recovered missing order_uid ${uid} for order ${order.id}`);
     return uid;
   } catch (err) {
