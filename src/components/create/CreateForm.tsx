@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Tape, ErrorAlert } from "@/components/primitives";
-import { fmtTokenAmount, fmtUSD, fmtPct } from "@/lib/format";
+import { Tape } from "@/components/charts/Tape";
+import { ErrorAlert } from "@/components/primitives";
+import { fmtTokenAmount, fmtUSD } from "@/lib/format";
 import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";
 import { TokenPicker } from "./TokenPicker";
 import { AdvancedOptions } from "./AdvancedOptions";
 import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrder";
 import { useMarketPriceHistory } from "@/hooks/useMarketsData";
-import { useTokens } from "@/hooks/useTokens";
+import { useDefaultTokens } from "@/hooks/useDefaultTokens";
 import { cn } from "@/lib/cn";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
-import type { MarketViewModel, TokenViewModel } from "@/types/design";
-import { postOnlyCrossingMessage, type PostOnlyBuyCheck } from "@/lib/postOnlyOrder";
+import type { MarketViewModel } from "@/types/design";
+import { describePostOnlyStatus, type PostOnlyBuyCheck } from "@/lib/postOnlyOrder";
+import { formatQuoteError } from "@/lib/quoteErrors";
 
 interface Props {
   market: MarketViewModel;
@@ -25,9 +26,6 @@ interface Props {
   set: <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => void;
 }
 
-const DEFAULT_FROM_SYMBOLS = ["USDC", "USDC.e", "USDT", "DAI"] as const;
-const DEFAULT_TO_SYMBOLS = ["WETH", "WBTC", "WPOL"] as const;
-
 export function CreateForm({
   market,
   state,
@@ -37,54 +35,17 @@ export function CreateForm({
   postOnlyCheck,
   set,
 }: Props) {
-  const { data: fetchedTokens = [], isLoading: tokensLoading } = useTokens();
-
-  const tokens = useMemo<TokenViewModel[]>(() => {
-    return fetchedTokens.map<TokenViewModel>((t) => ({
-      symbol: t.symbol,
-      name: t.name,
-      address: t.address as `0x${string}`,
-      decimals: t.decimals,
-      logoURI: t.logoURI,
-    }));
-  }, [fetchedTokens]);
-
-  useEffect(() => {
-    if (tokens.length === 0) return;
-
-    const findBy = (preferred: ReadonlyArray<string>) => {
-      for (const sym of preferred) {
-        const match = tokens.find((t) => t.symbol === sym);
-        if (match) return match;
-      }
-      return undefined;
-    };
-
-    if (state.fromToken === null) {
-      const pick = findBy(DEFAULT_FROM_SYMBOLS) ?? tokens[0];
-      if (pick) set("fromToken", pick);
-    }
-    if (state.toToken === null) {
-      const pick =
-        findBy(DEFAULT_TO_SYMBOLS) ??
-        tokens.find((t) => t.address !== state.fromToken?.address) ??
-        tokens[0];
-      if (pick) set("toToken", pick);
-    }
-  }, [tokens, state.fromToken, state.toToken, set]);
+  const { tokens, isLoading: tokensLoading } = useDefaultTokens(state, set);
 
   const { data: history = [] } = useMarketPriceHistory(market.yesTokenId, 60);
   const yesSparkData = history.map((h) => h.p);
   const sparkData = state.side === "YES" ? yesSparkData : yesSparkData.map((p) => 1 - p);
-  const thresholdMessage = !postOnlyEnabled
-    ? "Immediate execution is enabled by the administrator. This order may fire as soon as it is confirmed."
-    : postOnlyCheck.status === "crosses"
-      ? postOnlyCrossingMessage(postOnlyCheck)
-      : postOnlyCheck.status === "unavailable"
-        ? "The live order book is unavailable, so we can't verify that this order will wait."
-        : postOnlyCheck.bestAsk === null
-          ? `There are no ${state.side} sell orders right now. Your ${fmtPct(state.threshold)} trigger can wait on the book.`
-          : `The best available ${state.side} price is ${fmtPct(postOnlyCheck.bestAsk)}. Your ${fmtPct(state.threshold)} trigger can wait on the book.`;
+  const thresholdMessage = describePostOnlyStatus(
+    postOnlyEnabled,
+    postOnlyCheck,
+    state.side,
+    state.threshold
+  );
   const thresholdBlocked = postOnlyEnabled && postOnlyCheck.status !== "rests";
 
   return (
@@ -189,21 +150,4 @@ function TokenPickerSkeleton({ loading }: { loading: boolean }) {
       {loading ? "Loading tokens…" : "No tokens available"}
     </div>
   );
-}
-
-function formatQuoteError(errorType: string | null, message: string | null): string {
-  switch (errorType) {
-    case "NoLiquidity":
-      return "No liquidity for this pair right now. Pick a different pair.";
-    case "UnsupportedToken":
-      return "CoW Protocol doesn't support one of these tokens. Pick a different pair.";
-    case "SellAmountDoesNotCoverFee":
-      return "The amount is too small to cover network fees. Increase it and try again.";
-    case "InsufficientBalance":
-      return "Your wallet doesn't hold enough of the send token for this swap.";
-    case "InsufficientAllowance":
-      return "Token allowance is too low. Approve the spender and retry.";
-    default:
-      return message ?? "Quote unavailable for this pair.";
-  }
 }

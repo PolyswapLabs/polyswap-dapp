@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import type { Hash } from "viem";
 import { Button, Modal } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { useSafeSignFlow } from "@/hooks/safe/useSafeSignFlow";
+import { useSafeSignModalFlow, type SafeSignPrepare } from "@/hooks/useSafeSignModalFlow";
+import { polygonscanTxUrl } from "@/lib/links";
 import type { SafeCall } from "@/services/safe/types";
 
 type SafeSignModalProps = {
@@ -31,12 +32,22 @@ type SafeSignModalProps = {
    *
    * Heading/body let the caller spell out what the user is signing.
    */
-  prepare?: {
-    run: () => Promise<void>;
-    heading: string;
-    body: string;
-  };
+  prepare?: SafeSignPrepare;
 };
+
+/** Failure screens that offer a retry. Phases without a body show the flow's own message. */
+const TERMINAL_COPY = {
+  prepareFailed: {
+    heading: "Couldn't sign message",
+    body: "Try signing the confirmation message again.",
+  },
+  reverted: {
+    heading: "Transaction reverted",
+    body: "The transaction executed on chain but reverted. No funds moved.",
+  },
+  rejected: { heading: "Cancelled" },
+  error: { heading: "Something went wrong" },
+} as const satisfies Record<string, { heading: string; body?: string }>;
 
 export function SafeSignModal({
   open,
@@ -46,17 +57,11 @@ export function SafeSignModal({
   summary,
   prepare,
 }: SafeSignModalProps) {
-  const { state, send, reset } = useSafeSignFlow();
-  // Local sub-phase tracking the optional pre-tx signing step. Kept separate
-  // from useSafeSignFlow's transaction state so it can wrap around it without
-  // changing the on-chain tx machine.
-  const [prePhase, setPrePhase] = useState<"idle" | "running" | "ready" | "error">("idle");
-  const [prepareError, setPrepareError] = useState<string | null>(null);
-  // React state is not a synchronous mutex: two clicks can observe the same
-  // `prePhase` before the component renders again. Keep an imperative guard so
-  // neither the off-chain signature nor the Safe transaction can be requested
-  // twice.
-  const actionInFlightRef = useRef(false);
+  const { state, prePhase, prepareError, startPrepare, startTransaction } = useSafeSignModalFlow(
+    prepare,
+    calls,
+    open
+  );
 
   // Hold the latest onConfirmed in a ref so we can fire it exactly once on
   // success without putting it in the deps (which would re-run the effect on
@@ -72,57 +77,80 @@ export function SafeSignModal({
     }
   }, [state]);
 
-  // On modal close: clean up state ONLY for terminal phases. Mid-flight closes
-  // leave the persisted safeTxHash so a tab reload (or future modal open) can
-  // resume tracking. The user's tx is still on its way.
-  useEffect(() => {
-    if (
-      !open &&
-      (state.phase === "success" ||
-        state.phase === "reverted" ||
-        state.phase === "rejected" ||
-        state.phase === "error")
-    ) {
-      reset();
-      actionInFlightRef.current = false;
-      setPrePhase("idle");
-      setPrepareError(null);
+  const sendTransaction = () => void startTransaction();
+
+  const renderStep = () => {
+    if (prePhase === "running" && prepare) {
+      return <PendingScreen heading={prepare.heading} body={prepare.body} />;
     }
-  }, [open, state.phase, reset]);
-
-  const startPrepare = async () => {
-    if (actionInFlightRef.current) return;
-
-    if (!prepare) {
-      await startTransaction();
-      return;
+    if (prePhase === "error") {
+      return (
+        <ErrorScreen
+          heading={TERMINAL_COPY.prepareFailed.heading}
+          body={prepareError ?? TERMINAL_COPY.prepareFailed.body}
+          onClose={onClose}
+          onRetry={() => void startPrepare()}
+        />
+      );
     }
 
-    actionInFlightRef.current = true;
-    setPrePhase("running");
-    setPrepareError(null);
-    try {
-      await prepare.run();
-      // Do not open a second wallet request while Safe is still dismissing the
-      // message-signing request. A separate user action starts the transaction.
-      setPrePhase("ready");
-    } catch (e) {
-      setPrePhase("error");
-      setPrepareError(e instanceof Error ? e.message : "Failed to sign confirmation message");
-    } finally {
-      actionInFlightRef.current = false;
-    }
-  };
-
-  const startTransaction = async () => {
-    if (actionInFlightRef.current) return;
-
-    actionInFlightRef.current = true;
-    setPrePhase("idle");
-    try {
-      await send(calls);
-    } finally {
-      actionInFlightRef.current = false;
+    switch (state.phase) {
+      case "idle":
+        if (prePhase === "ready") {
+          return <MessageSignedScreen onClose={onClose} onContinue={sendTransaction} />;
+        }
+        return prePhase === "idle" ? (
+          <ReviewScreen
+            summary={summary}
+            continueLabel={prepare ? "Sign authorisation" : "Approve & sign"}
+            onClose={onClose}
+            onContinue={() => void startPrepare()}
+          />
+        ) : null;
+      case "wallet":
+        return (
+          <PendingScreen
+            heading="Open your Safe wallet"
+            body="Confirm the transaction in Safe{Wallet} or your connected signer."
+          />
+        );
+      case "proposed":
+        return <PendingScreen heading="Submitting…" body="Safe is preparing the transaction." />;
+      case "awaitingSignatures":
+        return (
+          <PendingScreen
+            heading={`Awaiting signatures (${state.have}/${state.need})`}
+            body="Other Safe owners need to sign before this can execute."
+          />
+        );
+      case "awaitingExecution":
+        return (
+          <PendingScreen
+            heading="Confirming on chain…"
+            body="Your signature is in. Waiting for the network to include the transaction."
+          />
+        );
+      case "success":
+        return <SuccessScreen onChainHash={state.onChainHash} onClose={onClose} />;
+      case "reverted":
+        return (
+          <ErrorScreen
+            {...TERMINAL_COPY.reverted}
+            detail={`On-chain hash: ${state.onChainHash}`}
+            onClose={onClose}
+            onRetry={sendTransaction}
+          />
+        );
+      case "rejected":
+      case "error":
+        return (
+          <ErrorScreen
+            heading={TERMINAL_COPY[state.phase].heading}
+            body={state.message}
+            onClose={onClose}
+            onRetry={sendTransaction}
+          />
+        );
     }
   };
 
@@ -135,163 +163,113 @@ export function SafeSignModal({
       hideClose
       staticDismiss
     >
-      <div className="p-5 sm:p-6">
-        {/* idle — review screen (suppressed while a pre-tx step is running or failed) */}
-        {state.phase === "idle" && prePhase === "idle" && (
-          <div className="space-y-5">
-            {summary && (
-              <div className="border-b border-ink pb-4 font-serif text-lg leading-snug italic">
-                {summary}
-              </div>
-            )}
-            <p className="text-sm text-ink-2">
-              This will send a single Safe transaction. You&rsquo;ll be asked to confirm it in your
-              connected signer.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button variant="ghost" size="md" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button variant="accent" size="md" onClick={() => void startPrepare()}>
-                {prepare ? "Sign authorisation" : "Approve & sign"}
-                <Icon.arrowRight size={14} aria-hidden />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* preparing — pre-tx signature step (optional) */}
-        {prePhase === "running" && prepare && (
-          <PendingScreen heading={prepare.heading} body={prepare.body} />
-        )}
-
-        {/* prepared — wait for an explicit second action before opening Safe */}
-        {state.phase === "idle" && prePhase === "ready" && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <DrawnCheck />
-              <div role="status" aria-live="polite">
-                <p className="font-serif text-2xl">Message signed.</p>
-                <p className="text-sm text-ink-2">
-                  Now open Safe to approve the on-chain transaction.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button variant="ghost" size="md" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button variant="accent" size="md" onClick={() => void startTransaction()}>
-                Open Safe transaction
-                <Icon.arrowRight size={14} aria-hidden />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* prepare error — surface and let user retry */}
-        {prePhase === "error" && (
-          <ErrorScreen
-            heading="Couldn't sign message"
-            body={prepareError ?? "Try signing the confirmation message again."}
-            onClose={onClose}
-            onRetry={() => void startPrepare()}
-          />
-        )}
-
-        {/* wallet — waiting for signer */}
-        {state.phase === "wallet" && (
-          <PendingScreen
-            heading="Open your Safe wallet"
-            body="Confirm the transaction in Safe{Wallet} or your connected signer."
-          />
-        )}
-
-        {/* proposed — submitted, Safe is preparing */}
-        {state.phase === "proposed" && (
-          <PendingScreen heading="Submitting…" body="Safe is preparing the transaction." />
-        )}
-
-        {/* awaitingSignatures — multi-sig waiting for co-signers */}
-        {state.phase === "awaitingSignatures" && (
-          <PendingScreen
-            heading={`Awaiting signatures (${state.have}/${state.need})`}
-            body="Other Safe owners need to sign before this can execute."
-          />
-        )}
-
-        {/* awaitingExecution — signed, waiting for on-chain inclusion */}
-        {state.phase === "awaitingExecution" && (
-          <PendingScreen
-            heading="Confirming on chain…"
-            body="Your signature is in. Waiting for the network to include the transaction."
-          />
-        )}
-
-        {/* success */}
-        {state.phase === "success" && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <DrawnCheck />
-              <div role="status" aria-live="polite">
-                <p className="font-serif text-2xl">Done.</p>
-              </div>
-            </div>
-            <p className="text-sm text-ink-2">Your transaction is on chain.</p>
-            {/* TODO: derive block-explorer URL from chain config when multi-network support lands */}
-            <a
-              href={`https://polygonscan.com/tx/${state.onChainHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm underline underline-offset-2 hover:text-ink-2"
-            >
-              View on Polygonscan
-              <Icon.arrowUpRight size={12} aria-hidden />
-            </a>
-            <div className="flex justify-end">
-              <Button variant="ghost" size="md" onClick={onClose}>
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* reverted */}
-        {state.phase === "reverted" && (
-          <ErrorScreen
-            heading="Transaction reverted"
-            body="The transaction executed on chain but reverted. No funds moved."
-            detail={`On-chain hash: ${state.onChainHash}`}
-            onClose={onClose}
-            onRetry={() => void startTransaction()}
-          />
-        )}
-
-        {/* rejected */}
-        {state.phase === "rejected" && (
-          <ErrorScreen
-            heading="Cancelled"
-            body={state.message}
-            onClose={onClose}
-            onRetry={() => void startTransaction()}
-          />
-        )}
-
-        {/* error */}
-        {state.phase === "error" && (
-          <ErrorScreen
-            heading="Something went wrong"
-            body={state.message}
-            onClose={onClose}
-            onRetry={() => void startTransaction()}
-          />
-        )}
-      </div>
+      <div className="p-5 sm:p-6">{renderStep()}</div>
     </Modal>
   );
 }
 
-// Sub-components
+function ScreenActions({
+  onClose,
+  onContinue,
+  continueLabel,
+}: {
+  onClose: () => void;
+  onContinue: () => void;
+  continueLabel: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Button variant="ghost" size="md" onClick={onClose}>
+        Cancel
+      </Button>
+      <Button variant="accent" size="md" onClick={onContinue}>
+        {continueLabel}
+        <Icon.arrowRight size={14} aria-hidden />
+      </Button>
+    </div>
+  );
+}
+
+function ReviewScreen({
+  summary,
+  continueLabel,
+  onClose,
+  onContinue,
+}: {
+  summary: ReactNode;
+  continueLabel: string;
+  onClose: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      {summary && (
+        <div className="border-b border-ink pb-4 font-serif text-lg leading-snug italic">
+          {summary}
+        </div>
+      )}
+      <p className="text-sm text-ink-2">
+        This will send a single Safe transaction. You&rsquo;ll be asked to confirm it in your
+        connected signer.
+      </p>
+      <ScreenActions onClose={onClose} onContinue={onContinue} continueLabel={continueLabel} />
+    </div>
+  );
+}
+
+function MessageSignedScreen({
+  onClose,
+  onContinue,
+}: {
+  onClose: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <DrawnCheck />
+        <div role="status" aria-live="polite">
+          <p className="font-serif text-2xl">Message signed.</p>
+          <p className="text-sm text-ink-2">Now open Safe to approve the on-chain transaction.</p>
+        </div>
+      </div>
+      <ScreenActions
+        onClose={onClose}
+        onContinue={onContinue}
+        continueLabel="Open Safe transaction"
+      />
+    </div>
+  );
+}
+
+function SuccessScreen({ onChainHash, onClose }: { onChainHash: Hash; onClose: () => void }) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <DrawnCheck />
+        <div role="status" aria-live="polite">
+          <p className="font-serif text-2xl">Done.</p>
+        </div>
+      </div>
+      <p className="text-sm text-ink-2">Your transaction is on chain.</p>
+      {/* TODO: derive block-explorer URL from chain config when multi-network support lands */}
+      <a
+        href={polygonscanTxUrl(onChainHash)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-sm underline underline-offset-2 hover:text-ink-2"
+      >
+        View on Polygonscan
+        <Icon.arrowUpRight size={12} aria-hidden />
+      </a>
+      <div className="flex justify-end">
+        <Button variant="ghost" size="md" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function PendingScreen({ heading, body }: { heading: string; body: string }) {
   return (

@@ -4,6 +4,6 @@ export { PortfolioStrip } from "./PortfolioStrip";
 export { StatusTabs } from "./StatusTabs";
 export type { DashboardTab } from "./StatusTabs";
 export { SwapRow } from "./SwapRow";
-export { EmptyState } from "./EmptyState";
+export { ConnectWalletPrompt, NoSwapsYet } from "./EmptyStates";
 export { Timeline } from "./Timeline";
 export { DashboardSkeleton } from "./DashboardSkeleton";

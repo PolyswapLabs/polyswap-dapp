@@ -1,6 +1,3 @@
-export { Tape } from "./Tape";
-export { Dial } from "./Dial";
-export { Status } from "./Status";
 export { Tag } from "./Tag";
 export { Button, buttonVariants } from "./Button";
 export { TokenLogo } from "./TokenLogo";
@@ -8,8 +5,6 @@ export { Stamp } from "./Stamp";
 export { Modal } from "./Modal";
 export { Shimmer } from "./Shimmer";
 export { DetailSkeleton } from "./DetailSkeleton";
-export { CountUp } from "./CountUp";
 export { MotionList, MotionItem } from "./MotionList";
-export { Reveal, RevealStack, RevealItem } from "./Reveal";
 export { InfoTip } from "./InfoTip";
 export { BackLink, DefinitionRow, ErrorAlert, OddsAxis, PageMessage } from "./PageBlocks";

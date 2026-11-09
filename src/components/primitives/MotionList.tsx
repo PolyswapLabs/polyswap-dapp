@@ -2,22 +2,10 @@
 
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { springInVariants, staggerVariants } from "@/lib/motion";
 
-const containerVariants = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05 },
-  },
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 8 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 220, damping: 30 },
-  },
-} as const;
+const containerVariants = staggerVariants(0.05);
+const itemVariants = springInVariants({ y: 8 }, 220);
 
 interface ListProps {
   children: ReactNode;

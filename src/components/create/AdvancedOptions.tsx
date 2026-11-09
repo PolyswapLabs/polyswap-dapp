@@ -4,18 +4,13 @@ import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { InfoTip } from "@/components/primitives";
 import { cn } from "@/lib/cn";
-import type { CreateFormState, Expiry } from "@/hooks/useCreateOrder";
+import { EXPIRY_OPTIONS } from "@/lib/createOrder";
+import type { CreateFormState } from "@/hooks/useCreateOrder";
 
 interface Props {
   state: Pick<CreateFormState, "expiry" | "slippagePct">;
   onChange: <K extends "expiry" | "slippagePct">(key: K, value: CreateFormState[K]) => void;
 }
-
-const EXPIRIES: { value: Expiry; label: string }[] = [
-  { value: "7d", label: "7 days" },
-  { value: "30d", label: "30 days" },
-  { value: "until-resolution", label: "Until market resolves" },
-];
 
 type SlippageOption = { value: "auto" | number; label: string };
 const SLIPPAGE_OPTIONS: SlippageOption[] = [
@@ -47,7 +42,7 @@ export function AdvancedOptions({ state, onChange }: Props) {
           <div>
             <p className="text-xs text-ink-3">Cancel automatically after</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {EXPIRIES.map((e) => {
+              {EXPIRY_OPTIONS.map((e) => {
                 const active = state.expiry === e.value;
                 return (
                   <button

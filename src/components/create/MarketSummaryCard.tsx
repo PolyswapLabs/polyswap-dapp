@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Dial, Tag } from "@/components/primitives";
+import { Dial } from "@/components/charts/Dial";
+import { Tag } from "@/components/primitives";
 import { CategoryIcon } from "@/components/icons";
 import { fmtDate } from "@/lib/format";
 import type { MarketViewModel } from "@/types/design";

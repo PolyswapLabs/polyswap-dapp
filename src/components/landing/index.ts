@@ -7,3 +7,4 @@ export { Guarantees } from "./Guarantees";
 export { PullQuote } from "./PullQuote";
 export { FAQ } from "./FAQ";
 export { FinalCTA } from "./FinalCTA";
+export { Reveal } from "./Reveal";

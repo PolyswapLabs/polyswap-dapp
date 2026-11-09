@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import { useInView } from "motion/react";
-import { Tape } from "@/components/primitives";
+import { Tape } from "@/components/charts/Tape";
+import { marketTitleTransitionName } from "@/lib/links";
 import { TransitionLink } from "@/components/layout";
 import { CategoryIcon, Icon } from "@/components/icons";
 import { useMarketPriceHistory } from "@/hooks/useMarketsData";
@@ -66,7 +67,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
   const yesValue = market.yesProbability * 100;
   const yesPct = yesValue % 1 === 0 ? yesValue.toFixed(0) : yesValue.toFixed(1);
   const category = displayCategory ?? market.category;
-  const titleVTName = `market-title-${market.id}`;
+  const titleVTName = marketTitleTransitionName(market.id);
   const volume = market.volume24h ?? market.volumeTotal;
   const volumeLabel = market.volume24h === null ? "total vol" : "24h vol";
 

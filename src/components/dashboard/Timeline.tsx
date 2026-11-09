@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { fmtDateTime, fmtDuration, fmtPct } from "@/lib/format";
+import { EDITORIAL_EASE, springInVariants, staggerVariants } from "@/lib/motion";
 import type { OrderViewModel } from "@/hooks/useOrders";
 
 interface Step {
@@ -84,19 +85,8 @@ function buildSteps(order: OrderViewModel): Step[] {
   return steps;
 }
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -10 },
-  show: {
-    opacity: 1,
-    x: 0,
-    transition: { type: "spring" as const, stiffness: 240, damping: 30 },
-  },
-} as const;
+const containerVariants = staggerVariants(0.08);
+const itemVariants = springInVariants({ x: -10 }, 240);
 
 export function Timeline({ order }: { order: OrderViewModel }) {
   const steps = buildSteps(order);
@@ -125,7 +115,7 @@ export function Timeline({ order }: { order: OrderViewModel }) {
                 transition={{
                   duration: 0.4,
                   delay: 0.08 * i + 0.1,
-                  ease: [0.16, 1, 0.3, 1],
+                  ease: EDITORIAL_EASE,
                 }}
               />
             )}

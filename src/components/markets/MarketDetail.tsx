@@ -4,12 +4,12 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
 import { cn } from "@/lib/cn";
+import { Dial } from "@/components/charts/Dial";
+import { Tape } from "@/components/charts/Tape";
 import {
   buttonVariants,
   DetailSkeleton,
   Tag,
-  Tape,
-  Dial,
   PageMessage,
   BackLink,
   OddsAxis,
@@ -17,30 +17,32 @@ import {
 import { CategoryIcon, Icon, PolymarketIcon } from "@/components/icons";
 import { fmtUSD, fmtDate } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { marketTitleTransitionName, polymarketEventUrl } from "@/lib/links";
 import { capturePostHogEvent } from "@/lib/posthog-client";
+import { DAY_SECONDS } from "@/lib/time";
 
 interface Props {
-  identifier: string;
+  marketIdOrSlug: string;
 }
 
-export function MarketDetail({ identifier }: Props) {
+export function MarketDetail({ marketIdOrSlug }: Props) {
   const lastTrackedMarket = useRef<string | null>(null);
   // `track: true` opts this fetch into server-side view counting — handled
   // inside GET /api/markets/[slug] when `?track=1` is set. Keeps tracking
   // tied to the existing market lookup instead of a dedicated /view route.
-  const { data, isLoading, isError, error } = useMarket(identifier, { track: true });
-  const { data: history = [] } = useMarketPriceHistory(data?.yesTokenId, 60);
+  const { data: market, isLoading, isError, error } = useMarket(marketIdOrSlug, { track: true });
+  const { data: history = [] } = useMarketPriceHistory(market?.yesTokenId, 60);
 
   useEffect(() => {
-    if (!data || lastTrackedMarket.current === data.id) return;
-    lastTrackedMarket.current = data.id;
-    capturePostHogEvent("market_viewed", { market_id: data.id, category: data.category });
-  }, [data]);
+    if (!market || lastTrackedMarket.current === market.id) return;
+    lastTrackedMarket.current = market.id;
+    capturePostHogEvent("market_viewed", { market_id: market.id, category: market.category });
+  }, [market]);
 
   if (isLoading) {
     return <DetailSkeleton />;
   }
-  if (isError || !data) {
+  if (isError || !market) {
     return (
       <PageMessage>
         {isError
@@ -54,7 +56,7 @@ export function MarketDetail({ identifier }: Props) {
     );
   }
 
-  const yesPct = Math.round(data.yesProbability * 100);
+  const yesPct = Math.round(market.yesProbability * 100);
 
   // If the trade history spans fewer than 60 days the market was likely
   // created recently — say so instead of pretending it's a 60-day window.
@@ -62,7 +64,7 @@ export function MarketDetail({ identifier }: Props) {
   const chartRangeLabel =
     history.length < 2
       ? "no history yet"
-      : spanSeconds >= 60 * 86400
+      : spanSeconds >= 60 * DAY_SECONDS
         ? "last 60 days"
         : "since market creation";
 
@@ -72,20 +74,20 @@ export function MarketDetail({ identifier }: Props) {
         <BackLink href="/markets">Back to markets</BackLink>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Tag tone="ink">
-            <CategoryIcon category={data.category} size={12} />
-            {data.category}
+            <CategoryIcon category={market.category} size={12} />
+            {market.category}
           </Tag>
-          <span className="text-xs text-ink-3">Ends {fmtDate(data.endsAt)}</span>
+          <span className="text-xs text-ink-3">Ends {fmtDate(market.endsAt)}</span>
         </div>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4 lg:mt-5">
           <h1
             className="max-w-[820px] font-serif text-3xl leading-[1.1] sm:text-4xl lg:text-[44px]"
-            style={{ viewTransitionName: `market-title-${data.id}` }}
+            style={{ viewTransitionName: marketTitleTransitionName(market.id) }}
           >
-            {data.question}
+            {market.question}
           </h1>
           <a
-            href={`https://polymarket.com/event/${data.eventSlug ?? data.slug}`}
+            href={polymarketEventUrl(market)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-1 inline-flex shrink-0 items-center gap-2 border border-ink bg-paper px-3 py-2 text-sm text-ink transition-colors hover:bg-paper-2"
@@ -104,10 +106,10 @@ export function MarketDetail({ identifier }: Props) {
           <div className="grid grid-cols-3 border border-ink">
             <Stat label="Current YES odds" value={`${yesPct}%`} accent />
             <Stat
-              label={data.volume24h === null ? "Total volume" : "24h volume"}
-              value={fmtUSD(data.volume24h ?? data.volumeTotal, { compact: true })}
+              label={market.volume24h === null ? "Total volume" : "24h volume"}
+              value={fmtUSD(market.volume24h ?? market.volumeTotal, { compact: true })}
             />
-            <Stat label="Resolves" value={fmtDate(data.endsAt)} />
+            <Stat label="Resolves" value={fmtDate(market.endsAt)} />
           </div>
 
           {/* Chart */}
@@ -144,7 +146,7 @@ export function MarketDetail({ identifier }: Props) {
             <p className="eyebrow mb-3">How it resolves</p>
             <p className="max-w-[640px] font-serif text-base leading-relaxed text-ink-2 lg:text-lg">
               This market resolves on Polymarket. Polyswap reads the same odds you see there. If you
-              set a swap and the YES odds cross your threshold before {fmtDate(data.endsAt)}, your
+              set a swap and the YES odds cross your threshold before {fmtDate(market.endsAt)}, your
               swap fires. Otherwise it expires and your tokens stay where they are.
             </p>
           </section>
@@ -155,7 +157,7 @@ export function MarketDetail({ identifier }: Props) {
           <div className="lg:sticky lg:top-6 lg:space-y-6">
             <div className="border border-ink bg-paper-2 p-6">
               <div className="flex items-center gap-4">
-                <Dial current={data.yesProbability} threshold={1} side="YES" size={64} animate />
+                <Dial current={market.yesProbability} threshold={1} side="YES" size={64} animate />
                 <div>
                   <p className="num text-2xl font-semibold">{yesPct}%</p>
                   <p className="text-xs text-ink-3">YES today</p>
@@ -165,7 +167,7 @@ export function MarketDetail({ identifier }: Props) {
                 Set a swap that fires only when this question crosses your line.
               </p>
               <Link
-                href={`/create/${data.id}`}
+                href={`/create/${market.id}`}
                 className={cn(buttonVariants({ variant: "accent", size: "lg" }), "mt-5")}
               >
                 Set up a swap
