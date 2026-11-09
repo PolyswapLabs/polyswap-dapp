@@ -1,5 +1,5 @@
 import { storeDbOrderUid } from "@/backend/services/orderUidCalculationService";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { getPublicClient } from "@/backend/rpc/clients";
 import { createLogger } from "@/backend/logger";
 
@@ -13,7 +13,7 @@ const log = createLogger("backfill-uids");
 export async function backfillOrderUids(): Promise<void> {
   const client = getPublicClient();
 
-  const ordersWithoutUid = await DatabaseService.getLiveOrdersWithoutUid();
+  const ordersWithoutUid = await orderRepository.getLiveOrdersWithoutUid();
   if (ordersWithoutUid.length === 0) {
     log.debug("nothing to backfill");
     return;

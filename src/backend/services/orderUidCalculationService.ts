@@ -10,7 +10,7 @@ import {
   type DatabasePolyswapOrder,
   type PolyswapOrderData,
 } from "@/backend/interfaces/PolyswapOrder";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { ORDER_DATA_LAYOUT, ORDER_DATA_LAYOUT_V2 } from "@/backend/utils/conditionalOrderCodec";
 
 const getOrderHashAbi = (components: readonly { name: string; type: string }[]) =>
@@ -116,7 +116,7 @@ interface OrderUidSource {
 /** Computes the UID and saves it on the order row. Both fill-detection paths look orders up by it. */
 export async function storeOrderUid(client: PublicClient, source: OrderUidSource): Promise<Hex> {
   const uid = await calculateOrderUidOnChain(client, source.data, source.owner, source.handler);
-  await DatabaseService.updateOrderUid(source.orderHash, uid);
+  await orderRepository.updateOrderUid(source.orderHash, uid);
   return uid;
 }
 

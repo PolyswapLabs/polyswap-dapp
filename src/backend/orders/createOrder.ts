@@ -9,7 +9,8 @@ import { createLogger } from "@/backend/logger";
 import type { CreateOrderInput } from "@/backend/orders/createOrderRequest";
 import { getPolyswapHandlerAddress } from "@/backend/polymarket/config";
 import { CowAppDataService } from "@/backend/services/cowAppDataService";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { marketRepository } from "@/backend/db/marketRepository";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { getOrCreateSentinel } from "@/backend/services/polymarketSentinelService";
 import { getClobAvailability } from "@/backend/services/polymarketStatusService";
 import { buildFallbackHandlerSetupTx } from "@/backend/services/safeFallbackHandlerService";
@@ -58,7 +59,7 @@ interface OrderPlan {
 }
 
 async function loadMarket(marketId: string): Promise<DatabaseMarket> {
-  const market = await DatabaseService.getMarketById(marketId);
+  const market = await marketRepository.getMarketById(marketId);
   if (market) return market;
   reject({
     status: 404,
@@ -263,7 +264,7 @@ async function saveDraftOrder(
 ): Promise<number> {
   const { input, deadline, explicitDeadline } = plan;
   try {
-    return await DatabaseService.insertPolyswapOrderFromForm({
+    return await orderRepository.insertPolyswapOrderFromForm({
       orderHash,
       handler: params.handler,
       sellToken: input.sellToken,

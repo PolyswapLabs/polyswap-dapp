@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { authenticateOrderAction } from "@/backend/orders/orderActionAuth";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       });
     }
 
-    const order = await DatabaseService.getPolyswapOrderById(orderId);
+    const order = await orderRepository.getPolyswapOrderById(orderId);
     if (!order) {
       return apiError({
         status: 404,
@@ -122,7 +122,7 @@ export async function DELETE(
     if ("response" in auth) return auth.response;
     const { orderId, order } = auth;
 
-    await DatabaseService.deletePolyswapOrderById(orderId);
+    await orderRepository.deletePolyswapOrderById(orderId);
 
     const posthog = getPostHogClient();
     posthog.capture({

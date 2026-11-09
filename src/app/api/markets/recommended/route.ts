@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { marketSearch } from "@/backend/db/marketSearch";
 import {
   createMarketRecommendationService,
   RecommendationUnavailableError,
@@ -9,7 +9,7 @@ import { createApiErrorResponder } from "@/lib/apiError";
 
 const apiError = createApiErrorResponder("api-market-recommendations");
 const recommendations = createMarketRecommendationService({
-  loadCandidates: (category) => DatabaseService.getRecommendationCandidates(category),
+  loadCandidates: (category) => marketSearch.getRecommendationCandidates(category),
 });
 
 /**

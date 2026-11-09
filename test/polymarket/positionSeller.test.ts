@@ -15,7 +15,7 @@ process.env.ENVIRONMENT = "local";
 const { getPolymarketContracts } = await import("../../src/backend/polymarket/config");
 const { PolymarketDataClient } = await import("../../src/backend/polymarket/data");
 const { PolymarketInventory } = await import("../../src/backend/polymarket/inventory");
-const { DatabaseService } = await import("../../src/backend/services/databaseService");
+const { orderRepository } = await import("../../src/backend/db/orderRepository");
 const { computeSellPrice, PolymarketPositionSellerService: Seller } =
   await import("../../src/backend/services/polymarketPositionSellerService");
 const { PolymarketOrderService } =
@@ -112,9 +112,9 @@ const tradeLog = {
 } as unknown as Log;
 
 function mockTrackedOrder(t: TestContext, tracked: boolean) {
-  t.mock.method(DatabaseService, "getPolyswapOrderByUid", (async () =>
+  t.mock.method(orderRepository, "getPolyswapOrderByUid", (async () =>
     tracked ? { id: 7 } : null) as never);
-  return t.mock.method(DatabaseService, "updateOrderStatusById", (async () => true) as never);
+  return t.mock.method(orderRepository, "updateOrderStatusById", (async () => true) as never);
 }
 
 test("someone else's CoW trade does not start a sell", async (t) => {
@@ -138,7 +138,7 @@ test("my own CoW trade is recorded and then starts a sell", async (t) => {
 });
 
 test("a DB failure on a live trade is contained and starts no sell", async (t) => {
-  t.mock.method(DatabaseService, "getPolyswapOrderByUid", (async () => {
+  t.mock.method(orderRepository, "getPolyswapOrderByUid", (async () => {
     throw new Error("connection terminated");
   }) as never);
   const sell = t.mock.fn(async () => {});
@@ -149,7 +149,7 @@ test("a DB failure on a live trade is contained and starts no sell", async (t) =
 });
 
 test("catch-up still sees a trade failure, so it cannot save a block past it", async (t) => {
-  t.mock.method(DatabaseService, "getPolyswapOrderByUid", (async () => {
+  t.mock.method(orderRepository, "getPolyswapOrderByUid", (async () => {
     throw new Error("connection terminated");
   }) as never);
 
@@ -336,7 +336,7 @@ async function sellHarness(t: TestContext, stubs: StubPosition[]) {
   const post = t.mock.method(h.service, "postGTCOrder", (async () => ({
     response: { orderId: "order-1" },
   })) as never);
-  const record = t.mock.method(DatabaseService, "recordSoldPosition", (async () => 1) as never);
+  const record = t.mock.method(orderRepository, "recordSoldPosition", (async () => 1) as never);
   const seller = Seller as unknown as { inventory: unknown };
   const previous = seller.inventory;
   seller.inventory = {

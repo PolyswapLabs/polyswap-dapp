@@ -3,7 +3,7 @@ import { getPublicClient } from "@/backend/rpc/clients";
 import { handleConditionalOrderCreated } from "@/backend/listener/handlers/conditionalOrderCreated";
 import { handleTrade } from "@/backend/listener/handlers/trade";
 import { handleOrderInvalidated } from "@/backend/listener/handlers/orderInvalidated";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { listenerCursor } from "@/backend/db/listenerCursor";
 import { createLogger } from "@/backend/logger";
 import { requireAddress } from "@/backend/utils/env";
 import {
@@ -32,7 +32,7 @@ export async function catchupHistoricalEvents(options: EventHandlingOptions = {}
 
   const client = getPublicClient();
 
-  const dbCursor = BigInt(await DatabaseService.getLatestProcessedBlock());
+  const dbCursor = BigInt(await listenerCursor.getLatestProcessedBlock());
   const head = await client.getBlockNumber();
 
   const fromBlock = dbCursor > startingBlock ? dbCursor + 1n : startingBlock;
@@ -78,7 +78,7 @@ export async function catchupHistoricalEvents(options: EventHandlingOptions = {}
     for (const entry of tradeLogs) await handleTrade(entry as Log);
     for (const entry of invalidatedLogs) await handleOrderInvalidated(entry as Log);
 
-    await DatabaseService.setLatestProcessedBlock(Number(windowEnd));
+    await listenerCursor.setLatestProcessedBlock(Number(windowEnd));
   }
   log.info(`catch-up complete; cursor at block ${head}`);
 }

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
 
@@ -73,7 +73,7 @@ export async function GET(
     const limitNum = Math.min(parseInt(limit) || 100, 500);
     const offsetNum = Math.max(parseInt(offset) || 0, 0);
 
-    const orders = await DatabaseService.getPolyswapOrdersByOwner(owner, limitNum, offsetNum);
+    const orders = await orderRepository.getPolyswapOrdersByOwner(owner, limitNum, offsetNum);
 
     return NextResponse.json({
       success: true,

@@ -2,7 +2,7 @@ import { fetchNegRisk, updateBalanceAllowance } from "@polymarket/client/actions
 import type { SecureClient } from "@polymarket/client";
 import type { Address } from "viem";
 import { getPolymarketOrderService, type PolymarketOrderService } from "./polymarketOrderService";
-import { DatabaseService } from "./databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { createLogger } from "../logger";
 import {
   PolymarketInventory,
@@ -192,7 +192,7 @@ export class PolymarketPositionSellerService {
   private static async recordSale(position: InventoryPosition, sale: PlacedSale): Promise<void> {
     const { assetId, protocolVersion, metadata } = position;
     try {
-      await DatabaseService.recordSoldPosition({
+      await orderRepository.recordSoldPosition({
         assetId,
         conditionId: metadata?.conditionId ?? sale.bookConditionId,
         protocolVersion,

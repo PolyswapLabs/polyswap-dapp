@@ -6,7 +6,7 @@ import { type EventHandlingOptions, isMinedLog, type MinedLog } from "@/backend/
 import { createLogger } from "@/backend/logger";
 import { getAcceptedPolyswapHandlers } from "@/backend/polymarket/config";
 import { getPublicClient } from "@/backend/rpc/clients";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { storeOrderUid } from "@/backend/services/orderUidCalculationService";
 import { activateSentinel } from "@/backend/services/polymarketSentinelService";
 import { calculateOrderHash, decodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
@@ -24,7 +24,7 @@ interface AcceptedOrder extends DecodedConditionalOrderCreated {
   data: PolyswapOrderData;
 }
 
-type PersistedOrder = Awaited<ReturnType<typeof DatabaseService.upsertLiveOrderFromEvent>>;
+type PersistedOrder = Awaited<ReturnType<typeof orderRepository.upsertLiveOrderFromEvent>>;
 
 function decodeLog(log: Log): DecodedConditionalOrderCreated | null {
   const decoded = decodeEventLog({
@@ -83,7 +83,7 @@ async function persistLiveOrder(
   eventLog: MinedLog
 ): Promise<PersistedOrder | null> {
   try {
-    const persisted = await DatabaseService.upsertLiveOrderFromEvent({
+    const persisted = await orderRepository.upsertLiveOrderFromEvent({
       owner: order.owner,
       orderHash: order.orderHash,
       handler: order.params.handler,

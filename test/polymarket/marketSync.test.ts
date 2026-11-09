@@ -7,8 +7,9 @@ import { after, before, beforeEach, test, type TestContext } from "node:test";
 import { pathToFileURL } from "node:url";
 import { Prisma } from "@prisma/client";
 import type { prisma as PrismaClient } from "../../src/backend/db/prisma";
+import type { marketRepository as marketRepositoryType } from "../../src/backend/db/marketRepository";
+import type { orderRepository as orderRepositoryType } from "../../src/backend/db/orderRepository";
 import type { Market } from "../../src/backend/interfaces/Market";
-import type { DatabaseService as DatabaseServiceType } from "../../src/backend/services/databaseService";
 import type { MarketUpdateService as MarketUpdateServiceType } from "../../src/backend/services/marketUpdateService";
 import type { PolymarketAPIService as PolymarketAPIServiceType } from "../../src/backend/services/polymarketAPIService";
 import { diffMarkets, type StoredMarket } from "../../src/backend/services/marketSyncDiff";
@@ -123,7 +124,8 @@ const socketRoot = join(
 let pg: { stop: () => Promise<void> };
 let db: { close: () => Promise<void> };
 let prisma: typeof PrismaClient;
-let DatabaseService: typeof DatabaseServiceType;
+let marketRepository: typeof marketRepositoryType;
+let orderRepository: typeof orderRepositoryType;
 let MarketUpdateService: typeof MarketUpdateServiceType;
 let PolymarketAPIService: typeof PolymarketAPIServiceType;
 
@@ -149,7 +151,8 @@ before(async () => {
   process.env.DATABASE_URL = `postgresql://postgres:postgres@127.0.0.1:${address.port}/postgres?sslmode=disable`;
   process.env.DB_POOL_MAX = "1";
   ({ prisma } = await import("../../src/backend/db/prisma"));
-  ({ DatabaseService } = await import("../../src/backend/services/databaseService"));
+  ({ marketRepository } = await import("../../src/backend/db/marketRepository"));
+  ({ orderRepository } = await import("../../src/backend/db/orderRepository"));
   ({ MarketUpdateService } = await import("../../src/backend/services/marketUpdateService"));
   ({ PolymarketAPIService } = await import("../../src/backend/services/polymarketAPIService"));
 });
@@ -267,7 +270,7 @@ test("a failed search refresh is repaired by the next sync", async (t) => {
   await sync(t, [market()]);
   const renamed = market({ question: "Completely renamed?" });
 
-  const failing = t.mock.method(DatabaseService, "refreshMissingSearchVectors", async () => {
+  const failing = t.mock.method(marketRepository, "refreshMissingSearchVectors", async () => {
     throw new Error("statement timeout");
   });
   assert.deepEqual(await runSync(t, [renamed]), { status: "failed" });
@@ -326,28 +329,27 @@ test("the market-sync cron runs at once, then on every interval until stopped", 
 // Nile delivers a bound empty string as NULL, so `id > ''` as a parameter matches nothing there.
 // Embedded PostgreSQL does not do this, so assert on what is bound rather than on the result.
 test("the search sweep binds no cursor on its first batch", async () => {
-  const { missingSearchVectorIdsQuery } =
-    await import("../../src/backend/services/databaseService");
+  const { missingSearchVectorIdsQuery } = await import("../../src/backend/db/marketRepository");
   assert.deepEqual(missingSearchVectorIdsQuery(null, 1000).values, [1000]);
   assert.deepEqual(missingSearchVectorIdsQuery("1059730", 1000).values, ["1059730", 1000]);
 });
 
 test("the search sweep covers every null row across batches and stops on rows it cannot fix", async () => {
   for (const id of ["a", "b", "c", "d", "e"]) {
-    await DatabaseService.upsertMarket(
+    await marketRepository.upsertMarket(
       market({ id, slug: `market-${id}`, question: `Question ${id}?` })
     );
   }
   await prisma.$executeRaw`UPDATE markets SET tags = NULL WHERE id = 'c'`;
 
-  assert.equal(await DatabaseService.refreshMissingSearchVectors(2), 5);
+  assert.equal(await marketRepository.refreshMissingSearchVectors(2), 5);
 
   const missing = await prisma.$queryRaw<
     { id: string }[]
   >`SELECT id FROM markets WHERE search_vec IS NULL`;
   assert.deepEqual(missing, [{ id: "c" }]);
   await prisma.$executeRaw`UPDATE markets SET tags = '{}' WHERE id = 'c'`;
-  assert.equal(await DatabaseService.refreshMissingSearchVectors(2), 1);
+  assert.equal(await marketRepository.refreshMissingSearchVectors(2), 1);
 });
 
 test("orders can only be listed for a given owner", async () => {
@@ -364,10 +366,10 @@ test("orders can only be listed for a given owner", async () => {
     },
   });
 
-  assert.equal((await DatabaseService.getPolyswapOrdersByOwner(owner)).length, 1);
-  assert.deepEqual(await DatabaseService.getPolyswapOrdersByOwner(""), []);
+  assert.equal((await orderRepository.getPolyswapOrdersByOwner(owner)).length, 1);
+  assert.deepEqual(await orderRepository.getPolyswapOrdersByOwner(""), []);
 });
 
 test("updating the status of a deleted order reports false instead of failing", async () => {
-  assert.equal(await DatabaseService.updateOrderStatusById(987_654, "filled"), false);
+  assert.equal(await orderRepository.updateOrderStatusById(987_654, "filled"), false);
 });

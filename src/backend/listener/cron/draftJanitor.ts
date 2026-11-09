@@ -1,6 +1,6 @@
 import { type Address, type Hex } from "viem";
 import { isSingleOrderAuthed } from "@/backend/rpc/composableCow";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { createLogger } from "@/backend/logger";
 import { createIntervalJob } from "./intervalJob";
 
@@ -16,7 +16,7 @@ const STALE_AFTER_MS = 10 * 60 * 1000;
  */
 async function sweepStaleDrafts(): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_AFTER_MS);
-  const stale = await DatabaseService.findDraftsOlderThan(cutoff);
+  const stale = await orderRepository.findDraftsOlderThan(cutoff);
   if (stale.length === 0) {
     log.debug("no stale drafts");
     return;
@@ -33,7 +33,7 @@ async function sweepStaleDrafts(): Promise<void> {
         if (authed === true) continue;
       }
 
-      await DatabaseService.deletePolyswapOrderById(draft.id);
+      await orderRepository.deletePolyswapOrderById(draft.id);
       log.info(`swept draft ${draft.id} (owner ${draft.owner})`);
     } catch (err) {
       log.warn(`failed for order ${draft.id}:`, err);

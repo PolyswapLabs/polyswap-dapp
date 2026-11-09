@@ -7,7 +7,7 @@ import {
 } from "@/backend/listener/orderHealth/pollErrors";
 import { createLogger } from "@/backend/logger";
 import { isSingleOrderAuthed } from "@/backend/rpc/composableCow";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 
 const log = createLogger("order-health");
 
@@ -183,6 +183,6 @@ export async function recordRevert(order: DatabasePolyswapOrder, data: Hex): Pro
     await resolveSingleOrderAuth(order, classifyRevert(data));
 
   if (logLevel) log[logLevel](`order ${order.id}${logDetail}`);
-  await DatabaseService.setOrderError(order.id, errorCode, reason, retryAt);
-  if (nextStatus) await DatabaseService.updateOrderStatusById(order.id, nextStatus);
+  await orderRepository.setOrderError(order.id, errorCode, reason, retryAt);
+  if (nextStatus) await orderRepository.updateOrderStatusById(order.id, nextStatus);
 }

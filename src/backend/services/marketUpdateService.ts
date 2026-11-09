@@ -1,5 +1,6 @@
 import { PolymarketAPIService } from "./polymarketAPIService.js";
-import { DatabaseService } from "./databaseService.js";
+import { marketRepository } from "@/backend/db/marketRepository";
+import { marketSearch } from "@/backend/db/marketSearch";
 import { diffMarkets } from "./marketSyncDiff.js";
 import { createLogger } from "../logger.js";
 import { readPositiveInt } from "@/backend/utils/env";
@@ -80,12 +81,12 @@ export class MarketUpdateService {
     let upserted = 0;
     for (let i = 0; i < markets.length; i += COMPARE_BATCH_SIZE) {
       const batch = markets.slice(i, i + COMPARE_BATCH_SIZE);
-      const existing = await DatabaseService.getMarketsForSync(batch.map((m) => m.id));
+      const existing = await marketRepository.getMarketsForSync(batch.map((m) => m.id));
       const { changed, searchStale } = diffMarkets(batch, existing);
-      await DatabaseService.invalidateSearchVectors(searchStale);
+      await marketRepository.invalidateSearchVectors(searchStale);
       for (let j = 0; j < changed.length; j += concurrency) {
         const chunk = changed.slice(j, j + concurrency);
-        await Promise.all(chunk.map((m) => DatabaseService.upsertMarket(m)));
+        await Promise.all(chunk.map((m) => marketRepository.upsertMarket(m)));
       }
       upserted += changed.length;
       done += batch.length;
@@ -109,17 +110,17 @@ export class MarketUpdateService {
     reindexed: number;
   }> {
     log.debug("removing ended markets");
-    const removed = await DatabaseService.removeEndedMarkets();
+    const removed = await marketRepository.removeEndedMarkets();
     log.info(`removed ${removed} ended markets`);
 
     log.debug("refreshing tag index");
     const tagStart = Date.now();
-    const tagsIndexed = await DatabaseService.refreshTagIndex();
+    const tagsIndexed = await marketSearch.refreshTagIndex();
     log.info(`tag-index refreshed: ${tagsIndexed} unique tags in ${Date.now() - tagStart}ms`);
 
     log.debug("refreshing search vectors");
     const searchStart = Date.now();
-    const reindexed = await DatabaseService.refreshMissingSearchVectors();
+    const reindexed = await marketRepository.refreshMissingSearchVectors();
     log.info(`search-vec refreshed: ${reindexed} rows reindexed in ${Date.now() - searchStart}ms`);
 
     return { removed, tagsIndexed, reindexed };

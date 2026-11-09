@@ -5,7 +5,7 @@ import { encodeAbiParameters, encodeEventTopics, parseAbiItem, type Log } from "
 // Override before importing the DB module, even when this test is run directly.
 process.env.DATABASE_URL = "postgresql://test:test@127.0.0.1:1/polyswap_migration_test";
 process.env.ENVIRONMENT = "local";
-const { DatabaseService } = await import("../../src/backend/services/databaseService");
+const { orderRepository } = await import("../../src/backend/db/orderRepository");
 const { handleOrderInvalidated, handleLiveOrderInvalidated } =
   await import("../../src/backend/listener/handlers/orderInvalidated");
 
@@ -22,7 +22,7 @@ const eventLog = {
 } as unknown as Log;
 
 test("a DB failure on a live event is contained so it cannot become an unhandled rejection", async (t) => {
-  const lookup = t.mock.method(DatabaseService, "getPolyswapOrderByUid", async () => {
+  const lookup = t.mock.method(orderRepository, "getPolyswapOrderByUid", async () => {
     throw new Error("connection terminated");
   });
 
@@ -36,7 +36,7 @@ test("a malformed live event is contained too", async () => {
 });
 
 test("catch-up still sees the failure, so it cannot save a block past a failed event", async (t) => {
-  t.mock.method(DatabaseService, "getPolyswapOrderByUid", async () => {
+  t.mock.method(orderRepository, "getPolyswapOrderByUid", async () => {
     throw new Error("connection terminated");
   });
 

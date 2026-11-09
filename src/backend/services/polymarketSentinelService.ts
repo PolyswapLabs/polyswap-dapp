@@ -7,7 +7,7 @@ import { hasReachedFillGate } from "../polymarket/orders";
 import type { ProtocolVersion } from "../../lib/polymarket/protocol";
 import { Prisma } from "@prisma/client";
 import type { Hex } from "viem";
-import { DatabaseService } from "./databaseService";
+import { sentinelRepository } from "@/backend/db/sentinelRepository";
 import { getPolymarketOrderService, type PolymarketOrderService } from "./polymarketOrderService";
 import type { DatabasePolymarketSentinel } from "../interfaces/PolyswapOrder";
 import { createLogger } from "../logger";
@@ -66,7 +66,7 @@ async function isFilledOnChain(
 }
 
 async function findValidReusableSentinel(bucket: SentinelBucket): Promise<ReusableLookup> {
-  const reusable = await DatabaseService.findReusableSentinel({
+  const reusable = await sentinelRepository.findReusableSentinel({
     marketId: bucket.marketId,
     protocolVersion: bucket.protocolVersion,
     tokenId: bucket.tokenId,
@@ -87,7 +87,7 @@ async function findValidReusableSentinel(bucket: SentinelBucket): Promise<Reusab
   if (!(await isFilledOnChain(polymarket, reusable))) {
     return { outcome: "reusable", sentinel: reusable };
   }
-  await DatabaseService.markSentinelFilled(reusable.id);
+  await sentinelRepository.markSentinelFilled(reusable.id);
   return { outcome: "consumed" };
 }
 
@@ -95,7 +95,7 @@ async function findValidReusableSentinel(bucket: SentinelBucket): Promise<Reusab
 async function prepareNewSentinel(
   bucket: SentinelBucket
 ): Promise<DatabasePolymarketSentinel | null> {
-  const epoch = await DatabaseService.getNextSentinelEpoch(bucket);
+  const epoch = await sentinelRepository.getNextSentinelEpoch(bucket);
   const polymarket = await initializedOrderService();
   const prepared = await polymarket.prepareGTDOrder({
     tokenID: bucket.tokenId,
@@ -109,7 +109,7 @@ async function prepareNewSentinel(
   });
 
   try {
-    const sentinel = await DatabaseService.createPreparedSentinel({
+    const sentinel = await sentinelRepository.createPreparedSentinel({
       ...bucket,
       epoch,
       polymarketOrderHash: prepared.polymarketOrderHash,
@@ -173,11 +173,11 @@ async function submitSentinel(
   // Recover cleanly if the process posted the sentinel but crashed before
   // persisting its status. A failed lookup throws, so an outage can't cause a post.
   if (await isFilledOnChain(polymarket, sentinel)) {
-    await DatabaseService.markSentinelFilled(sentinel.id);
+    await sentinelRepository.markSentinelFilled(sentinel.id);
     return;
   }
   if (await polymarket.findOpenOrder(sentinel.polymarket_order_hash)) {
-    await DatabaseService.markSentinelLive(sentinel.id);
+    await sentinelRepository.markSentinelLive(sentinel.id);
     return;
   }
 
@@ -191,7 +191,7 @@ async function submitSentinel(
     expectedHash: sentinel.polymarket_order_hash,
     postOnly: sentinel.post_only,
   });
-  await DatabaseService.markSentinelLive(sentinel.id);
+  await sentinelRepository.markSentinelLive(sentinel.id);
   log.info(
     `activated ${sentinel.post_only ? "post-only " : ""}sentinel ${sentinel.polymarket_order_hash} from Safe tx ${authorizationTxHash}`
   );
@@ -203,25 +203,25 @@ export async function activateSentinel(
   authorizationTxHash: string,
   authorization: SentinelAuthorization
 ): Promise<void> {
-  const sentinel = await DatabaseService.getSentinelById(sentinelId);
+  const sentinel = await sentinelRepository.getSentinelById(sentinelId);
   if (!sentinel || sentinel.status === "live" || sentinel.status === "filled") return;
   assertAuthorizationMatches(sentinel, authorization);
   if (sentinel.status === "canceled" || sentinel.status === "failed") {
     throw new Error(`sentinel ${sentinelId} cannot activate from status ${sentinel.status}`);
   }
   if (sentinel.expiration.getTime() <= Date.now()) {
-    await DatabaseService.markSentinelFailed(sentinelId, "Sentinel expired before activation");
+    await sentinelRepository.markSentinelFailed(sentinelId, "Sentinel expired before activation");
     throw new Error(`sentinel ${sentinelId} expired before activation`);
   }
 
-  const claimed = await DatabaseService.claimSentinelActivation(sentinelId, authorizationTxHash);
+  const claimed = await sentinelRepository.claimSentinelActivation(sentinelId, authorizationTxHash);
   if (!claimed) return;
 
   try {
     await submitSentinel(sentinel, authorizationTxHash);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await DatabaseService.releaseSentinelActivation(sentinelId, message);
+    await sentinelRepository.releaseSentinelActivation(sentinelId, message);
     log.error(`sentinel ${sentinelId} activation failed:`, error);
     throw error;
   }

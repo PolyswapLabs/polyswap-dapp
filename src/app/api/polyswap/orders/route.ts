@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { createOrder, OrderRejectedError } from "@/backend/orders/createOrder";
 import { parseCreateOrderRequest } from "@/backend/orders/createOrderRequest";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
 import { createApiErrorResponder } from "@/lib/apiError";
 import { isOrderCreationDisabled } from "@/lib/runtimeFlags";
@@ -117,14 +117,14 @@ export async function GET(request: NextRequest) {
         return apiError({ status: 400, error: "Invalid block range" });
       }
 
-      orders = await DatabaseService.getPolyswapOrdersByBlockRange(
+      orders = await orderRepository.getPolyswapOrdersByBlockRange(
         fromBlockNum,
         toBlockNum,
         limitNum,
         offsetNum
       );
     } else if (ownerRaw !== null) {
-      orders = await DatabaseService.getPolyswapOrdersByOwner(ownerRaw, limitNum, offsetNum);
+      orders = await orderRepository.getPolyswapOrdersByOwner(ownerRaw, limitNum, offsetNum);
     } else {
       return apiError({
         status: 400,

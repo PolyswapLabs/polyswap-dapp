@@ -2,7 +2,7 @@ import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
 import { createLogger } from "@/backend/logger";
 import { getPublicClient } from "@/backend/rpc/clients";
 import { DEFAULT_API_BASE } from "@/backend/services/cowAppDataService";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { storeDbOrderUid } from "@/backend/services/orderUidCalculationService";
 
 const log = createLogger("order-health");
@@ -62,8 +62,8 @@ export async function syncCowOrderStatus(order: DatabasePolyswapOrder): Promise<
   const cowStatus = await fetchCowOrderStatus(order, orderUid);
   if (cowStatus === null) return;
 
-  await DatabaseService.setCowOrderStatus(order.id, cowStatus);
+  await orderRepository.setCowOrderStatus(order.id, cowStatus);
 
   const orderStatus = ORDER_STATUS_BY_COW_STATUS.get(cowStatus);
-  if (orderStatus) await DatabaseService.updateOrderStatusById(order.id, orderStatus);
+  if (orderStatus) await orderRepository.updateOrderStatusById(order.id, orderStatus);
 }

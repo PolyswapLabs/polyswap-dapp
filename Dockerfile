@@ -37,10 +37,10 @@ COPY --chown=node:node src/types/design.ts ./src/types/design.ts
 
 USER node
 
-# Resolve the database service's runtime imports before publishing the image.
+# Resolve the database layer's runtime imports before publishing the image.
 # Prisma creates its client lazily; this placeholder does not connect to a DB.
 RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
-    ./node_modules/.bin/tsx -e 'import("./src/backend/services/databaseService.ts").then(() => console.log("Listener database imports OK"))'
+    ./node_modules/.bin/tsx -e 'import("./src/backend/db/marketSearch.ts").then(() => console.log("Listener database imports OK"))'
 
 STOPSIGNAL SIGTERM
 

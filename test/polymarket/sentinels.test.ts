@@ -7,7 +7,7 @@ import { PolymarketOrderService } from "../../src/backend/services/polymarketOrd
 // Override before importing the DB module, even when this test is run directly.
 process.env.DATABASE_URL = "postgresql://test:test@127.0.0.1:1/polyswap_migration_test";
 process.env.ENVIRONMENT = "local";
-const { DatabaseService } = await import("../../src/backend/services/databaseService");
+const { sentinelRepository } = await import("../../src/backend/db/sentinelRepository");
 const { activateSentinel, getOrCreateSentinel } =
   await import("../../src/backend/services/polymarketSentinelService");
 
@@ -54,15 +54,15 @@ async function setup(t: TestContext) {
     else process.env.NEXT_PUBLIC_POLYSWAP_HANDLER_V2 = previous;
   });
   t.mock.method(PolymarketOrderService, "getInstance", () => h.service);
-  t.mock.method(DatabaseService, "getSentinelById", async () => row);
-  t.mock.method(DatabaseService, "claimSentinelActivation", async () => true);
-  const live = t.mock.method(DatabaseService, "markSentinelLive", async () => undefined);
+  t.mock.method(sentinelRepository, "getSentinelById", async () => row);
+  t.mock.method(sentinelRepository, "claimSentinelActivation", async () => true);
+  const live = t.mock.method(sentinelRepository, "markSentinelLive", async () => undefined);
   const release = t.mock.method(
-    DatabaseService,
+    sentinelRepository,
     "releaseSentinelActivation",
     async () => undefined
   );
-  const filled = t.mock.method(DatabaseService, "markSentinelFilled", async () => undefined);
+  const filled = t.mock.method(sentinelRepository, "markSentinelFilled", async () => undefined);
   const authorization = {
     handler: account.address,
     polymarketOrderHash: prepared.polymarketOrderHash,
@@ -154,16 +154,16 @@ test("a partially filled sentinel whose gate is already open is not reused for a
   h.setStatus({ filled: false, remaining: (BigInt(h.prepared.makerAmount) * 9n) / 10n });
   let searches = 0;
   t.mock.method(
-    DatabaseService,
+    sentinelRepository,
     "findReusableSentinel",
-    async (input: Parameters<typeof DatabaseService.findReusableSentinel>[0]) => {
+    async (input: Parameters<typeof sentinelRepository.findReusableSentinel>[0]) => {
       assert.equal(input.protocolVersion, "v2");
       return searches++ === 0 ? h.row : null;
     }
   );
-  t.mock.method(DatabaseService, "getNextSentinelEpoch", async () => 2);
+  t.mock.method(sentinelRepository, "getNextSentinelEpoch", async () => 2);
   t.mock.method(h.service, "prepareGTDOrder", async () => h.prepared);
-  t.mock.method(DatabaseService, "createPreparedSentinel", async () => ({
+  t.mock.method(sentinelRepository, "createPreparedSentinel", async () => ({
     ...h.row,
     id: 2,
     epoch: 2,

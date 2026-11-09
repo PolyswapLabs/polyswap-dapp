@@ -3,7 +3,7 @@ import { getAddress, type Hex } from "viem";
 import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
 import { authenticateOrderAction } from "@/backend/orders/orderActionAuth";
 import { isSingleOrderAuthed } from "@/backend/rpc/composableCow";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { createApiErrorResponder, type ApiErrorOptions } from "@/lib/apiError";
 import { getPostHogClient } from "@/lib/posthog-server";
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return apiError({ status: 502, error: "Unexpected on-chain state for order" });
     }
 
-    await DatabaseService.updateOrderStatusById(orderId, "canceled");
+    await orderRepository.updateOrderStatusById(orderId, "canceled");
 
     const posthog = getPostHogClient();
     posthog.capture({

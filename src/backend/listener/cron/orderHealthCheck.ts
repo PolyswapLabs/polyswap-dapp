@@ -5,7 +5,8 @@ import { expireIfNeeded } from "@/backend/listener/orderHealth/expiry";
 import { extractRevertData, recordRevert } from "@/backend/listener/orderHealth/revertClassifier";
 import { createLogger } from "@/backend/logger";
 import { assertOrderTradeable } from "@/backend/rpc/composableCow";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
+import { sentinelRepository } from "@/backend/db/sentinelRepository";
 import { activateSentinel } from "@/backend/services/polymarketSentinelService";
 import { encodeStaticInput } from "@/backend/utils/conditionalOrderCodec";
 import { createIntervalJob } from "./intervalJob";
@@ -51,10 +52,10 @@ async function retrySentinelActivation(order: DatabasePolyswapOrder): Promise<bo
 // The first success opens the gate, which lets the UI distinguish "still waiting for trigger"
 // from "trigger fired, waiting for the swap to settle".
 async function markFillable(order: DatabasePolyswapOrder): Promise<void> {
-  await DatabaseService.clearOrderError(order.id);
+  await orderRepository.clearOrderError(order.id);
   if (!order.gate_opened_at) {
-    await DatabaseService.markGateOpened(order.id);
-    await DatabaseService.markSentinelFilledForOrder(order.id);
+    await orderRepository.markGateOpened(order.id);
+    await sentinelRepository.markSentinelFilledForOrder(order.id);
   }
 }
 
@@ -85,7 +86,7 @@ async function checkTradeability(order: DatabasePolyswapOrder): Promise<void> {
 }
 
 async function runOrderHealthCheck(): Promise<void> {
-  const live = await DatabaseService.getLiveOrders();
+  const live = await orderRepository.getLiveOrders();
   if (live.length === 0) {
     log.debug("no live orders to check");
     return;

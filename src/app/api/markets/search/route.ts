@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { marketSearch } from "@/backend/db/marketSearch";
 import { createApiErrorResponder } from "@/lib/apiError";
 
 const apiError = createApiErrorResponder("api-market-search");
@@ -93,8 +93,8 @@ export async function GET(req: NextRequest) {
   try {
     const filterOpts = { q, category, categories, volumeMin, liquidityMin };
     const [markets, total] = await Promise.all([
-      DatabaseService.searchMarkets({ ...filterOpts, sort, limit, offset }),
-      DatabaseService.countMarkets(filterOpts),
+      marketSearch.searchMarkets({ ...filterOpts, sort, limit, offset }),
+      marketSearch.countMarkets(filterOpts),
     ]);
 
     return NextResponse.json({

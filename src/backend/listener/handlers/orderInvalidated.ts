@@ -1,6 +1,6 @@
 import { decodeEventLog, type Log, type Hex, type Address } from "viem";
 import gpv2Abi from "@/abi/GPV2Settlement.json";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { createLogger } from "@/backend/logger";
 import { isMinedLog } from "@/backend/listener/events";
 
@@ -26,14 +26,14 @@ export async function handleOrderInvalidated(eventLog: Log): Promise<void> {
   if (!decoded) return;
   if (!isMinedLog(eventLog)) return;
 
-  const order = await DatabaseService.getPolyswapOrderByUid(decoded.orderUid);
+  const order = await orderRepository.getPolyswapOrderByUid(decoded.orderUid);
   if (!order) return;
   if (order.status === "canceled" || order.status === "filled") {
     log.debug(`order ${order.id} already terminal (${order.status}); skipping`);
     return;
   }
 
-  await DatabaseService.updateOrderStatusById(order.id, "canceled", {
+  await orderRepository.updateOrderStatusById(order.id, "canceled", {
     fillTransactionHash: eventLog.transactionHash,
     fillBlockNumber: Number(eventLog.blockNumber),
     fillLogIndex: Number(eventLog.logIndex),

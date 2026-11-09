@@ -1,7 +1,7 @@
 import type { NextRequest, NextResponse } from "next/server";
 import type { DatabasePolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
 import { getPublicClient } from "@/backend/rpc/clients";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { verifySignature } from "@/backend/utils/signatureVerification";
 import type { ApiErrorOptions, ApiErrorResponder } from "@/lib/apiError";
 
@@ -56,7 +56,7 @@ export async function authenticateOrderAction(
     };
   }
 
-  const order = await DatabaseService.getPolyswapOrderById(orderId);
+  const order = await orderRepository.getPolyswapOrderById(orderId);
   if (!order) {
     return { response: apiError({ status: 404, error: "Order not found" }) };
   }

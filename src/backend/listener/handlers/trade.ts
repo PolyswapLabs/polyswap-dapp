@@ -1,6 +1,6 @@
 import { decodeEventLog, type Log, type Hex, type Address } from "viem";
 import gpv2Abi from "@/abi/GPV2Settlement.json";
-import { DatabaseService } from "@/backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { createLogger } from "@/backend/logger";
 import { isMinedLog } from "@/backend/listener/events";
 
@@ -32,13 +32,13 @@ export async function handleTrade(eventLog: Log): Promise<boolean> {
   if (!decoded) return false;
   if (!isMinedLog(eventLog)) return false;
 
-  const order = await DatabaseService.getPolyswapOrderByUid(decoded.orderUid);
+  const order = await orderRepository.getPolyswapOrderByUid(decoded.orderUid);
   if (!order) {
     log.debug(`no tracked order for uid ${decoded.orderUid}; skipping`);
     return false;
   }
 
-  await DatabaseService.updateOrderStatusById(order.id, "filled", {
+  await orderRepository.updateOrderStatusById(order.id, "filled", {
     filledAt: new Date(),
     fillTransactionHash: eventLog.transactionHash,
     fillBlockNumber: Number(eventLog.blockNumber),
