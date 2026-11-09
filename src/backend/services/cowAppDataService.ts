@@ -7,6 +7,8 @@ const log = createLogger("cow-app-data");
 const DEFAULT_API_BASE = "https://api.cow.fi/polygon";
 const DEFAULT_APP_CODE = "PolySwap";
 const DEFAULT_TIMEOUT_MS = 5_000;
+const MIN_TIMEOUT_MS = 250;
+const MAX_TIMEOUT_MS = 30_000;
 const APP_DATA_VERSION = "1.15.0";
 const POLYSWAP_METADATA_VERSION = "1";
 const MAX_FULL_APP_DATA_BYTES = 1_000;
@@ -51,10 +53,23 @@ function configuredEnvironment(): string {
   return environment || "production";
 }
 
+function isValidTimeoutMs(value: number): boolean {
+  return Number.isInteger(value) && value >= MIN_TIMEOUT_MS && value <= MAX_TIMEOUT_MS;
+}
+
 function configuredTimeoutMs(): number {
   const parsed = Number(process.env.COW_APP_DATA_TIMEOUT_MS);
-  if (Number.isInteger(parsed) && parsed >= 250 && parsed <= 30_000) return parsed;
-  return DEFAULT_TIMEOUT_MS;
+  return isValidTimeoutMs(parsed) ? parsed : DEFAULT_TIMEOUT_MS;
+}
+
+function resolveTimeoutMs(requested?: number): number {
+  const timeoutMs = requested ?? configuredTimeoutMs();
+  if (!isValidTimeoutMs(timeoutMs)) {
+    throw new Error(
+      `CoW AppData timeout must be between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS} milliseconds`
+    );
+  }
+  return timeoutMs;
 }
 
 /**
@@ -90,21 +105,6 @@ function normalizeNonce(value?: Hex): Hex {
   return value.toLowerCase() as Hex;
 }
 
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit | undefined,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 async function responseBody(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return undefined;
@@ -119,6 +119,55 @@ async function responseBody(response: Response): Promise<unknown> {
 function formatBody(body: unknown): string {
   if (typeof body === "string") return body;
   return JSON.stringify(body);
+}
+
+async function putAppData(url: string, appData: CowAppData, timeoutMs: number): Promise<void> {
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ fullAppData: appData.fullAppData }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const body = await responseBody(response);
+
+  if (!response.ok) {
+    throw new Error(`CoW AppData registration failed (${response.status}): ${formatBody(body)}`);
+  }
+
+  if (
+    typeof body === "string" &&
+    isBytes32(body) &&
+    body.toLowerCase() !== appData.appDataHash.toLowerCase()
+  ) {
+    throw new Error(
+      `CoW registered a different AppData hash: expected ${appData.appDataHash}, got ${body}`
+    );
+  }
+}
+
+async function confirmAppData(url: string, appData: CowAppData, timeoutMs: number): Promise<void> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  const body = await responseBody(response);
+
+  if (!response.ok) {
+    throw new Error(`CoW AppData confirmation failed (${response.status}): ${formatBody(body)}`);
+  }
+
+  if (
+    !body ||
+    typeof body !== "object" ||
+    !("fullAppData" in body) ||
+    body.fullAppData !== appData.fullAppData
+  ) {
+    throw new Error(`CoW returned unexpected AppData content: ${formatBody(body)}`);
+  }
+
+  const confirmedHash = keccak256(toBytes(body.fullAppData as string));
+  if (confirmedHash.toLowerCase() !== appData.appDataHash.toLowerCase()) {
+    throw new Error(
+      `Confirmed AppData hashes to ${confirmedHash}, expected ${appData.appDataHash}`
+    );
+  }
 }
 
 export class CowAppDataService {
@@ -156,62 +205,11 @@ export class CowAppDataService {
     options: CowAppDataOptions = {}
   ): Promise<void> {
     const apiBase = normalizeApiBase(options.apiBase);
-    const timeoutMs = options.timeoutMs ?? configuredTimeoutMs();
-    if (!Number.isInteger(timeoutMs) || timeoutMs < 250 || timeoutMs > 30_000) {
-      throw new Error("CoW AppData timeout must be between 250 and 30000 milliseconds");
-    }
-
+    const timeoutMs = resolveTimeoutMs(options.timeoutMs);
     const url = `${apiBase}/api/v1/app_data/${appData.appDataHash}`;
-    const registration = await fetchWithTimeout(
-      url,
-      {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fullAppData: appData.fullAppData }),
-      },
-      timeoutMs
-    );
-    const registrationBody = await responseBody(registration);
 
-    if (!registration.ok) {
-      throw new Error(
-        `CoW AppData registration failed (${registration.status}): ${formatBody(registrationBody)}`
-      );
-    }
-
-    if (
-      typeof registrationBody === "string" &&
-      isBytes32(registrationBody) &&
-      registrationBody.toLowerCase() !== appData.appDataHash.toLowerCase()
-    ) {
-      throw new Error(
-        `CoW registered a different AppData hash: expected ${appData.appDataHash}, got ${registrationBody}`
-      );
-    }
-
-    const confirmation = await fetchWithTimeout(url, undefined, timeoutMs);
-    const confirmationBody = await responseBody(confirmation);
-    if (!confirmation.ok) {
-      throw new Error(
-        `CoW AppData confirmation failed (${confirmation.status}): ${formatBody(confirmationBody)}`
-      );
-    }
-
-    if (
-      !confirmationBody ||
-      typeof confirmationBody !== "object" ||
-      !("fullAppData" in confirmationBody) ||
-      confirmationBody.fullAppData !== appData.fullAppData
-    ) {
-      throw new Error(`CoW returned unexpected AppData content: ${formatBody(confirmationBody)}`);
-    }
-
-    const confirmedHash = keccak256(toBytes(confirmationBody.fullAppData as string));
-    if (confirmedHash.toLowerCase() !== appData.appDataHash.toLowerCase()) {
-      throw new Error(
-        `Confirmed AppData hashes to ${confirmedHash}, expected ${appData.appDataHash}`
-      );
-    }
+    await putAppData(url, appData, timeoutMs);
+    await confirmAppData(url, appData, timeoutMs);
   }
 
   /** Create, register, and confirm a unique AppData. Throws on any failure. */
