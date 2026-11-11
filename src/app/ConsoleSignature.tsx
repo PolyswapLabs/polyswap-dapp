@@ -17,13 +17,11 @@ export function ConsoleSignature() {
       "color:#16140f;background:#ece6da;font:600 14px/1.4 'Fraunces',serif;padding:6px 10px;border:1px solid #16140f;";
     const accent =
       "color:#d94a1f;background:#ece6da;font:500 11px/1 'JetBrains Mono',monospace;padding:6px 10px;border:1px solid #16140f;border-left:0;";
-    const body = "color:#3a3528;font:13px/1.5 'Inter Tight',sans-serif;padding:8px 0 0;";
 
     console.log(
-      "%cPolyswap%cVol. I · No. 1%c\nNon-custodial swaps, settled by Polymarket odds.\nSomething catch your eye? Read the contracts, open a PR, or just say hi.",
+      "%cPolyswap%cNon-custodial swaps, settled by Polymarket odds.\nSomething catch your eye? Read the contracts, open a PR, or just say hi.",
       head,
-      accent,
-      body
+      accent
     );
   }, []);
 
