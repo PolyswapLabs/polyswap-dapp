@@ -5,8 +5,9 @@ import { SearchInputWithSuggestions } from "./SearchInputWithSuggestions";
 export const MARKETS_PAGE_SIZE = 20;
 
 interface MarketsPageHeaderProps {
-  eyebrow: ReactNode;
   title: ReactNode;
+  /** One plain sentence under the title. */
+  subtitle?: ReactNode;
   searchValue: string;
   onSearchSubmit: (query: string) => void;
   /** Rendered above the title row, as on the search page's back link. */
@@ -14,8 +15,8 @@ interface MarketsPageHeaderProps {
 }
 
 export function MarketsPageHeader({
-  eyebrow,
   title,
+  subtitle,
   searchValue,
   onSearchSubmit,
   aboveTitle,
@@ -28,8 +29,8 @@ export function MarketsPageHeader({
       )}
     >
       <div className="lg:col-span-7">
-        <p className="eyebrow mb-3">{eyebrow}</p>
         <h1 className="display text-4xl leading-[0.95] sm:text-5xl lg:text-[64px]">{title}</h1>
+        {subtitle && <p className="mt-4 max-w-xl text-sm text-ink-3 lg:text-base">{subtitle}</p>}
       </div>
       <div className="lg:col-span-5">
         <SearchInputWithSuggestions

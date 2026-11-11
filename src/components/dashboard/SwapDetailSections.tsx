@@ -104,7 +104,6 @@ export function DealCard({ order }: { order: OrderViewModel }) {
 
   return (
     <section aria-label="The deal" className="border border-ink bg-paper-2 p-5">
-      <p className="eyebrow mb-3">The deal</p>
       <div className="grid grid-cols-[28px_1fr] items-center gap-x-3 gap-y-2">
         <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={28} />
         <span className="num text-lg">
@@ -145,7 +144,6 @@ export function DealCard({ order }: { order: OrderViewModel }) {
 export function MarketLinkCard({ market }: { market: MarketViewModel }) {
   return (
     <section aria-label="Market" className="border border-ink bg-paper p-5">
-      <p className="eyebrow mb-3">Market</p>
       <ExternalLink href={polymarketEventUrl(market)}>
         <PolymarketIcon size={16} className="text-ink" />
         View on Polymarket
@@ -171,8 +169,7 @@ export function CowOrderCard({
   walletAddress: Address | undefined;
 }) {
   return (
-    <section aria-label="Tracking" className="border border-ink bg-paper p-5">
-      <p className="eyebrow mb-3">CoW order</p>
+    <section aria-label="CoW order" className="border border-ink bg-paper p-5">
       <CowExplorerLink order={order} walletAddress={walletAddress} />
       <p className="mt-2 text-xs text-ink-3">{cowOrderCaption(order)}</p>
     </section>

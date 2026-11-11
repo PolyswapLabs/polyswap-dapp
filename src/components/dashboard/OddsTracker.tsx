@@ -43,7 +43,9 @@ function TrackerContent({ order, series }: Props) {
         />
         <div className="min-w-0 flex-1">
           <p className="num text-3xl font-semibold lg:text-4xl">{formatPercent(currentOdds)}</p>
-          <p className="text-sm text-ink-3">Today · trigger at {formatPercent(order.threshold)}</p>
+          <p className="text-sm text-ink-3">
+            Current odds, trigger at {formatPercent(order.threshold)}
+          </p>
         </div>
         <p className="num shrink-0 border border-ink bg-paper-2 px-3 py-2 text-sm">
           {describeTriggerDistance(order, currentOdds)}
@@ -83,7 +85,7 @@ function TrackerContent({ order, series }: Props) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-r border-ink p-3 text-center last:border-r-0 sm:p-4">
-      <p className="eyebrow">{label}</p>
+      <p className="text-xs text-ink-3 sm:text-sm">{label}</p>
       <p className="num mt-1 text-base font-semibold sm:text-lg">{value}</p>
     </div>
   );
@@ -102,7 +104,7 @@ function OddsTrackerSkeleton({ threshold }: { threshold: number }) {
         <Shimmer className="h-[88px] w-[88px] rounded-full" />
         <div className="min-w-0 flex-1 space-y-2">
           <Shimmer className="h-9 w-24" />
-          <p className="text-sm text-ink-3">Today · trigger at {formatPercent(threshold)}</p>
+          <p className="text-sm text-ink-3">Current odds, trigger at {formatPercent(threshold)}</p>
         </div>
         <Shimmer className="h-9 w-32 shrink-0" />
       </div>

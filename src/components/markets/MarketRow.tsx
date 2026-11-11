@@ -69,7 +69,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
   const category = displayCategory ?? market.category;
   const titleVTName = marketTitleTransitionName(market.id);
   const volume = market.volume24h ?? market.volumeTotal;
-  const volumeLabel = market.volume24h === null ? "total vol" : "24h vol";
+  const volumeLabel = market.volume24h === null ? "Total vol" : "24h vol";
 
   return (
     <TransitionLink
@@ -108,7 +108,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           <MarketSparkline tokenId={market.yesTokenId} width={160} height={42} />
         </div>
         <p className="text-right text-sm">
-          <span className="text-[11px] tracking-wide text-ink-3 uppercase">{volumeLabel} </span>
+          <span className="text-xs text-ink-3">{volumeLabel} </span>
           <span className="num">{formatUsd(volume, { compact: true })}</span>
         </p>
         <span
@@ -127,7 +127,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             {category}
           </span>
           <span className="text-xs text-ink-3">
-            <span className="tracking-wide uppercase">{volumeLabel} </span>
+            <span>{volumeLabel} </span>
             <span className="num">{formatUsd(volume, { compact: true })}</span>
           </span>
         </div>

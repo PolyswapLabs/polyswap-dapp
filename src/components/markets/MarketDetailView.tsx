@@ -57,12 +57,12 @@ export function MarketDetailView({ marketIdOrSlug }: Props) {
   // If the trade history spans fewer than 60 days the market was likely
   // created recently — say so instead of pretending it's a 60-day window.
   const spanSeconds = history.length >= 2 ? history[history.length - 1]!.t - history[0]!.t : 0;
-  const chartRangeLabel =
+  const chartTitle =
     history.length < 2
-      ? "no history yet"
+      ? "Chance of YES"
       : spanSeconds >= 60 * DAY_SECONDS
-        ? "last 60 days"
-        : "since market creation";
+        ? "Chance of YES, last 60 days"
+        : "Chance of YES since the market opened";
 
   return (
     <div className="pb-24">
@@ -109,8 +109,10 @@ export function MarketDetailView({ marketIdOrSlug }: Props) {
           </div>
 
           {/* Chart */}
-          <section>
-            <p className="eyebrow mb-3">Probability of YES · {chartRangeLabel}</p>
+          <section aria-labelledby="chart-heading">
+            <h2 id="chart-heading" className="mb-3 font-serif text-xl sm:text-2xl">
+              {chartTitle}
+            </h2>
             <div className="overflow-hidden border border-ink bg-paper p-4 lg:p-6">
               <div className="flex items-stretch gap-3">
                 <OddsAxis />
@@ -138,8 +140,10 @@ export function MarketDetailView({ marketIdOrSlug }: Props) {
           </section>
 
           {/* Resolution rules */}
-          <section>
-            <p className="eyebrow mb-3">How it resolves</p>
+          <section aria-labelledby="resolves-heading">
+            <h2 id="resolves-heading" className="mb-3 font-serif text-xl sm:text-2xl">
+              How it resolves
+            </h2>
             <p className="max-w-[640px] font-serif text-base leading-relaxed text-ink-2 lg:text-lg">
               This market resolves on Polymarket. Polyswap reads the same odds you see there. If you
               set a swap and the odds drop to your threshold before {formatDate(market.endsAt)},
@@ -188,7 +192,7 @@ function Stat({
 }) {
   return (
     <div className="border-r border-ink p-4 last:border-r-0 lg:p-5">
-      <p className="eyebrow">{label}</p>
+      <p className="text-xs text-ink-3 sm:text-sm">{label}</p>
       <p
         className={`num mt-1 text-xl font-semibold lg:text-2xl ${accent ? "text-yes" : "text-ink"}`}
       >

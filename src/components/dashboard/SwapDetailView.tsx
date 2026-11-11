@@ -63,8 +63,10 @@ export function SwapDetailView({ orderId }: Props) {
         <div className="space-y-8 lg:col-span-8">
           <OddsTracker order={order} series={series} />
 
-          <section aria-label="Timeline">
-            <p className="eyebrow mb-4">What&rsquo;s happened</p>
+          <section aria-labelledby="timeline-heading">
+            <h2 id="timeline-heading" className="mb-4 font-serif text-xl sm:text-2xl">
+              What&rsquo;s happened
+            </h2>
             <div className="border border-ink bg-paper p-5 lg:p-6">
               <Timeline order={order} />
             </div>

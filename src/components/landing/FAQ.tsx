@@ -30,7 +30,7 @@ const FAQS: QA[] = [
   },
   {
     q: "What does it cost?",
-    a: "There is NO fee at the moment! Subject to change — a small fee may apply on executed swaps only.",
+    a: "Nothing for now. A small fee on executed swaps may come later; cancelled and expired swaps will stay free.",
   },
 ];
 
@@ -40,10 +40,7 @@ export function FAQ() {
   return (
     <section id="faq" className="border-b border-ink" style={{ scrollMarginTop: "5rem" }}>
       <div className="page-container grid gap-6 py-12 lg:grid-cols-12 lg:gap-10 lg:py-20">
-        <div className="lg:col-span-3">
-          <p className="eyebrow mb-3">Reasonable questions</p>
-          <h2 className="display text-3xl sm:text-4xl lg:text-[40px]">FAQ.</h2>
-        </div>
+        <h2 className="display text-3xl sm:text-4xl lg:col-span-3 lg:text-[40px]">FAQ.</h2>
         <div className="border-t border-ink lg:col-span-9">
           {FAQS.map((it, i) => {
             const open = openIdx === i;

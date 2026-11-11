@@ -5,16 +5,16 @@ import { ErrorAlert } from "@/components/primitives/PageBlocks";
 import { formatTokenAmount, formatUsd } from "@/utils/format";
 import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";
+import { ThresholdNote } from "./ThresholdNote";
 import { TokenPicker } from "./TokenPicker";
 import { AdvancedOptions } from "./AdvancedOptions";
 import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrderForm";
 import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
 import { useDefaultTokens } from "@/hooks/useDefaultTokens";
-import { cn } from "@/utils/cn";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
 import type { MarketViewModel } from "@/types/viewModels";
 import type { PostOnlyBuyCheck } from "@/shared/orders/postOnly";
-import { describePostOnlyStatus, formatQuoteError } from "@/client/orders/quoteErrors";
+import { formatQuoteError } from "@/client/orders/quoteErrors";
 
 interface Props {
   market: MarketViewModel;
@@ -40,41 +40,50 @@ export function CreateForm({
   const { data: history = [] } = useMarketPriceHistory(market.yesTokenId, 60);
   const yesSparkData = history.map((h) => h.p);
   const sparkData = state.side === "YES" ? yesSparkData : yesSparkData.map((p) => 1 - p);
-  const thresholdMessage = describePostOnlyStatus(
-    postOnlyEnabled,
-    postOnlyCheck,
-    state.side,
-    state.threshold
-  );
-  const thresholdBlocked = postOnlyEnabled && postOnlyCheck.status !== "rests";
+  const currentPrice = postOnlyCheck.status === "unavailable" ? null : postOnlyCheck.bestAsk;
 
   return (
     <div className="flex flex-col gap-5 lg:gap-6">
-      {/* 02 — When */}
-      <section className="border border-ink bg-paper p-4 sm:p-6">
-        <p className="eyebrow mb-4">02 · When should it fire</p>
+      <section aria-labelledby="when-heading" className="border border-ink bg-paper p-4 sm:p-6">
+        <h2 id="when-heading" className="mb-4 font-serif text-xl leading-tight sm:text-2xl">
+          When should the swap fire?
+        </h2>
         <div className="flex flex-col gap-5 lg:gap-6">
           <SideToggle value={state.side} onChange={(v) => set("side", v)} />
-          <ThresholdSlider value={state.threshold} onChange={(v) => set("threshold", v)} />
-          <div className="overflow-hidden border border-rule-soft bg-paper-2 p-3">
+          <div className="flex flex-col gap-4">
+            <ThresholdSlider
+              value={state.threshold}
+              onChange={(v) => set("threshold", v)}
+              currentPrice={currentPrice}
+              blockAtCurrentPrice={postOnlyEnabled}
+              describedBy="threshold-note"
+            />
+            <ThresholdNote
+              id="threshold-note"
+              postOnlyEnabled={postOnlyEnabled}
+              check={postOnlyCheck}
+              side={state.side}
+              threshold={state.threshold}
+              onUseSuggested={(v) => set("threshold", v)}
+            />
+          </div>
+          <div className="overflow-hidden border border-rule-soft bg-paper-2 p-1">
             <Tape
               data={sparkData}
               threshold={state.threshold}
               side={state.side}
               width={520}
-              height={80}
+              height={140}
               className="w-full"
             />
-            <p className={cn("mt-2 text-xs", thresholdBlocked ? "text-no" : "text-ink-3")}>
-              {thresholdMessage}
-            </p>
           </div>
         </div>
       </section>
 
-      {/* 03 — What */}
-      <section className="border border-ink bg-paper p-4 sm:p-6">
-        <p className="eyebrow mb-4">03 · What should we swap</p>
+      <section aria-labelledby="what-heading" className="border border-ink bg-paper p-4 sm:p-6">
+        <h2 id="what-heading" className="mb-4 font-serif text-xl leading-tight sm:text-2xl">
+          What do you want to swap?
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           <div>
             <p className="mb-2 text-xs text-ink-3">You send</p>

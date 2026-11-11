@@ -9,9 +9,12 @@ test("a disabled guard warns about immediate execution whatever the book says", 
   assert.match(describePostOnlyStatus(false, rests, "YES", 0.4), /Immediate execution/);
 });
 
-test("a crossing order reuses the crossing message", () => {
+test("a crossing order names the live price and the highest threshold that waits", () => {
   const crosses = checkPostOnlyBuy(60, 0.5);
-  assert.match(describePostOnlyStatus(true, crosses, "YES", 0.6), /would fire immediately/);
+  assert.equal(
+    describePostOnlyStatus(true, crosses, "YES", 0.6),
+    "YES is already at 50%, so a 60% trigger would fire immediately. Pick 49% or lower."
+  );
 });
 
 test("an unavailable book says so", () => {
@@ -22,13 +25,13 @@ test("an unavailable book says so", () => {
 test("an empty ask side names the side", () => {
   assert.equal(
     describePostOnlyStatus(true, checkPostOnlyBuy(40, null), "NO", 0.4),
-    "There are no NO sell orders right now. Your 40% trigger can wait on the book."
+    "Nobody is selling NO right now. The swap fires if NO drops to 40%."
   );
 });
 
 test("a resting order quotes the best ask", () => {
   assert.equal(
     describePostOnlyStatus(true, rests, "YES", 0.4),
-    "The best available YES price is 55%. Your 40% trigger can wait on the book."
+    "YES is at 55% right now. The swap fires if YES drops to 40%."
   );
 });

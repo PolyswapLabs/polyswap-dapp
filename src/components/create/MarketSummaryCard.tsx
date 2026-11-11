@@ -11,10 +11,7 @@ interface Props {
 
 export function MarketSummaryCard({ market }: Props) {
   return (
-    <section aria-labelledby="market-summary" className="border border-ink bg-paper-2 p-4 sm:p-6">
-      <p id="market-summary" className="eyebrow mb-3">
-        01 · The question
-      </p>
+    <section aria-label="Market" className="border border-ink bg-paper-2 p-4 sm:p-6">
       <div className="flex items-start gap-4 sm:gap-5">
         <Dial
           current={market.yesProbability}

@@ -9,7 +9,7 @@ interface Guarantee {
 const ITEMS: Guarantee[] = [
   {
     Ico: Icon.lock,
-    title: "Non-custodial and Permissionless",
+    title: "Non-custodial and permissionless",
     body: "Your tokens never leave your wallet until your trigger fires. Polyswap can't withdraw, swap, or move funds on its own. Ever.",
   },
   {
@@ -24,7 +24,6 @@ export function Guarantees() {
     <section className="border-b border-ink">
       <div className="page-container grid gap-10 py-12 lg:grid-cols-12 lg:py-20">
         <div className="lg:col-span-5">
-          <p className="eyebrow mb-3">Two guarantees</p>
           <h2 className="display text-4xl leading-[1.0] sm:text-5xl lg:text-[60px]">
             We never <span className="display-italic">touch </span> your money.
           </h2>

@@ -159,7 +159,7 @@ export function TokenPicker({
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="eyebrow sticky top-0 z-10 border-b border-rule-soft bg-paper-2 px-4 py-1.5">
+      <p className="sticky top-0 z-10 border-b border-rule-soft bg-paper-2 px-4 py-1.5 text-xs font-medium text-ink-3">
         {title}
       </p>
       <ul>{children}</ul>

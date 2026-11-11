@@ -70,7 +70,6 @@ export function DashboardView() {
   return (
     <div className="space-y-6 py-8 lg:space-y-8 lg:py-10">
       <header>
-        <p className="eyebrow mb-2">Hi, welcome back</p>
         <h1 className="display text-3xl leading-[1.05] sm:text-4xl lg:text-[56px]">
           Your <span className="display-italic">swaps.</span>
         </h1>

@@ -34,7 +34,7 @@ export function Hero() {
                 <Icon.arrowRight size={14} aria-hidden />
               </Link>
               <a href="#how-it-works" className="text-sm underline underline-offset-4">
-                See how it works →
+                See how it works
               </a>
             </div>
           </RevealItem>

@@ -43,7 +43,7 @@ export function MobileNav({ open, onClose, links, footer }: Props) {
         )}
       >
         <div className="flex items-center justify-between border-b border-ink px-5 py-4">
-          <span className="eyebrow">Menu</span>
+          <span className="text-sm font-medium">Menu</span>
           <button
             type="button"
             aria-label="Close menu"

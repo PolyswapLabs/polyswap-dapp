@@ -92,14 +92,8 @@ export function MarketsBrowseView() {
   return (
     <div>
       <MarketsPageHeader
-        eyebrow="Markets · prioritized for crypto impact"
-        title={
-          <>
-            The <span className="display-italic">paper</span>
-            <br />
-            of record.
-          </>
-        }
+        subtitle="The ones most likely to move crypto prices come first."
+        title="Pick a question."
         searchValue=""
         onSearchSubmit={handleSearchSubmit}
       />

@@ -32,7 +32,7 @@ export function AdvancedOptions({ state, onChange }: Props) {
         className="flex w-full items-center justify-between px-4 py-3 text-left text-sm sm:px-5"
         aria-expanded={open}
       >
-        <span className="eyebrow">A few extra options</span>
+        <span className="font-medium">More options</span>
         <span className={cn("text-ink-3 transition-transform", open && "rotate-180")} aria-hidden>
           <Icon.chevronDown size={14} />
         </span>

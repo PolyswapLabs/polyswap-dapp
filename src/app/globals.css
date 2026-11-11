@@ -109,14 +109,6 @@ body {
     font-style: italic;
     font-weight: 400;
   }
-
-  .eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--color-ink-3);
-  }
 }
 
 @keyframes pulse-dot {

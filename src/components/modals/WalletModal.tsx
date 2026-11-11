@@ -80,7 +80,6 @@ export function WalletModal({ open, onClose, onConnected }: Props) {
     <Modal open={open} onClose={onClose} title="Connect a Safe wallet" size="sm">
       <div className="flex flex-col gap-3 p-5">
         <p className="border border-ink bg-paper-2 px-3 py-2.5 text-sm">
-          <span className="eyebrow mr-1.5">Heads up</span>
           Polyswap currently only supports <strong>Safe wallets</strong>. Open the dapp inside the
           Safe app, or connect via WalletConnect from your Safe wallet.
         </p>

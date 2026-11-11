@@ -30,7 +30,7 @@ export function PortfolioStrip({ orders }: Props) {
               <Stamp>{m.badge}</Stamp>
             </span>
           )}
-          <p className="eyebrow">{m.label}</p>
+          <p className="text-sm text-ink-3">{m.label}</p>
           {m.kind === "number" ? (
             <p className="num mt-2 truncate text-2xl font-semibold text-ink lg:text-3xl">
               <CountUp to={m.raw} format={m.format} />

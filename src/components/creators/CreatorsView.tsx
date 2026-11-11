@@ -31,8 +31,7 @@ export function CreatorsView() {
   return (
     <div className="space-y-12 py-10 lg:py-16">
       <header className="border-b border-ink pb-10">
-        <p className="eyebrow">The team</p>
-        <h1 className="mt-3 font-serif text-4xl leading-tight sm:text-5xl lg:text-[64px]">
+        <h1 className="font-serif text-4xl leading-tight sm:text-5xl lg:text-[64px]">
           Two builders.
           <br />
           One conviction.
@@ -68,8 +67,8 @@ function CreatorCard({ creator }: { creator: Creator }) {
           />
         </div>
         <div className="min-w-0">
-          <p className="eyebrow">{creator.role}</p>
-          <h2 className="mt-1 font-serif text-2xl leading-tight sm:text-3xl">{creator.name}</h2>
+          <h2 className="font-serif text-2xl leading-tight sm:text-3xl">{creator.name}</h2>
+          <p className="mt-1 text-sm text-ink-3">{creator.role}</p>
           {creator.bio && (
             <p className="mt-3 font-serif text-base leading-snug text-ink-2 sm:text-lg">
               {creator.bio}
@@ -134,10 +133,8 @@ function SocialRow({
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <SocialIcon />
-          <span className="flex min-w-0 flex-col">
-            <span className="eyebrow">{label}</span>
-            <span className="num truncate text-xs text-ink-2">{handle}</span>
-          </span>
+          <span className="sr-only">{label}:</span>
+          <span className="num truncate text-xs text-ink-2">{handle}</span>
         </span>
         <Icon.arrowUpRight
           size={14}

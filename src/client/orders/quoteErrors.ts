@@ -1,5 +1,5 @@
 import { formatPercent } from "@/utils/format";
-import { postOnlyCrossingMessage, type PostOnlyBuyCheck } from "@/shared/orders/postOnly";
+import { suggestedThresholdPercent, type PostOnlyBuyCheck } from "@/shared/orders/postOnly";
 import type { Side } from "@/shared/markets/categories";
 
 const QUOTE_ERROR_COPY: Record<string, string> = {
@@ -28,14 +28,16 @@ export function describePostOnlyStatus(
   threshold: number
 ): string {
   if (!postOnlyEnabled) {
-    return "Immediate execution is enabled by the administrator. This order may fire as soon as it is confirmed.";
+    return "Immediate execution is on, so this swap can fire as soon as it's confirmed.";
   }
-  if (check.status === "crosses") return postOnlyCrossingMessage(check);
+  if (check.status === "crosses") {
+    return `${side} is already at ${formatPercent(check.bestAsk)}, so a ${formatPercent(threshold)} trigger would fire immediately. Pick ${suggestedThresholdPercent(check)}% or lower.`;
+  }
   if (check.status === "unavailable") {
-    return "The live order book is unavailable, so we can't verify that this order will wait.";
+    return "The Polymarket order book is unavailable, so we can't confirm this swap will wait.";
   }
-  const canWait = `Your ${formatPercent(threshold)} trigger can wait on the book.`;
+  const fires = `The swap fires if ${side} drops to ${formatPercent(threshold)}.`;
   return check.bestAsk === null
-    ? `There are no ${side} sell orders right now. ${canWait}`
-    : `The best available ${side} price is ${formatPercent(check.bestAsk)}. ${canWait}`;
+    ? `Nobody is selling ${side} right now. ${fires}`
+    : `${side} is at ${formatPercent(check.bestAsk)} right now. ${fires}`;
 }

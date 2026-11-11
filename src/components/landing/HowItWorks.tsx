@@ -36,12 +36,9 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="border-b border-ink" style={{ scrollMarginTop: "5rem" }}>
       <div className="page-container py-12 lg:py-20">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-3 lg:mb-10">
-          <h2 className="display text-4xl sm:text-5xl lg:text-[56px]">
-            How it <span className="display-italic">works.</span>
-          </h2>
-          <p className="eyebrow">Three steps · about 90 seconds</p>
-        </div>
+        <h2 className="display mb-8 text-4xl sm:text-5xl lg:mb-10 lg:text-[56px]">
+          How it <span className="display-italic">works.</span>
+        </h2>
         <div className="grid border border-ink lg:grid-cols-3">
           {STEPS.map((s, i) => (
             <div

@@ -36,8 +36,14 @@ export function checkPostOnlyBuy(
   };
 }
 
-export function postOnlyCrossingMessage(check: Extract<PostOnlyBuyCheck, { status: "crosses" }>) {
+type CrossingCheck = Extract<PostOnlyBuyCheck, { status: "crosses" }>;
+
+/** Highest whole-percent threshold that still rests below the best ask. */
+export function suggestedThresholdPercent(check: CrossingCheck): number {
+  return Math.floor(check.suggestedMaxPrice * 100 + Number.EPSILON);
+}
+
+export function postOnlyCrossingMessage(check: CrossingCheck) {
   const bestAskPercent = Math.round(check.bestAsk * 100);
-  const suggestedPercent = Math.floor(check.suggestedMaxPrice * 100 + Number.EPSILON);
-  return `This threshold would fire immediately: the best available price is ${bestAskPercent}%. Choose ${suggestedPercent}% or less so the order can wait.`;
+  return `This threshold would fire immediately: the best available price is ${bestAskPercent}%. Choose ${suggestedThresholdPercent(check)}% or less so the order can wait.`;
 }

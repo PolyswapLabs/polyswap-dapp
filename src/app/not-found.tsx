@@ -15,7 +15,7 @@ export default function NotFound() {
         <div className="page-container flex h-16 items-center justify-between">
           <Wordmark />
           <Link href="/markets" className="text-sm underline underline-offset-4">
-            Open the app →
+            Open the app
           </Link>
         </div>
       </header>
@@ -23,7 +23,6 @@ export default function NotFound() {
       <main className="flex flex-1 items-center">
         <div className="page-container grid w-full items-center gap-10 py-16 lg:grid-cols-12 lg:gap-12 lg:py-24">
           <div className="lg:col-span-7">
-            <p className="eyebrow mb-4">Issue · 404 · April edition</p>
             <h1 className="display text-5xl leading-[0.95] sm:text-6xl lg:text-[88px]">
               Filed under
               <br />
@@ -51,8 +50,7 @@ export default function NotFound() {
                 <p className="num text-[120px] leading-none font-semibold tracking-tighter text-ink">
                   404
                 </p>
-                <p className="eyebrow mt-4">Page not found</p>
-                <p className="mt-1 text-xs text-ink-3">no such issue in our records</p>
+                <p className="mt-4 text-sm text-ink-3">Page not found</p>
               </div>
               <div className="absolute -top-4 -right-4">
                 <Stamp>Returned to sender</Stamp>
@@ -63,9 +61,8 @@ export default function NotFound() {
       </main>
 
       <footer className="border-t border-ink">
-        <div className="page-container flex items-center justify-between py-6 text-xs text-ink-3">
+        <div className="page-container py-6 text-xs text-ink-3">
           <p>© {new Date().getFullYear()} Polyswap. Runs on Polygon.</p>
-          <p className="num">404 · static</p>
         </div>
       </footer>
     </div>

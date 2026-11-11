@@ -30,12 +30,10 @@ export function RecapPanel({ market, state, estimates, wouldCross }: Props) {
   return (
     <div className="space-y-4">
       <section aria-label="In your words" className="border border-ink bg-paper-2 p-5">
-        <p className="eyebrow mb-3">In your words</p>
         <p className="font-serif text-lg leading-snug italic">{sentence}</p>
       </section>
 
       <section aria-label="Order recap" className="border border-ink bg-paper p-5">
-        <p className="eyebrow mb-3">Recap</p>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <DefinitionRow
             term="Trigger"

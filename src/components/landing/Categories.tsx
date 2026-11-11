@@ -36,7 +36,6 @@ export function Categories() {
       <div className="page-container py-12 lg:py-20">
         <div className="mb-8 grid gap-6 lg:mb-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-4">
-            <p className="eyebrow mb-3">Built for crypto</p>
             <h2 className="display text-3xl leading-[1.05] sm:text-4xl lg:text-[44px]">
               News that
               <br />

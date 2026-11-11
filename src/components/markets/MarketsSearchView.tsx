@@ -86,10 +86,10 @@ export function MarketsSearchView() {
             <span>All markets</span>
           </TransitionLink>
         }
-        eyebrow={
+        subtitle={
           trimmed.length > 0
-            ? `Search · ${total.toLocaleString()} match${total === 1 ? "" : "es"}`
-            : "Search"
+            ? `${total.toLocaleString()} match${total === 1 ? "" : "es"}`
+            : undefined
         }
         title={
           trimmed.length > 0 ? (
