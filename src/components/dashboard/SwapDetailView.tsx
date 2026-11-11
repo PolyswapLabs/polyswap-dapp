@@ -20,7 +20,7 @@ export function SwapDetailView({ orderId }: Props) {
   const { order, isLoading, isError, errorMessage, walletConnected } = useOrder(orderId);
   const { address } = useAccount();
   const series = useOrderOddsSeries(order);
-  const { cancel, pending, error, modalProps } = useCancelSwap(order);
+  const { cancel, pending, error, notice, modalProps } = useCancelSwap(order);
 
   if (!walletConnected) {
     return <PageMessage>Connect your wallet to view this swap.</PageMessage>;
@@ -55,6 +55,7 @@ export function SwapDetailView({ orderId }: Props) {
         cancellable={order.phase === "draft" || order.phase === "live"}
         cancelPending={pending}
         cancelError={error}
+        cancelNotice={notice}
         onCancel={() => void cancel()}
       />
 

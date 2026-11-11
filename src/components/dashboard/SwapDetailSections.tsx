@@ -18,6 +18,7 @@ interface SwapHeaderProps {
   cancellable: boolean;
   cancelPending: boolean;
   cancelError: string | null;
+  cancelNotice: string | null;
   onCancel: () => void;
 }
 
@@ -28,6 +29,7 @@ export function SwapHeader({
   cancellable,
   cancelPending,
   cancelError,
+  cancelNotice,
   onCancel,
 }: SwapHeaderProps) {
   return (
@@ -66,6 +68,11 @@ export function SwapHeader({
               {cancelPending ? "Cancelling…" : "Cancel swap"}
             </Button>
             {cancelError && <p className="text-xs text-no">{cancelError}</p>}
+            {cancelNotice && (
+              <p role="status" className="max-w-56 text-right text-xs text-ink-3">
+                {cancelNotice}
+              </p>
+            )}
           </div>
         )}
       </div>

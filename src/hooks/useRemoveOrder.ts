@@ -19,8 +19,8 @@ interface UseRemoveOrder {
   /**
    * Build the SafeCall list for `ComposableCoW.remove(orderHash)`. The caller
    * passes this to <SafeSignModal calls={...} />. After the modal fires
-   * onConfirmed, the caller MUST notify the server (`notifyRemoveOrder`)
-   * to finalise server-side state (Polymarket cancel + DB update).
+   * onConfirmed, the caller records it server-side with `finalizeRemoval`;
+   * the listener's order-health check catches any removal that call misses.
    */
   buildRemoveLiveCalls: (orderHash: Hex) => SafeCall[];
 

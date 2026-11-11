@@ -1,33 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSafeSignFlow } from "@/hooks/safe/useSafeSignFlow";
-import { getErrorMessage } from "@/utils/errors";
 import type { SafeCall } from "@/client/safe/types";
 
-export interface SafeSignPrepare {
-  run: () => Promise<void>;
-  heading: string;
-  body: string;
-}
-
 /**
- * Wraps the Safe transaction machine with the modal's optional pre-tx signing
- * step. Kept separate from useSafeSignFlow so it can wrap the on-chain
- * transaction state without changing it.
+ * Wraps the Safe transaction machine with the modal's lifecycle: a guard against
+ * sending twice, and a reset once a finished flow is closed.
  */
-export function useSafeSignModalFlow(
-  prepare: SafeSignPrepare | undefined,
-  calls: SafeCall[],
-  open: boolean
-) {
+export function useSafeSignModalFlow(calls: SafeCall[], open: boolean) {
   const { state, send, reset } = useSafeSignFlow();
-  const [prePhase, setPrePhase] = useState<"idle" | "running" | "ready" | "error">("idle");
-  const [prepareError, setPrepareError] = useState<string | null>(null);
   // React state is not a synchronous mutex: two clicks can observe the same
-  // `prePhase` before the component renders again. Keep an imperative guard so
-  // neither the off-chain signature nor the Safe transaction can be requested
-  // twice.
+  // state before the component renders again. Keep an imperative guard so the
+  // Safe transaction cannot be requested twice.
   const actionInFlightRef = useRef(false);
 
   // On modal close: clean up state ONLY for terminal phases. Mid-flight closes
@@ -43,40 +28,13 @@ export function useSafeSignModalFlow(
     ) {
       reset();
       actionInFlightRef.current = false;
-      setPrePhase("idle");
-      setPrepareError(null);
     }
   }, [open, state.phase, reset]);
-
-  const startPrepare = async () => {
-    if (actionInFlightRef.current) return;
-
-    if (!prepare) {
-      await startTransaction();
-      return;
-    }
-
-    actionInFlightRef.current = true;
-    setPrePhase("running");
-    setPrepareError(null);
-    try {
-      await prepare.run();
-      // Do not open a second wallet request while Safe is still dismissing the
-      // message-signing request. A separate user action starts the transaction.
-      setPrePhase("ready");
-    } catch (e) {
-      setPrePhase("error");
-      setPrepareError(getErrorMessage(e, "Failed to sign confirmation message"));
-    } finally {
-      actionInFlightRef.current = false;
-    }
-  };
 
   const startTransaction = async () => {
     if (actionInFlightRef.current) return;
 
     actionInFlightRef.current = true;
-    setPrePhase("idle");
     try {
       await send(calls);
     } finally {
@@ -84,5 +42,5 @@ export function useSafeSignModalFlow(
     }
   };
 
-  return { state, prePhase, prepareError, startPrepare, startTransaction };
+  return { state, startTransaction };
 }

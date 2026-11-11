@@ -5,7 +5,7 @@ import type { Hash } from "viem";
 import { Button } from "@/components/primitives/Button";
 import { Modal } from "@/components/primitives/Modal";
 import { Icon } from "@/components/icons";
-import { useSafeSignModalFlow, type SafeSignPrepare } from "@/hooks/useSafeSignModalFlow";
+import { useSafeSignModalFlow } from "@/hooks/useSafeSignModalFlow";
 import { polygonscanTxUrl } from "@/utils/links";
 import type { SafeCall } from "@/client/safe/types";
 
@@ -24,24 +24,10 @@ type SafeSignModalProps = {
   onConfirmed: (onChainHash: Hash, safeTxHash: Hash) => void;
   /** Optional human-readable summary shown on the review screen. */
   summary?: React.ReactNode;
-  /**
-   * Optional pre-flight step run BEFORE the on-chain tx. Use this to request
-   * an off-chain signature (EIP-191 / typed-data) that the caller will need
-   * later — e.g. an authorisation message that must be paired with the tx
-   * receipt server-side. If the promise rejects, the modal returns to the
-   * review screen and surfaces the error; the tx is never sent.
-   *
-   * Heading/body let the caller spell out what the user is signing.
-   */
-  prepare?: SafeSignPrepare;
 };
 
 /** Failure screens that offer a retry. Phases without a body show the flow's own message. */
 const TERMINAL_COPY = {
-  prepareFailed: {
-    heading: "Couldn't sign message",
-    body: "Try signing the confirmation message again.",
-  },
   reverted: {
     heading: "Transaction reverted",
     body: "The transaction executed on chain but reverted. No funds moved.",
@@ -50,19 +36,8 @@ const TERMINAL_COPY = {
   error: { heading: "Something went wrong" },
 } as const satisfies Record<string, { heading: string; body?: string }>;
 
-export function SafeSignModal({
-  open,
-  onClose,
-  calls,
-  onConfirmed,
-  summary,
-  prepare,
-}: SafeSignModalProps) {
-  const { state, prePhase, prepareError, startPrepare, startTransaction } = useSafeSignModalFlow(
-    prepare,
-    calls,
-    open
-  );
+export function SafeSignModal({ open, onClose, calls, onConfirmed, summary }: SafeSignModalProps) {
+  const { state, startTransaction } = useSafeSignModalFlow(calls, open);
 
   // Hold the latest onConfirmed in a ref so we can fire it exactly once on
   // success without putting it in the deps (which would re-run the effect on
@@ -81,33 +56,9 @@ export function SafeSignModal({
   const sendTransaction = () => void startTransaction();
 
   const renderStep = () => {
-    if (prePhase === "running" && prepare) {
-      return <PendingScreen heading={prepare.heading} body={prepare.body} />;
-    }
-    if (prePhase === "error") {
-      return (
-        <ErrorScreen
-          heading={TERMINAL_COPY.prepareFailed.heading}
-          body={prepareError ?? TERMINAL_COPY.prepareFailed.body}
-          onClose={onClose}
-          onRetry={() => void startPrepare()}
-        />
-      );
-    }
-
     switch (state.phase) {
       case "idle":
-        if (prePhase === "ready") {
-          return <MessageSignedScreen onClose={onClose} onContinue={sendTransaction} />;
-        }
-        return prePhase === "idle" ? (
-          <ReviewScreen
-            summary={summary}
-            continueLabel={prepare ? "Sign authorisation" : "Approve & sign"}
-            onClose={onClose}
-            onContinue={() => void startPrepare()}
-          />
-        ) : null;
+        return <ReviewScreen summary={summary} onClose={onClose} onContinue={sendTransaction} />;
       case "wallet":
         return (
           <PendingScreen
@@ -193,12 +144,10 @@ function ScreenActions({
 
 function ReviewScreen({
   summary,
-  continueLabel,
   onClose,
   onContinue,
 }: {
   summary: ReactNode;
-  continueLabel: string;
   onClose: () => void;
   onContinue: () => void;
 }) {
@@ -213,32 +162,7 @@ function ReviewScreen({
         This will send a single Safe transaction. You&rsquo;ll be asked to confirm it in your
         connected signer.
       </p>
-      <ScreenActions onClose={onClose} onContinue={onContinue} continueLabel={continueLabel} />
-    </div>
-  );
-}
-
-function MessageSignedScreen({
-  onClose,
-  onContinue,
-}: {
-  onClose: () => void;
-  onContinue: () => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <DrawnCheck />
-        <div role="status" aria-live="polite">
-          <p className="font-serif text-2xl">Message signed.</p>
-          <p className="text-sm text-ink-2">Now open Safe to approve the on-chain transaction.</p>
-        </div>
-      </div>
-      <ScreenActions
-        onClose={onClose}
-        onContinue={onContinue}
-        continueLabel="Open Safe transaction"
-      />
+      <ScreenActions onClose={onClose} onContinue={onContinue} continueLabel="Approve & sign" />
     </div>
   );
 }

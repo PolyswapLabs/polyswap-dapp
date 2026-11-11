@@ -10,7 +10,7 @@ export interface SignedAction {
   chainId: number;
 }
 
-type SignableAction = "cancel_draft" | "notify_remove";
+type SignableAction = "cancel_draft";
 
 /**
  * Hook for signing PolySwap action messages using EIP-191

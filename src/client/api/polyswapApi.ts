@@ -162,19 +162,12 @@ export async function deleteDraftOrder(
 }
 
 /**
- * Server-side finalisation after the on-chain ComposableCoW.remove(orderHash)
- * has been confirmed. Auth: EIP-191 message signed via
- * useSignAction("notify_remove", String(orderId)).
+ * Server-side finalisation after ComposableCoW.remove(orderHash) has executed.
+ * Unsigned: the server accepts it only when the chain shows the order removed.
  */
-export async function notifyRemoveOrder(
-  orderId: number,
-  signature: string,
-  timestamp: number
-): Promise<void> {
+export async function notifyRemoveOrder(orderId: number): Promise<void> {
   const res = await fetch(`${API_BASE}/polyswap/orders/id/${orderId}/notify-remove`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ signature, timestamp }),
   });
   await readApiResponse(res, isSuccessEnvelope);
 }
