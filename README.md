@@ -1,447 +1,152 @@
-# 🔄 PolySwap
+<div align="center">
 
-**Automated DeFi swaps triggered by prediction market outcomes on Polygon**
+<img src="public/landing/thumbnail.png" alt="PolySwap illustration" width="560">
 
-PolySwap is a decentralized application that enables users to create conditional swap orders that execute automatically when specific prediction market outcomes are resolved. Built on top of CoW Swap's conditional order framework, PolySwap bridges the gap between prediction markets and DeFi trading.
+<h1>PolySwap</h1>
 
-## 🎯 What Is PolySwap?
+<p><strong>Token swaps on Polygon that execute only when a Polymarket outcome reaches the odds you choose.</strong></p>
 
-PolySwap allows you to:
+<p>
+  <img src="https://visitor-badge.laobi.icu/badge?page_id=PolyswapLabs.polyswap-dapp" alt="Repository views">
+  <a href="https://github.com/PolyswapLabs/polyswap-dapp/stargazers"><img src="https://img.shields.io/github/stars/PolyswapLabs/polyswap-dapp?style=flat&logo=github&color=e8590c" alt="GitHub stars"></a>
+  <a href="https://github.com/PolyswapLabs/polyswap-dapp/commits"><img src="https://img.shields.io/github/last-commit/PolyswapLabs/polyswap-dapp?style=flat&color=16140f" alt="Last commit"></a>
+</p>
 
-- **🎲 Create Conditional Orders**: Set up token swaps that only execute when your predicted market outcome occurs
-- **📊 Browse Markets**: Explore Polymarket prediction markets directly in the interface
-- **⚡ Automatic Execution**: Orders execute automatically when market conditions resolve in your favor
-- **🔒 Trustless**: Built on CoW Swap's proven conditional order infrastructure
-- **💸 Gas Efficient**: Leverages batch auctions and off-chain order matching
-- **🔐 Safe Wallet Integration**: Secure multi-signature wallet support for institutional users
+<p>
+  <img src="https://img.shields.io/badge/Polygon-mainnet-7B3FE4?style=flat&logo=polygon&logoColor=white" alt="Polygon">
+  <img src="https://img.shields.io/badge/CoW_Protocol-conditional_orders-012F7A?style=flat" alt="CoW Protocol">
+  <img src="https://img.shields.io/badge/Polymarket-CLOB-2E5CFF?style=flat" alt="Polymarket">
+  <img src="https://img.shields.io/badge/Safe-smart_account-12FF80?style=flat&logo=safe&logoColor=black" alt="Safe">
+  <img src="https://img.shields.io/badge/Next.js-15-000000?style=flat&logo=nextdotjs&logoColor=white" alt="Next.js 15">
+</p>
 
-### Example Use Case
+<p>
+  <a href="https://polyswap.lucasl.dev"><b>Website</b></a> ·
+  <a href="public/polyswap-ads.mp4"><b>Watch the video</b></a> ·
+  <a href="#how-it-works"><b>How it works</b></a> ·
+  <a href="#getting-started"><b>Getting started</b></a>
+</p>
 
-> _"I believe if Trump wins the 2024 election, crypto market will go up. If my Polymarket bet gets filled, I want to automatically swap 1000 USDC for ETH at current market rates."_
+</div>
 
-With PolySwap, you can create this conditional order that will only execute if the condition is met, eliminating the need to manually monitor the prediction market outcome and execute the trade yourself.
+> _"Swap 1,000 USDC for WETH if 'Will the Fed cut rates in December?' trades at 70% YES or higher before Friday."_
 
-> 🎥 **[Watch the PolySwap demo video](./public/polyswap_demo.mp4)**
+Funds stay in your Safe until the condition is met. If it never is, the order expires and nothing moves.
 
-## 🏗️ Architecture Overview
+## How it works
 
-PolySwap consists of integrated frontend and backend components:
+1. **Create.** You pick a market, an outcome, a probability threshold, the swap and an expiry date. The backend places a small Polymarket limit order that buys shares of that outcome at your threshold price. This is the _trigger order_ (called a `sentinel` in the code). Swaps with the same market, outcome, price and expiry share one trigger order.
+2. **Sign.** Your Safe signs one transaction that creates a CoW Protocol conditional order on `ComposableCoW`. If needed, it also approves the sell token and installs CoW's `ExtensibleFallbackHandler`.
+3. **Wait.** On every block, the PolySwap handler (the contract that decides when the conditional order is valid) reads the trigger order's fill on Polymarket's exchange contract. Once it has filled, the market has traded at your price and the condition is met.
+4. **Swap.** CoW's watch tower then posts the order to the CoW order book, and solvers settle it in a batch auction.
+5. **Clean up.** The backend sells the shares the trigger order bought, so it never holds market risk.
 
-### 🖥️ Frontend (Next.js)
-
-- **Modern React Interface**: Built with Next.js 15 and React 19
-- **Market Browser**: Search and explore Polymarket prediction markets
-- **Order Creation Flow**: Intuitive interface for setting up conditional swaps with Polymarket integration
-- **Order Management**: Track and manage your active conditional orders
-- **Safe Wallet Integration**: Gnosis Safe support with WalletConnect for secure transactions
-- **Real-time Updates**: Live order status and market data synchronization
-
-### ⚙️ Backend (Node.js + TypeScript)
-
-- **Next.js API Routes**: Integrated API serving market data and order information
-- **Blockchain Listener**: Monitors Polygon for PolySwap order events and trade executions
-- **PostgreSQL Database**: Stores market data, order history, and order UIDs
-- **Real-time Processing**: Indexes and processes orders as they're created
-- **Order UID Calculation**: Automatic calculation and storage of CoW Protocol order UIDs
-
-📚 **[API endpoints and examples →](#-api-endpoints)**
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 20+ and pnpm
-- A PostgreSQL database (the project uses [Nile](https://www.thenile.dev/) — `prisma.config.ts` builds the URL from `DB_HOST/DB_USER/DB_PASSWORD/DB_NAME`, or set `DATABASE_URL` directly)
-
-### Installation
-
-```bash
-# Install dependencies (also runs `prisma generate` via postinstall)
-pnpm install
-
-# Set up environment variables
-cp .env.sample .env
-# Edit .env with your DB credentials, RPC URL, Polymarket creds, etc.
-
-# Apply schema migrations
-pnpm db:migrate
-```
-
-### Running the Application
-
-1. **Start the backend services** (blockchain listener + market sync + position seller):
-
-   ```bash
-   pnpm start:listener
-   ```
-
-2. **Start the frontend** (in another terminal):
-
-   ```bash
-   pnpm dev
-   ```
-
-3. **Access the application**:
-   - Frontend: `http://localhost:3000`
-   - API docs (Swagger UI): `http://localhost:3000/api-docs`
-
-## 🔧 Available Scripts
-
-### Frontend Development
-
-```bash
-pnpm dev          # Start Next.js development server (port 3000)
-pnpm build        # Build production frontend
-pnpm start        # Start production frontend
-pnpm lint         # Run ESLint
-```
-
-### Backend Services
-
-```bash
-pnpm start:listener               # Start blockchain listener + market sync
-pnpm start:listener-only          # Start only blockchain listener
-pnpm start:market-sync            # Start only the market sync (via listener)
-```
-
-### Market Data Management
-
-```bash
-pnpm markets:sync   # Run one market sync against the database, then exit
-```
-
-### Market Recommendations
-
-`GET /api/markets/recommended` reads the existing market index and enriches up to
-300 candidates with up to three concurrent Gamma requests of 100 IDs each.
-Gamma's ID filter has a 100-item maximum per request.
-Prices and daily metrics are cached only in server memory for two minutes; no
-database writes, migrations, or new refresh jobs are needed.
-
-Browse defaults to 10–90% YES odds, at least $10,000 lifetime volume, $5,000
-liquidity, $1,000 daily volume, a spread of at most 5 percentage points, and more
-than 48 hours remaining. Quality scoring combines daily activity, liquidity and
-spread, uncertainty, category/tag relevance, and time remaining. The database
-shortlist uses the existing interest ranking in All and each selected category. Sibling markets
-are deferred across 20-result blocks. `total` counts eligible recommendations in
-the shortlist, not the whole catalogue; `truncated` identifies a capped shortlist.
-
-The browse page keeps category selection and pagination, with fixed 10–90% YES
-odds. Old odds parameters in page URLs do not override that range. The API still
-accepts `category`, `oddsMin`, `oddsMax`, `limit`, and `offset`.
-Search uses `/api/markets/search` independently of recommendation thresholds.
-The browser still loads charts, limited to four simultaneous history requests.
-
-When any Gamma batch returns HTTP 429, the endpoint returns `source: "database"`
-and the existing database shortlist, filtered and ordered on the backend. The
-browser loads CLOB prices as it did for the previous list and labels stored
-volume as total volume. No odds, daily-volume, or spread filters are applied in
-this fallback because those values are not stored in the database. Gamma calls
-pause across all categories for at least two minutes, respecting a longer
-`Retry-After` header. After the cooldown, the next request rebuilds recommendations.
-Other Gamma failures still return an error rather than silently changing the feed.
-The browser's public-data availability check also permits HTTP 429 so it cannot
-hide the database fallback behind the unavailable dialog.
-
-Run the focused regression tests without database or network access:
-
-```bash
-pnpm test
-```
-
-### Database Management
-
-```bash
-pnpm db:migrate   # Apply pending Prisma migrations (prisma migrate deploy)
-pnpm db:status    # Inspect migration state on the configured DB
-pnpm db:diff      # Diff the live DB against prisma/schema.prisma (script form)
-pnpm db:generate  # Regenerate the Prisma client (also runs on postinstall)
-pnpm db:studio    # Open Prisma Studio
-```
-
-### Utility Scripts
-
-```bash
-pnpm get-polymarket-creds         # Generate Polymarket API credentials
-pnpm cancel-polymarket-orders     # Cancel all open Polymarket orders
-pnpm sell-polymarket-positions    # Sell all open Polymarket positions
-pnpm check-polymarket-orders      # Print orders, positions and on-chain CTF balances
-pnpm pusd                         # Wrap / unwrap pUSD (Polymarket's USDC bridge)
-pnpm register-cow-appdata         # Register the CoW app-data document
-pnpm setup-polymarket-approvals   # Pre-grant the Polymarket trading approvals
-```
-
-### Code Quality
-
-```bash
-pnpm format        # Run Prettier across the repo
-pnpm format:check  # Verify formatting without writing
-pnpm lint          # Run ESLint
-```
-
-## 🔄 Automatic Market Updates
-
-PolySwap includes an automatic market update service that keeps your database synchronized with the latest Polymarket data.
-
-### Configuration
-
-Set the update interval in your `.env` file:
-
-```bash
-MARKET_UPDATE_INTERVAL_MINUTES=5  # Update every 5 minutes (default)
-```
-
-## 🛡️ Automatic Position Selling
-
-To prevent the system from holding risk after Polymarket BUY orders are executed, PolySwap includes an automatic position selling service. When a user creates a PolySwap limit order, the backend creates a corresponding Polymarket BUY order. Once this order is filled, the system holds a position that could gain or lose value. The position seller service automatically sells these positions to maintain solvency.
-
-### How It Works
-
-1. A WebSocket subscription starts a sale as soon as shares reach the operator wallet, and a cron runs every X minutes as a backup (default: 10 minutes)
-2. It fetches current positions from the Polymarket API and recent transfers from the chain, skipping resolved markets
-3. For each position found, it creates a SELL order at 95% of current price for faster execution
-4. All sales are logged to the database for auditing
-
-### Configuration
-
-Set the sell interval in your `.env` file:
-
-```bash
-POSITION_SELL_INTERVAL_MINUTES=10  # Backup check for positions every 10 minutes (default)
-```
-
-## ⚙️ Environment Configuration
-
-Key environment variables (see `.env.sample`):
-
-### Database
-
-```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=polyswap
-DB_USER=postgres
-DB_PASSWORD=your_password
-```
-
-### Polymarket API
-
-```bash
-CLOB_API_KEY=your_api_key
-CLOB_SECRET=your_secret
-CLOB_PASS_PHRASE=your_passphrase
-```
-
-> **ℹ️ Info:** You can generate these Polymarket API credentials with the script:
->
-> ```
-> pnpm get-polymarket-creds
-> ```
-
-### Blockchain Configuration
-
-```bash
-RPC_URL=https://polygon-rpc.com/
-STARTING_BLOCK=76437998
-COMPOSABLE_COW=0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74
-NEXT_PUBLIC_POLYSWAP_HANDLER=0x65a5B712F34d8219A4c70451353D2F6A80e6703c
-EXTENSIBLE_FALLBACK_HANDLER=0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5
-```
-
-### Backend Services Configuration
-
-```bash
-MARKET_UPDATE_INTERVAL_MINUTES=60    # Market data sync interval (default: 60)
-POSITION_SELL_INTERVAL_MINUTES=10    # Position auto-sell backup interval (default: 10)
-```
-
-## 📡 API Endpoints
-
-The full schema is generated from JSDoc `@swagger` blocks above each handler and served as JSON at `/api/swagger` and browsable at `/api-docs` (Swagger UI). The tables below are the canonical inventory.
-
-### Market Endpoints
-
-| Method | Endpoint                                 | Description                                                     |
-| ------ | ---------------------------------------- | --------------------------------------------------------------- |
-| `GET`  | `/api/markets/search?q=...&category=...` | Search markets (sort: volume / liquidity / end_date / interest) |
-| `GET`  | `/api/markets/suggest?q=<prefix>`        | Tag autocomplete for the search bar                             |
-| `GET`  | `/api/markets/[slug]?track=1`            | Single market by slug or id; `?track=1` also bumps `view_count` |
-
-### PolySwap Order Endpoints
-
-| Method   | Endpoint                                     | Description                                                                        |
-| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `GET`    | `/api/polyswap/orders`                       | List orders (filter by owner / block range; pagination)                            |
-| `POST`   | `/api/polyswap/orders`                       | Create draft + place Polymarket GTD + return single-tx and approve+create batch    |
-| `GET`    | `/api/polyswap/orders/[owner]`               | Orders for a specific owner address                                                |
-| `GET`    | `/api/polyswap/orders/hash/[orderHash]`      | Lookup order by its on-chain `orderHash`                                           |
-| `GET`    | `/api/polyswap/orders/id/[id]`               | Lookup order by numeric DB id                                                      |
-| `DELETE` | `/api/polyswap/orders/id/[id]`               | Off-chain draft cancellation (signed `cancel_draft` EIP-191 message required)      |
-| `POST`   | `/api/polyswap/orders/id/[id]/notify-remove` | Server-side finalisation after on-chain `ComposableCoW.remove(orderHash)` confirms |
-
-### Utility Endpoints
-
-| Method | Endpoint       | Description                     |
-| ------ | -------------- | ------------------------------- |
-| `GET`  | `/api/health`  | Health check                    |
-| `GET`  | `/api/swagger` | Generated OpenAPI JSON (and UI) |
-
-## 🔍 API Examples
-
-### Create a new order
-
-```bash
-curl -X POST "http://localhost:3000/api/polyswap/orders" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sellToken": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-    "buyToken":  "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
-    "sellAmount": "1000000000",
-    "minBuyAmount": "1",
-    "selectedOutcome": "Yes",
-    "betPercentage": 30,
-    "startDate": "now",
-    "marketId": "0x...",
-    "owner": "0x1234...5678"
-  }'
-```
-
-The response includes `tx` (single create call) and `batchTx` (approve + create), plus `fallbackSetupTx` — a self-call installing CoW's ExtensibleFallbackHandler when the Safe doesn't already have it.
-
-### Search markets
-
-```bash
-curl "http://localhost:3000/api/markets/search?q=fed,rates&sort=interest"
-```
-
-### List orders for an owner
-
-```bash
-curl "http://localhost:3000/api/polyswap/orders/0x1234...5678?limit=50"
-```
-
-### Cancel a draft (off-chain)
-
-```bash
-curl -X DELETE "http://localhost:3000/api/polyswap/orders/id/123" \
-  -H "Content-Type: application/json" \
-  -d '{ "signature": "0x...", "timestamp": 1715200000 }'
-```
-
-## 💰 Fund Flow Architecture
-
-The following diagram illustrates how funds move through the PolySwap system during a conditional order lifecycle:
+You can cancel a live order at any time. The Safe calls `ComposableCoW.remove()`, and the order can no longer trade.
 
 ```mermaid
 sequenceDiagram
-  Actor User
-  participant Dapp as Polyswap dApp
-  participant PO as Polymarket OrderBook
-  participant Safe as Safe Wallet (Fund Custody)
-box onchain
-    participant SellToken as Sell Token Contract (USDC)
-    participant CC as ComposableCoW Contract
-    participant PH as Polyswap Handler
-    participant Polymarket as Polymarket Contract
-    participant BuyToken as Buy Token Contract (COW)
-end
-    participant CS as CoW Settlement Contract
-    participant WT as Watch Tower
-    participant CP as CoW Protocol
+  actor User
+  participant App as PolySwap app + API
+  participant PM as Polymarket
+  participant Safe
+  participant CoW as ComposableCoW + handler
+  participant WT as CoW watch tower
 
-  Note over User, Safe: Phase 1: Order Setup & Fund Preparation
-  User->>Dapp: Choose market & configure order (sellAmount, buyAmount)
-  Dapp->>User: Check wallet balance for sellAmount
-
-  alt Insufficient Balance
-    Dapp-->>User: Error: Insufficient funds
-  else Sufficient Balance
-    Dapp-->>PO: Create Polymarket limit order (condition trigger)
-    PO-->>Dapp: Return polymarket order hash
-
-    Note over Safe, SellToken: Phase 2: Token Approval & Transaction Batch
-    Dapp->>Safe: Check current token allowance for ComposableCoW
-    alt Insufficient Allowance
-      Dapp->>Safe: Prepare batch: [Approval TX, CreateOrder TX]
-      Safe->>SellToken: approve(ComposableCoW, MAX_UINT256)
-      Note over Safe: Funds remain in Safe, only approval granted
-    else Sufficient Allowance
-      Dapp->>Safe: Prepare single TX: [CreateOrder TX]
-    end
-
-    User->>Safe: Sign transaction batch
-    Safe->>CC: createWithContext(orderParams, valueFactory, data)
-    Note over Safe: ✅ Funds still remain in user's Safe wallet
-
-    CC->>CC: Store conditional order parameters
-    CC-->>WT: Emit ConditionalOrderCreated(owner, params)
-    WT-->>CP: Register conditional order in orderbook
+  User->>App: Choose market, threshold, swap
+  App->>PM: Place trigger limit order at the threshold
+  User->>Safe: Sign create (+ approve) transaction
+  Safe->>CoW: Create conditional order
+  loop Every block until filled or expired
+    WT->>CoW: Is the order tradeable?
+    CoW->>PM: Read trigger order fill on-chain
   end
-
-  Note over CP, CS: Phase 3: Continuous Order Monitoring (Every Block)
-  loop Every Block Until Condition Met or Expiry
-    CS->>Safe: Call isValidSignature(orderHash, signature)
-    Safe->>CC: Delegate to isValidSafeSignature()
-    CC->>PH: Call verify(order) to check condition
-    PH->>Polymarket: getOrderStatus(polymarket_order_hash)
-    Polymarket-->>PH: Return order status (filled/remaining)
-
-    alt Polymarket Order Not Filled
-      PH-->>CC: Condition NOT met - revert with POLL_TRY_NEXT_BLOCK
-      CC-->>Safe: Order invalid (condition not met)
-      Safe-->>CS: Invalid signature
-      Note over CS: Skip execution, try next block
-    else Polymarket Order Filled
-      PH-->>CC: ✅ Condition MET - order valid
-      CC-->>Safe: Order valid
-      Safe-->>CS: Valid signature
-      Note over CS: Proceed to execution
-    end
-  end
-
-  Note over CS, BuyToken: Phase 4: Order Execution & Fund Transfer
-  alt Condition Met
-    Note over CS: Settlement begins - funds will move
-    CS->>Safe: Execute delegatecall for fund transfer
-    Safe->>SellToken: transfer(CoW Settlement, sellAmount)
-    Note over SellToken: 💰 User funds leave Safe wallet
-
-    CS->>CS: Execute swap logic internally
-    CS->>BuyToken: transfer(Safe, buyAmount)
-    Note over BuyToken: 💰 User receives buy tokens in Safe
-
-    CS->>CS: Emit Trade(owner, sellToken, buyToken, sellAmount, buyAmount, feeAmount, orderUid)
-    CS-->>Dapp: Trade event notification
-    Dapp->>Dapp: Update order status to "executed"
-
-    Note over User: ✅ Swap completed: User exchanged sellAmount for buyAmount
-  else Condition Never Met (Order Expires)
-    Note over Safe: 💰 Funds remain safely in user's Safe wallet
-    CS-->>Dapp: Order expired
-    Dapp->>Dapp: Update order status to "expired"
-  end
-
-  Note over User, Dapp: Phase 5: Final State
-  alt Order Executed
-    Note over User: Final State: User has buyTokens, spent sellTokens + fees
-  else Order Expired/Cancelled
-    Note over User: Final State: User retains original sellTokens (no loss)
-  end
+  WT->>Safe: CoW solvers settle the swap (funds leave the Safe only now)
+  App->>PM: Sell the trigger order's shares
 ```
 
-> **Note:** If the diagram does not display correctly, here is the diagram as a PNG:  
-> [polyswap_mermaid.png](./public/polyswap_mermaid.png)
+## Architecture
 
-## 🔐 Safe Wallet Integration
+| Part         | What it does                                                                                                                                                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web app**  | Next.js 15 / React 19. Market browser, order creation, dashboard. Wallets: Safe App and WalletConnect (Safe accounts only).                                                                                                  |
+| **API**      | Next.js routes under `/api`. Markets, order creation (places the trigger order, returns the Safe transactions), order lookup and cancellation.                                                                               |
+| **Listener** | Long-running Node process. Indexes order creation, trade and invalidation events, checks live orders every minute (fillable, expired, removed), sells the shares bought by trigger orders and syncs markets from Polymarket. |
+| **Database** | PostgreSQL ([Nile](https://www.thenile.dev/)) through Prisma: markets, orders, trigger orders (`polymarket_sentinels`), sold positions, listener cursor.                                                                     |
 
-PolySwap is designed to work exclusively with Gnosis Safe wallets for enhanced security:
+```
+src/
+  app/          Next.js pages and API routes
+  components/   UI
+  hooks/        React hooks (orders, markets, Safe flow)
+  client/       Browser-only code (API client, Safe, wagmi)
+  server/       Server-only helpers for API routes (errors, Swagger, PostHog)
+  backend/      Listener, database repositories, Polymarket and RPC clients
+  shared/       Code used by both the browser and the backend
+prisma/         Schema and migrations
+script/         One-off operational scripts
+test/           Unit and regression tests
+```
 
-### Supported Connection Methods
+## Getting started
 
-- **Safe Apps (TODO)**: Run PolySwap directly inside the Safe interface
-- **WalletConnect**: Connect external Safe wallets via WalletConnect protocol
+Requirements: Node 24+, pnpm 11, a PostgreSQL database and a Polygon RPC.
 
-## 🧑‍💻 Authors
+```bash
+pnpm install            # also runs `prisma generate`
+cp .env.sample .env     # then fill it in (see below)
+pnpm db:migrate         # apply migrations
+
+pnpm start:listener     # terminal 1: listener and background jobs
+pnpm dev                # terminal 2: web app on http://localhost:3000
+```
+
+The API is documented in Swagger UI at `http://localhost:3000/api-docs` (OpenAPI JSON at `/api/swagger`).
+
+### Environment
+
+`.env.sample` lists every variable with a comment. The ones you must set:
+
+| Group      | Variables                                                                        |
+| ---------- | -------------------------------------------------------------------------------- |
+| Database   | `DATABASE_URL`, or `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` |
+| RPC        | `RPC_URL`, `WSS_RPC_URL` (listener), `NEXT_PUBLIC_RPC_URL` (browser)             |
+| Polymarket | `PK`, `CLOB_API_KEY`, `CLOB_SECRET`, `CLOB_PASS_PHRASE`                          |
+| Wallets    | `NEXT_PUBLIC_WC_PROJECT_ID` (WalletConnect)                                      |
+
+Generate the Polymarket API credentials from `PK` with `pnpm get-polymarket-creds`. The contract addresses in `.env.sample` are the Polygon mainnet deployments.
+
+Sentry and PostHog only run when `ENVIRONMENT` is `prod` or `production`. `ORDER_CREATION_DISABLED` and `DAPP_MAINTENANCE` are the operational kill switches.
+
+## Scripts
+
+| Command                                                   | Purpose                                                         |
+| --------------------------------------------------------- | --------------------------------------------------------------- |
+| `pnpm dev` / `build` / `start`                            | Web app                                                         |
+| `pnpm start:listener`                                     | Listener with every job (events, order health, seller, markets) |
+| `pnpm start:listener-only`                                | Event indexing only                                             |
+| `pnpm start:market-sync`                                  | Market sync only                                                |
+| `pnpm markets:sync`                                       | Run one market sync, then exit                                  |
+| `pnpm test`                                               | Tests (no database or network needed)                           |
+| `pnpm typecheck` / `lint` / `format:check`                | Static checks                                                   |
+| `pnpm db:migrate` / `db:status` / `db:diff` / `db:studio` | Prisma migrations and inspection                                |
+
+Operational scripts (they act on the operator wallet, so read them before running):
+
+| Command                           | Purpose                                            |
+| --------------------------------- | -------------------------------------------------- |
+| `pnpm get-polymarket-creds`       | Derive Polymarket API credentials from `PK`        |
+| `pnpm setup-polymarket-approvals` | Grant the approvals Polymarket trading needs       |
+| `pnpm register-cow-appdata`       | Register the CoW app-data document                 |
+| `pnpm check-polymarket-orders`    | Print open orders, positions and on-chain balances |
+| `pnpm cancel-polymarket-orders`   | Cancel every open Polymarket order                 |
+| `pnpm sell-polymarket-positions`  | Sell every open Polymarket position                |
+| `pnpm pusd`                       | Wrap or unwrap pUSD                                |
+
+## Deployment
+
+The `Dockerfile` builds the listener image. It contains only `src/backend`, `src/shared` and the ABIs, and runs the listener with every job, like `pnpm start:listener`. The web app is a standard Next.js build. Run `pnpm db:migrate` before deploying a release that adds migrations.
+
+## Authors
 
 | [<img src="https://github.com/Intermarch3.png?size=85" width=85><br><sub>Lucas Leclerc</sub>](https://github.com/Intermarch3) | [<img src="https://github.com/Pybast.png?size=85" width=85><br><sub>Baptiste Florentin</sub>](https://github.com/Pybast) |
 | :---------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------: |
