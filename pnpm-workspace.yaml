@@ -16,10 +16,6 @@ allowBuilds:
   unrs-resolver: true
   utf-8-validate: true
 
-# Pin pino to a non-vulnerable version. The chain wagmi → @wagmi/connectors →
-# @walletconnect/ethereum-provider → @reown/appkit → @walletconnect/logger
-# pulls pino@7.11.0, which has a known vulnerability. Upstream is blocked
-# on a licensing dispute; we pin manually until they ship a fix.
 overrides:
   # Force a single import-in-the-middle version everywhere. Next.js externalises
   # this package for the Node.js runtime, and the version it sees as "external"

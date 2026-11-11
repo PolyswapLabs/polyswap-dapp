@@ -1,7 +1,7 @@
-import { MarketDetail } from "@/components/markets";
+import { MarketDetailView } from "@/components/markets/MarketDetailView";
 import type { Metadata } from "next";
-import { DatabaseService } from "@/backend/services/databaseService";
-import { PRIVATE_PAGE_ROBOTS, publicPageMetadata } from "@/lib/seo";
+import { marketRepository } from "@/backend/db/marketRepository";
+import { PRIVATE_PAGE_ROBOTS, publicPageMetadata } from "@/server/seo";
 
 interface Props {
   params: Promise<{ marketId: string }>;
@@ -9,7 +9,7 @@ interface Props {
 
 export default async function MarketDetailPage({ params }: Props) {
   const { marketId } = await params;
-  return <MarketDetail identifier={marketId} />;
+  return <MarketDetailView marketIdOrSlug={marketId} />;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   try {
     const market = /^\d+$/.test(marketId)
-      ? ((await DatabaseService.getMarketById(marketId)) ??
-        (await DatabaseService.getMarketBySlug(marketId)))
-      : ((await DatabaseService.getMarketBySlug(marketId)) ??
-        (await DatabaseService.getMarketById(marketId)));
+      ? ((await marketRepository.getMarketById(marketId)) ??
+        (await marketRepository.getMarketBySlug(marketId)))
+      : ((await marketRepository.getMarketBySlug(marketId)) ??
+        (await marketRepository.getMarketById(marketId)));
 
     if (!market || !market.active) {
       return { title: "Market · Polyswap", robots: PRIVATE_PAGE_ROBOTS };

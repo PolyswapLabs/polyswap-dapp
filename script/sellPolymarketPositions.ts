@@ -4,5 +4,5 @@ import { PolymarketPositionSellerService } from "../src/backend/services/polymar
 import { prisma } from "../src/backend/db/prisma";
 
 // Use the same version-aware inventory, approvals and submission path as the listener.
-await PolymarketPositionSellerService.triggerSell();
+await PolymarketPositionSellerService.sellPositions();
 await prisma.$disconnect();

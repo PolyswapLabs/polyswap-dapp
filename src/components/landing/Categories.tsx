@@ -1,5 +1,5 @@
-import { CatIllus } from "./illustrations";
-import type { MarketCategory } from "@/types/design";
+import { CategoryIllustration } from "./CategoryIllustration";
+import type { MarketCategory } from "@/shared/markets/categories";
 
 interface Cat {
   k: MarketCategory;
@@ -33,10 +33,9 @@ const CATS: Cat[] = [
 export function Categories() {
   return (
     <section className="border-b border-ink bg-paper-2">
-      <div className="mx-auto max-w-[1280px] px-6 py-12 sm:px-8 lg:px-12 lg:py-20">
+      <div className="page-container py-12 lg:py-20">
         <div className="mb-8 grid gap-6 lg:mb-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-4">
-            <p className="eyebrow mb-3">Built for crypto</p>
             <h2 className="display text-3xl leading-[1.05] sm:text-4xl lg:text-[44px]">
               News that
               <br />
@@ -56,12 +55,12 @@ export function Categories() {
               key={c.k}
               className={`p-6 sm:p-7 lg:p-8 ${
                 i < CATS.length - 1
-                  ? "border-b border-ink sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(3)]:border-b-0 sm:[&:nth-child(4)]:border-b-0 lg:!border-b-0 lg:[&:not(:last-child)]:border-r"
+                  ? "border-b border-ink lg:!border-b-0 lg:[&:not(:last-child)]:border-r sm:[&:nth-child(3)]:border-b-0 sm:[&:nth-child(4)]:border-b-0 sm:[&:nth-child(odd)]:border-r"
                   : ""
               }`}
             >
               <div className="mb-4 text-ink lg:mb-5">
-                <CatIllus category={c.k} size={56} />
+                <CategoryIllustration category={c.k} size={56} />
               </div>
               <p className="font-serif text-2xl lg:text-[26px]">{c.t}</p>
               <p className="mt-1 text-sm text-ink-3">{c.d}</p>

@@ -1,16 +1,13 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 const tag = cva(
-  "inline-flex items-center gap-1.5 px-2.5 py-[3px] border border-ink text-[11px] font-semibold uppercase tracking-[0.05em]",
+  "inline-flex items-center gap-1.5 border border-ink px-2.5 py-[3px] text-[11px] font-semibold tracking-[0.05em] uppercase",
   {
     variants: {
       tone: {
         paper: "bg-paper text-ink",
         ink: "bg-ink text-paper",
-        accent: "bg-accent text-paper",
-        yes: "bg-yes text-paper",
-        no: "bg-no text-paper",
       },
     },
     defaultVariants: { tone: "paper" },

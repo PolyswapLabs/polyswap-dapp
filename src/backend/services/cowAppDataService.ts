@@ -1,18 +1,19 @@
 import { randomBytes } from "node:crypto";
-import { bytesToHex, keccak256, toBytes, type Hex } from "viem";
+import { zeroHash, bytesToHex, keccak256, toBytes, type Hex } from "viem";
 import { createLogger } from "../logger";
 
 const log = createLogger("cow-app-data");
 
-const ZERO_BYTES32: Hex = "0x0000000000000000000000000000000000000000000000000000000000000000";
-const DEFAULT_API_BASE = "https://api.cow.fi/polygon";
+export const DEFAULT_API_BASE = "https://api.cow.fi/polygon";
 const DEFAULT_APP_CODE = "PolySwap";
 const DEFAULT_TIMEOUT_MS = 5_000;
+const MIN_TIMEOUT_MS = 250;
+const MAX_TIMEOUT_MS = 30_000;
 const APP_DATA_VERSION = "1.15.0";
 const POLYSWAP_METADATA_VERSION = "1";
 const MAX_FULL_APP_DATA_BYTES = 1_000;
 
-export interface CowAppDataDocument {
+interface CowAppDataDocument {
   version: string;
   appCode: string;
   environment: string;
@@ -23,7 +24,7 @@ export interface CowAppDataDocument {
   };
 }
 
-export interface CowAppData {
+interface CowAppData {
   nonce: Hex;
   document: CowAppDataDocument;
   fullAppData: string;
@@ -52,10 +53,23 @@ function configuredEnvironment(): string {
   return environment || "production";
 }
 
+function isValidTimeoutMs(value: number): boolean {
+  return Number.isInteger(value) && value >= MIN_TIMEOUT_MS && value <= MAX_TIMEOUT_MS;
+}
+
 function configuredTimeoutMs(): number {
   const parsed = Number(process.env.COW_APP_DATA_TIMEOUT_MS);
-  if (Number.isInteger(parsed) && parsed >= 250 && parsed <= 30_000) return parsed;
-  return DEFAULT_TIMEOUT_MS;
+  return isValidTimeoutMs(parsed) ? parsed : DEFAULT_TIMEOUT_MS;
+}
+
+function resolveTimeoutMs(requested?: number): number {
+  const timeoutMs = requested ?? configuredTimeoutMs();
+  if (!isValidTimeoutMs(timeoutMs)) {
+    throw new Error(
+      `CoW AppData timeout must be between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS} milliseconds`
+    );
+  }
+  return timeoutMs;
 }
 
 /**
@@ -65,10 +79,10 @@ function configuredTimeoutMs(): number {
  */
 function configuredDefaultAppData(): Hex {
   const configured = process.env.APP_DATA?.trim();
-  if (!configured) return ZERO_BYTES32;
+  if (!configured) return zeroHash;
   if (!isBytes32(configured)) {
     log.warn("APP_DATA is not a bytes32 value; falling back to zero AppData");
-    return ZERO_BYTES32;
+    return zeroHash;
   }
   return configured.toLowerCase() as Hex;
 }
@@ -91,21 +105,6 @@ function normalizeNonce(value?: Hex): Hex {
   return value.toLowerCase() as Hex;
 }
 
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit | undefined,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 async function responseBody(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return undefined;
@@ -122,121 +121,115 @@ function formatBody(body: unknown): string {
   return JSON.stringify(body);
 }
 
-export class CowAppDataService {
-  /** Create the exact JSON pre-image and the bytes32 hash used in the CoW order. */
-  static create(options: CowAppDataOptions = {}): CowAppData {
-    const nonce = normalizeNonce(options.nonce);
-    const document: CowAppDataDocument = {
-      version: APP_DATA_VERSION,
-      appCode: options.appCode?.trim() || DEFAULT_APP_CODE,
-      environment: options.environment?.trim() || configuredEnvironment(),
-      metadata: {},
-      polyswap: {
-        version: POLYSWAP_METADATA_VERSION,
-        nonce,
-      },
-    };
+async function putAppData(url: string, appData: CowAppData, timeoutMs: number): Promise<void> {
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ fullAppData: appData.fullAppData }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const body = await responseBody(response);
 
-    const fullAppData = JSON.stringify(document);
-    const byteLength = Buffer.byteLength(fullAppData, "utf8");
-    if (byteLength > MAX_FULL_APP_DATA_BYTES) {
-      throw new Error(`Full AppData is ${byteLength} bytes; maximum is ${MAX_FULL_APP_DATA_BYTES}`);
-    }
-
-    return {
-      nonce,
-      document,
-      fullAppData,
-      appDataHash: keccak256(toBytes(fullAppData)),
-    };
+  if (!response.ok) {
+    throw new Error(`CoW AppData registration failed (${response.status}): ${formatBody(body)}`);
   }
 
-  /** Register an AppData pre-image and confirm that CoW returns the exact same content. */
-  static async registerAndConfirm(
-    appData: CowAppData,
-    options: CowAppDataOptions = {}
-  ): Promise<void> {
-    const apiBase = normalizeApiBase(options.apiBase);
-    const timeoutMs = options.timeoutMs ?? configuredTimeoutMs();
-    if (!Number.isInteger(timeoutMs) || timeoutMs < 250 || timeoutMs > 30_000) {
-      throw new Error("CoW AppData timeout must be between 250 and 30000 milliseconds");
-    }
-
-    const url = `${apiBase}/api/v1/app_data/${appData.appDataHash}`;
-    const registration = await fetchWithTimeout(
-      url,
-      {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fullAppData: appData.fullAppData }),
-      },
-      timeoutMs
+  if (
+    typeof body === "string" &&
+    isBytes32(body) &&
+    body.toLowerCase() !== appData.appDataHash.toLowerCase()
+  ) {
+    throw new Error(
+      `CoW registered a different AppData hash: expected ${appData.appDataHash}, got ${body}`
     );
-    const registrationBody = await responseBody(registration);
-
-    if (!registration.ok) {
-      throw new Error(
-        `CoW AppData registration failed (${registration.status}): ${formatBody(registrationBody)}`
-      );
-    }
-
-    if (
-      typeof registrationBody === "string" &&
-      isBytes32(registrationBody) &&
-      registrationBody.toLowerCase() !== appData.appDataHash.toLowerCase()
-    ) {
-      throw new Error(
-        `CoW registered a different AppData hash: expected ${appData.appDataHash}, got ${registrationBody}`
-      );
-    }
-
-    const confirmation = await fetchWithTimeout(url, undefined, timeoutMs);
-    const confirmationBody = await responseBody(confirmation);
-    if (!confirmation.ok) {
-      throw new Error(
-        `CoW AppData confirmation failed (${confirmation.status}): ${formatBody(confirmationBody)}`
-      );
-    }
-
-    if (
-      !confirmationBody ||
-      typeof confirmationBody !== "object" ||
-      !("fullAppData" in confirmationBody) ||
-      confirmationBody.fullAppData !== appData.fullAppData
-    ) {
-      throw new Error(`CoW returned unexpected AppData content: ${formatBody(confirmationBody)}`);
-    }
-
-    const confirmedHash = keccak256(toBytes(confirmationBody.fullAppData as string));
-    if (confirmedHash.toLowerCase() !== appData.appDataHash.toLowerCase()) {
-      throw new Error(
-        `Confirmed AppData hashes to ${confirmedHash}, expected ${appData.appDataHash}`
-      );
-    }
-  }
-
-  /** Create, register, and confirm a unique AppData. Throws on any failure. */
-  static async createRegistered(options: CowAppDataOptions = {}): Promise<CowAppData> {
-    const appData = this.create(options);
-    await this.registerAndConfirm(appData, options);
-    return appData;
-  }
-
-  /**
-   * Return a confirmed unique hash for a new order. If registration cannot be
-   * confirmed, return APP_DATA from the environment (zero by default).
-   */
-  static async createHashOrDefault(options: CowAppDataOptions = {}): Promise<Hex> {
-    try {
-      const appData = await this.createRegistered(options);
-      log.info(`registered and confirmed AppData ${appData.appDataHash}`);
-      return appData.appDataHash;
-    } catch (error) {
-      const fallback = configuredDefaultAppData();
-      log.warn(`could not register and confirm a unique AppData; using default ${fallback}`, error);
-      return fallback;
-    }
   }
 }
 
-export default CowAppDataService;
+async function confirmAppData(url: string, appData: CowAppData, timeoutMs: number): Promise<void> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  const body = await responseBody(response);
+
+  if (!response.ok) {
+    throw new Error(`CoW AppData confirmation failed (${response.status}): ${formatBody(body)}`);
+  }
+
+  if (
+    !body ||
+    typeof body !== "object" ||
+    !("fullAppData" in body) ||
+    body.fullAppData !== appData.fullAppData
+  ) {
+    throw new Error(`CoW returned unexpected AppData content: ${formatBody(body)}`);
+  }
+
+  const confirmedHash = keccak256(toBytes(body.fullAppData as string));
+  if (confirmedHash.toLowerCase() !== appData.appDataHash.toLowerCase()) {
+    throw new Error(
+      `Confirmed AppData hashes to ${confirmedHash}, expected ${appData.appDataHash}`
+    );
+  }
+}
+
+/** Create the exact JSON pre-image and the bytes32 hash used in the CoW order. */
+export function createCowAppData(options: CowAppDataOptions = {}): CowAppData {
+  const nonce = normalizeNonce(options.nonce);
+  const document: CowAppDataDocument = {
+    version: APP_DATA_VERSION,
+    appCode: options.appCode?.trim() || DEFAULT_APP_CODE,
+    environment: options.environment?.trim() || configuredEnvironment(),
+    metadata: {},
+    polyswap: {
+      version: POLYSWAP_METADATA_VERSION,
+      nonce,
+    },
+  };
+
+  const fullAppData = JSON.stringify(document);
+  const byteLength = Buffer.byteLength(fullAppData, "utf8");
+  if (byteLength > MAX_FULL_APP_DATA_BYTES) {
+    throw new Error(`Full AppData is ${byteLength} bytes; maximum is ${MAX_FULL_APP_DATA_BYTES}`);
+  }
+
+  return {
+    nonce,
+    document,
+    fullAppData,
+    appDataHash: keccak256(toBytes(fullAppData)),
+  };
+}
+
+/** Register an AppData pre-image and confirm that CoW returns the exact same content. */
+export async function registerAndConfirmCowAppData(
+  appData: CowAppData,
+  options: CowAppDataOptions = {}
+): Promise<void> {
+  const apiBase = normalizeApiBase(options.apiBase);
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs);
+  const url = `${apiBase}/api/v1/app_data/${appData.appDataHash}`;
+
+  await putAppData(url, appData, timeoutMs);
+  await confirmAppData(url, appData, timeoutMs);
+}
+
+/** Create, register, and confirm a unique AppData. Throws on any failure. */
+async function createRegisteredCowAppData(options: CowAppDataOptions = {}): Promise<CowAppData> {
+  const appData = createCowAppData(options);
+  await registerAndConfirmCowAppData(appData, options);
+  return appData;
+}
+
+/**
+ * Return a confirmed unique hash for a new order. If registration cannot be
+ * confirmed, return APP_DATA from the environment (zero by default).
+ */
+export async function createCowAppDataHashOrDefault(options: CowAppDataOptions = {}): Promise<Hex> {
+  try {
+    const appData = await createRegisteredCowAppData(options);
+    log.info(`registered and confirmed AppData ${appData.appDataHash}`);
+    return appData.appDataHash;
+  } catch (error) {
+    const fallback = configuredDefaultAppData();
+    log.warn(`could not register and confirm a unique AppData; using default ${fallback}`, error);
+    return fallback;
+  }
+}

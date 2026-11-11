@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { cn } from "@/utils/cn";
 
 interface LogoProps {
   /** Rendered height in px. Width follows the SVG's natural 374:434 ratio. */
@@ -22,5 +24,27 @@ export function Logo({ size = 24, className }: LogoProps) {
       className={className}
       priority
     />
+  );
+}
+
+interface WordmarkProps {
+  logoSize?: number;
+  className?: string;
+  textClassName?: string;
+  "aria-label"?: string;
+}
+
+/** Logo and name, linking home. */
+export function Wordmark({
+  logoSize = 36,
+  className,
+  textClassName,
+  "aria-label": ariaLabel,
+}: WordmarkProps) {
+  return (
+    <Link href="/" className={cn("flex items-center gap-3", className)} aria-label={ariaLabel}>
+      <Logo size={logoSize} />
+      <span className={cn("font-serif text-2xl", textClassName)}>Polyswap</span>
+    </Link>
   );
 }

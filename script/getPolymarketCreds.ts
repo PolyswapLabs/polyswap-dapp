@@ -2,11 +2,11 @@ import "dotenv/config";
 import { createSecureClient, forkEnvironmentConfig } from "@polymarket/client";
 import { privateKey } from "@polymarket/client/viem";
 import { privateKeyToAccount } from "viem/accounts";
-import type { Hex } from "viem";
+import { toPrivateKeyHex } from "../src/backend/utils/env";
 
 const pk = process.env.PK;
 if (!pk) throw new Error("Private key (PK) is not configured");
-const key = (pk.startsWith("0x") ? pk : `0x${pk}`) as Hex;
+const key = toPrivateKeyHex(pk);
 const client = await createSecureClient({
   wallet: privateKeyToAccount(key).address,
   signer: privateKey(key),

@@ -1,4 +1,4 @@
-import type { ProtocolVersion } from "../../lib/polymarket/protocol";
+import type { ProtocolVersion } from "@/shared/polymarket/protocol";
 
 export interface PolyswapOrderData {
   sellToken: string; // hex address
@@ -17,15 +17,6 @@ export interface ConditionalOrderParams {
   handler: string; // address
   salt: string; // bytes32
   staticInput: string; // bytes (ABI-encoded)
-}
-
-export interface ConditionalOrderCreatedEvent {
-  owner: string;
-  params: ConditionalOrderParams;
-  orderHash?: string; // calculated hash
-  blockNumber?: number;
-  transactionHash?: string;
-  logIndex?: number;
 }
 
 export interface PolyswapOrderRecord {
@@ -49,7 +40,7 @@ export interface PolyswapOrderRecord {
 }
 
 // Database interface for the polyswap_orders table
-export interface DatabasePolyswapOrder {
+export interface PolyswapOrderRow {
   id: number;
   order_hash: string | null;
   owner: string;
@@ -76,7 +67,7 @@ export interface DatabasePolyswapOrder {
   sentinel_id: number | null;
   last_error_name: string | null;
   last_error_reason: string | null;
-  last_error_retry_at: string | null; // BIGINT — pg returns string
+  last_error_retry_at: string | null; // BIGINT, serialized as a string
   last_checked_at: Date | null;
   cow_order_status: "presignaturePending" | "open" | "fulfilled" | "cancelled" | "expired" | null;
   filled_at: Date | null;
@@ -103,7 +94,7 @@ export interface PublicPolyswapOrder {
   market_id: string | null;
   outcome_selected: string | null;
   bet_percentage: number | null;
-  status: DatabasePolyswapOrder["status"];
+  status: PolyswapOrderRow["status"];
   order_uid: string | null;
   last_error_reason: string | null;
   last_error_retry_at: string | null;
@@ -121,7 +112,7 @@ export type PolymarketSentinelStatus =
   | "canceled"
   | "failed";
 
-export interface DatabasePolymarketSentinel {
+export interface PolymarketSentinelRow {
   id: number;
   market_id: string;
   token_id: string;
@@ -144,21 +135,6 @@ export interface DatabasePolymarketSentinel {
   filled_at: Date | null;
   created_at: Date;
   updated_at: Date;
-}
-
-// Interface for sold positions tracking
-export interface SoldPosition {
-  id: number;
-  asset_id: string; // Polymarket token ID
-  protocol_version: ProtocolVersion | null;
-  condition_id: string;
-  size: number;
-  sell_price: number;
-  current_price: number;
-  order_id: string;
-  market_title: string;
-  outcome: string;
-  sold_at: Date;
 }
 
 // Input interface for recording a sold position

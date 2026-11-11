@@ -1,10 +1,7 @@
-import type {
-  DatabasePolyswapOrder,
-  PublicPolyswapOrder,
-} from "@/backend/interfaces/PolyswapOrder";
+import type { PolyswapOrderRow, PublicPolyswapOrder } from "@/backend/interfaces/PolyswapOrder";
 
 /** Keep the public API aligned with the fields consumed by the current UI. */
-export function toPublicPolyswapOrder(order: DatabasePolyswapOrder): PublicPolyswapOrder {
+export function toPublicPolyswapOrder(order: PolyswapOrderRow): PublicPolyswapOrder {
   return {
     id: order.id,
     order_hash: order.order_hash,

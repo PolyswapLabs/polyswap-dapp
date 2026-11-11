@@ -1,4 +1,4 @@
-import { assertAssetId } from "../../lib/polymarket/protocol";
+import { assertAssetId } from "@/shared/polymarket/protocol";
 import { getRetryAt, sleep } from "../utils/httpRetry";
 
 export interface PolymarketPosition {

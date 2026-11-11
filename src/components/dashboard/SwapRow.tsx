@@ -1,46 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { Dial, Shimmer, Status, Tape, TokenLogo } from "@/components/primitives";
+import { Dial } from "@/components/charts/Dial";
+import { Tape } from "@/components/charts/Tape";
+import { Shimmer } from "@/components/primitives/Shimmer";
+import { TokenLogo } from "@/components/primitives/TokenLogo";
 import { Icon } from "@/components/icons";
-import { fmtNum, fmtPointsAway } from "@/lib/format";
-import { useMarket, useMarketPriceHistory } from "@/hooks/useMarketsData";
-import type { OrderViewModel } from "@/hooks/useOrders";
+import { formatNumber, formatPointsAway, formatPercent } from "@/utils/format";
+import { useOrderOddsSeries } from "@/hooks/useOrderOddsSeries";
+import type { OrderViewModel } from "@/hooks/orders/orderMapper";
+import { Status } from "./Status";
 
 interface Props {
   order: OrderViewModel;
 }
 
 export function SwapRow({ order }: Props) {
-  // Real Polymarket history for the side this order picked. React Query dedups
-  // across rows that share the same market+token, so the per-row fetch is cheap.
-  const marketQ = useMarket(order.marketId ?? "");
-  const market = marketQ.data;
-  const sideTokenId =
-    order.side === "NO" ? (market?.noTokenId ?? null) : (market?.yesTokenId ?? null);
-  const historyQ = useMarketPriceHistory(sideTokenId, 60);
-  const priceHistory = historyQ.data ?? [];
-
-  // While market/history are still loading for an order that has a marketId,
-  // we'd otherwise paint the synthetic `order.spark` and a placeholder 0% — so
-  // the row visibly swaps content a moment later. Hold a skeleton instead.
-  const expectingRealData = order.marketId !== null;
-  const dataPending =
-    expectingRealData &&
-    (marketQ.isPending ||
-      historyQ.isPending ||
-      (market !== undefined &&
-        sideTokenId !== null &&
-        historyQ.isFetching &&
-        priceHistory.length === 0));
-
-  const useRealHistory = priceHistory.length >= 2;
-  const sparkData = useRealHistory ? priceHistory.map((p) => p.p) : order.spark;
-  const sparkTimestamps = useRealHistory ? priceHistory.map((p) => p.t) : undefined;
-  const currentOdds = sparkData[sparkData.length - 1] ?? 0;
+  const {
+    market,
+    isPending,
+    odds: sparkData,
+    timestamps: sparkTimestamps,
+    currentOdds,
+  } = useOrderOddsSeries(order);
   const marketQuestion = market?.question ?? order.nickname;
 
-  if (dataPending) {
+  if (isPending) {
     return <SwapRowSkeleton href={`/dashboard/${order.id}`} order={order} />;
   }
   return (
@@ -64,17 +49,11 @@ export function SwapRow({ order }: Props) {
           </div>
           <p className="mt-1 truncate text-xs text-ink-3">
             {order.nickname}
-            {order.status === "waiting" && ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
+            {order.status === "waiting" &&
+              ` · ${formatPointsAway(currentOdds, order.threshold)} away`}
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
-          <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
-          <span className="num text-sm">
-            {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-          </span>
-          <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
-          <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
-        </div>
+        <TokenPair order={order} />
         <div className="overflow-hidden">
           <Tape
             data={sparkData}
@@ -100,7 +79,7 @@ export function SwapRow({ order }: Props) {
         <div className="flex items-center justify-between gap-3">
           <Status kind={order.status} />
           <span className="num text-xs text-ink-3">
-            {Math.round(currentOdds * 100)}% / {Math.round(order.threshold * 100)}%
+            {formatPercent(currentOdds)} / {formatPercent(order.threshold)}
           </span>
         </div>
         <div className="flex items-start gap-3">
@@ -117,20 +96,12 @@ export function SwapRow({ order }: Props) {
             <p className="mt-1 text-xs text-ink-3">
               {order.nickname}
               {order.status === "waiting" &&
-                ` · ${fmtPointsAway(currentOdds, order.threshold)} away`}
+                ` · ${formatPointsAway(currentOdds, order.threshold)} away`}
             </p>
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-2">
-            <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
-            <span className="num">
-              {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-            </span>
-            <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
-            <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />
-            <span className="font-mono">{order.buySymbol}</span>
-          </span>
+          <CompactTokenPair order={order} />
         </div>
         <div className="overflow-hidden">
           <Tape
@@ -166,14 +137,7 @@ function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel 
           </div>
           <Shimmer className="mt-2 h-3 w-40" />
         </div>
-        <div className="flex items-center gap-2.5">
-          <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
-          <span className="num text-sm">
-            {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-          </span>
-          <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
-          <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
-        </div>
+        <TokenPair order={order} />
         <Shimmer className="h-10 w-full" />
         <span aria-hidden className="text-ink-3">
           <Icon.arrowRight size={16} />
@@ -193,18 +157,37 @@ function SwapRowSkeleton({ href, order }: { href: string; order: OrderViewModel 
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-2">
-            <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
-            <span className="num">
-              {fmtNum(order.sellAmount, 2)} {order.sellSymbol}
-            </span>
-            <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
-            <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />
-            <span className="font-mono">{order.buySymbol}</span>
-          </span>
+          <CompactTokenPair order={order} />
         </div>
         <Shimmer className="h-9 w-full" />
       </div>
     </Link>
+  );
+}
+
+function TokenPair({ order }: { order: OrderViewModel }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={22} />
+      <span className="num text-sm">
+        {formatNumber(order.sellAmount, 2)} {order.sellSymbol}
+      </span>
+      <Icon.arrowRight size={12} className="text-ink-3" aria-hidden />
+      <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={22} />
+    </div>
+  );
+}
+
+function CompactTokenPair({ order }: { order: OrderViewModel }) {
+  return (
+    <span className="flex items-center gap-2">
+      <TokenLogo symbol={order.sellSymbol} logoURI={order.sellLogoURI} size={20} />
+      <span className="num">
+        {formatNumber(order.sellAmount, 2)} {order.sellSymbol}
+      </span>
+      <Icon.arrowRight size={10} className="text-ink-3" aria-hidden />
+      <TokenLogo symbol={order.buySymbol} logoURI={order.buyLogoURI} size={20} />
+      <span className="font-mono">{order.buySymbol}</span>
+    </span>
   );
 }

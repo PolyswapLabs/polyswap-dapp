@@ -1,6 +1,6 @@
-#!/usr/bin/env node --import tsx
+#!/usr/bin/env tsx
 import "dotenv/config";
-import { getPolymarketOrderService } from "../src/backend/services/polymarketOrderService";
+import { getPolymarketOrderService } from "../src/backend/polymarket/clob";
 
 // Explicit operator command. This sends approval transactions; never run by checks.
 if (!process.argv.includes("--execute")) {

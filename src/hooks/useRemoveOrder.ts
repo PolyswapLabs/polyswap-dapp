@@ -1,17 +1,15 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { encodeFunctionData, getAddress, type Address, type Hex } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import composableCowAbi from "@/abi/composableCoW.json";
-import { apiService } from "@/services/api";
+import { deleteDraftOrder } from "@/client/api/polyswapApi";
 import { useSignAction } from "@/hooks/useSignAction";
-import type { SafeCall } from "@/services/safe/types";
+import type { SafeCall } from "@/client/safe/types";
+import { COMPOSABLE_COW } from "@/shared/contracts";
+import { getErrorMessage } from "@/utils/errors";
 
-const COMPOSABLE_COW: Address = getAddress(
-  process.env.NEXT_PUBLIC_COMPOSABLE_COW ?? "0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74"
-);
-
-export interface UseRemoveOrder {
+interface UseRemoveOrder {
   /**
    * Off-chain draft cancellation: signs an EIP-191 message and DELETEs the row.
    * Throws on failure.
@@ -21,17 +19,10 @@ export interface UseRemoveOrder {
   /**
    * Build the SafeCall list for `ComposableCoW.remove(orderHash)`. The caller
    * passes this to <SafeSignModal calls={...} />. After the modal fires
-   * onConfirmed, the caller MUST invoke `notifyRemoval(orderId)` to finalise
-   * server-side state (Polymarket cancel + DB update).
+   * onConfirmed, the caller records it server-side with `finalizeRemoval`;
+   * the listener's order-health check catches any removal that call misses.
    */
   buildRemoveLiveCalls: (orderHash: Hex) => SafeCall[];
-
-  /**
-   * Server-side finalisation after the on-chain remove() has been confirmed.
-   * The endpoint verifies removal via `singleOrders[owner][orderHash]` on-chain.
-   * Throws on failure.
-   */
-  notifyRemoval: (orderId: number) => Promise<void>;
 
   pending: boolean;
   error: string | null;
@@ -48,28 +39,9 @@ export function useRemoveOrder(): UseRemoveOrder {
       setError(null);
       try {
         const signed = await signAction("cancel_draft", String(orderId));
-        await apiService.deleteDraftOrder(orderId, signed.signature, signed.timestamp);
+        await deleteDraftOrder(orderId, signed.signature, signed.timestamp);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to delete draft order";
-        setError(msg);
-        throw e;
-      } finally {
-        setPending(false);
-      }
-    },
-    [signAction]
-  );
-
-  const notifyRemoval = useCallback(
-    async (orderId: number) => {
-      setPending(true);
-      setError(null);
-      try {
-        const signed = await signAction("notify_remove", String(orderId));
-        await apiService.notifyRemoveOrder(orderId, signed.signature, signed.timestamp);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to notify removal";
-        setError(msg);
+        setError(getErrorMessage(e, "Failed to delete draft order"));
         throw e;
       } finally {
         setPending(false);
@@ -88,7 +60,7 @@ export function useRemoveOrder(): UseRemoveOrder {
   }, []);
 
   return useMemo(
-    () => ({ deleteDraft, buildRemoveLiveCalls, notifyRemoval, pending, error }),
-    [deleteDraft, buildRemoveLiveCalls, notifyRemoval, pending, error]
+    () => ({ deleteDraft, buildRemoveLiveCalls, pending, error }),
+    [deleteDraft, buildRemoveLiveCalls, pending, error]
   );
 }

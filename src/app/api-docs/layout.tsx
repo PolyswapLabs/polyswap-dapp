@@ -1,4 +1,4 @@
-import { publicPageMetadata } from "@/lib/seo";
+import { publicPageMetadata } from "@/server/seo";
 
 export const metadata = publicPageMetadata({
   title: "API documentation | Polyswap",

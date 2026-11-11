@@ -58,4 +58,3 @@ docs/superpowers/*
 .pnpm-store/
 ops/
 .env
-test/

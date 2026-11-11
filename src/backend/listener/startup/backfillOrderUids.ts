@@ -1,7 +1,6 @@
-import { type Address } from "viem";
-import { OrderUidCalculationService } from "@/backend/services/orderUidCalculationService";
-import { DatabaseService } from "@/backend/services/databaseService";
-import { getPublicClient } from "../blockchainProvider";
+import { storeDbOrderUid } from "@/backend/services/orderUidCalculationService";
+import { orderRepository } from "@/backend/db/orderRepository";
+import { getPublicClient } from "@/backend/rpc/clients";
 import { createLogger } from "@/backend/logger";
 
 const log = createLogger("backfill-uids");
@@ -12,9 +11,9 @@ const log = createLogger("backfill-uids");
  * orders were marked live but never had their UID computed.
  */
 export async function backfillOrderUids(): Promise<void> {
-  OrderUidCalculationService.initialize(getPublicClient());
+  const client = getPublicClient();
 
-  const ordersWithoutUid = await DatabaseService.getLiveOrdersWithoutUid();
+  const ordersWithoutUid = await orderRepository.getLiveOrdersWithoutUid();
   if (ordersWithoutUid.length === 0) {
     log.debug("nothing to backfill");
     return;
@@ -23,15 +22,10 @@ export async function backfillOrderUids(): Promise<void> {
 
   let filled = 0;
   for (const order of ordersWithoutUid) {
-    if (!order.order_hash) continue;
+    // Without a handler the UID cannot be derived on-chain.
+    if (!order.order_hash || !order.handler) continue;
     try {
-      const data = OrderUidCalculationService.createPolyswapOrderDataFromDbOrder(order);
-      const uid = await OrderUidCalculationService.calculateCompleteOrderUidOnChain(
-        data,
-        order.owner as Address,
-        order.handler as Address
-      );
-      await DatabaseService.updateOrderUid(order.order_hash, uid);
+      await storeDbOrderUid(client, order, order.order_hash);
       filled += 1;
     } catch (err) {
       log.error(`order ${order.id} failed:`, err);

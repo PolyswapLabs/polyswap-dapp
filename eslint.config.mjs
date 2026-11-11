@@ -20,6 +20,9 @@ const eslintConfig = [
       "build/**",
       "coverage/**",
       "prisma/migrations/**",
+      ".claude/**",
+      "ops/**",
+      "public/**",
       "next-env.d.ts",
     ],
   },
@@ -87,6 +90,11 @@ const eslintConfig = [
       yoda: "error",
       curly: ["error", "multi-line"],
     },
+  },
+  {
+    // Stubs in tests are intentionally empty.
+    files: ["test/**"],
+    rules: { "@typescript-eslint/no-empty-function": "off" },
   },
 ];
 

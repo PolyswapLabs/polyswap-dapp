@@ -1,5 +1,5 @@
-import { PageShell } from "@/components/layout";
-import { PolymarketDataGate } from "@/components/modals/GeoblockGate";
+import { PageShell } from "@/components/layout/PageShell";
+import { PolymarketDataGate } from "@/components/providers/PolymarketDataGate";
 import { WalletModalProvider } from "@/components/modals/WalletModalProvider";
 import ClientWeb3Provider from "@/components/providers/ClientWeb3Provider";
 import { RuntimeConfigProvider } from "@/components/providers/RuntimeConfigProvider";
@@ -8,7 +8,7 @@ import {
   isDappMaintenanceMode,
   isOrderCreationDisabled,
   isPolymarketSentinelPostOnly,
-} from "@/lib/runtimeFlags";
+} from "@/shared/env";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isDappMaintenanceMode()) {

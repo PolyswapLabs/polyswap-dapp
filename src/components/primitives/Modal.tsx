@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { useModalDismiss } from "@/hooks/useModalDismiss";
+import { cn } from "@/utils/cn";
+import { EDITORIAL_EASE } from "@/client/motion";
 
 interface Props {
   open: boolean;
@@ -26,8 +27,6 @@ const SIZE: Record<NonNullable<Props["size"]>, string> = {
   lg: "max-w-2xl",
 };
 
-const EASE = [0.16, 1, 0.3, 1] as const;
-
 export function Modal({
   open,
   onClose,
@@ -38,18 +37,7 @@ export function Modal({
   staticDismiss = false,
   panelClassName,
 }: Props) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (!staticDismiss && e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose, staticDismiss]);
+  useModalDismiss(open, onClose, { closeOnEscape: !staticDismiss });
 
   return (
     <AnimatePresence>
@@ -68,12 +56,12 @@ export function Modal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: EASE }}
+            transition={{ duration: 0.2, ease: EDITORIAL_EASE }}
           />
           <motion.div
             className={cn(
               "relative flex w-full flex-col border border-ink bg-paper",
-              "max-h-[92vh] overflow-hidden shadow-[6px_6px_0_0_var(--color-ink)]",
+              "max-h-[92vh] overflow-hidden shadow-stamp-lg",
               SIZE[size],
               panelClassName
             )}
@@ -82,7 +70,7 @@ export function Modal({
             exit={{ opacity: 0, y: 12 }}
             transition={{
               duration: 0.32,
-              ease: EASE,
+              ease: EDITORIAL_EASE,
             }}
           >
             {(title || !hideClose) && (

@@ -1,6 +1,6 @@
 import { OrderSide, OrderType, type SignedOrder } from "@polymarket/client";
 import { hashTypedData, isAddress, isHex, type Address, type Hex } from "viem";
-import { assertAssetId } from "../../lib/polymarket/protocol";
+import { assertAssetId } from "@/shared/polymarket/protocol";
 import { getTradingConfig, type TradingContext } from "./config";
 
 const ORDER_FIELDS = [

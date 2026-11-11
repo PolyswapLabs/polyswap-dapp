@@ -8,21 +8,19 @@
     "dev": "next dev -p 3000 --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "get-polymarket-creds": "tsx script/getPolymarketCreds.ts",
     "start:listener": "tsx src/backend/listener/index.ts",
     "start:listener-only": "tsx src/backend/listener/index.ts --listener-only",
-    "start:market-updater": "tsx src/backend/listener/index.ts --market-update-only",
-    "start:market-updater-standalone": "tsx script/marketUpdater.ts",
-    "saveMarkets": "tsx script/getMarkets.ts",
+    "start:market-sync": "tsx src/backend/listener/index.ts --market-update-only",
+    "markets:sync": "tsx script/syncMarkets.ts",
     "db:migrate": "prisma migrate deploy",
     "db:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
     "db:status": "prisma migrate status",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:import": "tsx script/importJsonData.ts",
     "cancel-polymarket-orders": "tsx script/cancelPolymarketOrders.ts",
     "sell-polymarket-positions": "tsx script/sellPolymarketPositions.ts",
     "check-polymarket-orders": "tsx script/checkPolymarketOrders.ts",
@@ -30,11 +28,9 @@
     "pusd": "tsx script/wrapUnwrapPUSD.ts",
     "postinstall": "prisma generate",
     "prepare": "husky",
-    "test:migration": "DATABASE_URL=postgresql://test:test@127.0.0.1:1/polyswap_migration_test ENVIRONMENT=local node --import tsx --test test/polymarket/*.test.ts",
+    "test": "DATABASE_URL=postgresql://test:test@127.0.0.1:1/polyswap_migration_test ENVIRONMENT=local tsx --test test/polymarket/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "check:polymarket-migration": "node --import tsx script/checkPolymarketMigration.ts",
-    "db:backfill-polymarket-protocol": "node --import tsx script/backfillPolymarketProtocol.ts",
-    "setup-polymarket-approvals": "node --import tsx script/setupPolymarketApprovals.ts"
+    "setup-polymarket-approvals": "tsx script/setupPolymarketApprovals.ts"
   },
   "dependencies": {
     "@polymarket/client": "0.14.0",
@@ -43,13 +39,9 @@
     "@sentry/nextjs": "^10.35.0",
     "@tailwindcss/postcss": "^4.2.4",
     "@tanstack/react-query": "^5.85.3",
-    "@types/cors": "^2.8.19",
-    "@types/swagger-ui-react": "^5.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cors": "^2.8.5",
     "dotenv": "^17.2.0",
-    "express": "^5.1.0",
     "import-in-the-middle": "^3.0.1",
     "lucide-react": "^1.11.0",
     "motion": "^12.38.0",
@@ -65,7 +57,6 @@
     "swagger-ui-react": "^5.31.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.4",
-    "tslib": "^2.8.1",
     "tsx": "^4.20.3",
     "viem": "~2.48.7",
     "wagmi": "^2.16.3"
@@ -73,41 +64,29 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
     "@eslint/eslintrc": "^3",
-    "@types/express": "^5.0.3",
     "@types/node": "^20",
     "@types/pg": "^8.15.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-react": "^5.18.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-react-hooks": "^5.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "prisma": "^7.8.0",
-    "ts-node": "^10.9.2",
     "typescript": "^5"
-  },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
       "prettier --write"
     ],
     "*.{json,css,md}": [
       "prettier --write"
-    ]
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma"
     ]
   },
   "engines": {

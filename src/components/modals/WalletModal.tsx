@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo } from "react";
 import { useConnect, type Connector } from "wagmi";
-import { Modal, Button } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { Modal } from "@/components/primitives/Modal";
+import { ErrorAlert } from "@/components/primitives/PageBlocks";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   open: boolean;
@@ -78,7 +80,6 @@ export function WalletModal({ open, onClose, onConnected }: Props) {
     <Modal open={open} onClose={onClose} title="Connect a Safe wallet" size="sm">
       <div className="flex flex-col gap-3 p-5">
         <p className="border border-ink bg-paper-2 px-3 py-2.5 text-sm">
-          <span className="eyebrow mr-1.5">Heads up</span>
           Polyswap currently only supports <strong>Safe wallets</strong>. Open the dapp inside the
           Safe app, or connect via WalletConnect from your Safe wallet.
         </p>
@@ -114,9 +115,7 @@ export function WalletModal({ open, onClose, onConnected }: Props) {
           })}
         </ul>
 
-        {error && (
-          <p className="border border-no bg-no/10 px-3 py-2 text-xs text-no">{error.message}</p>
-        )}
+        {error && <ErrorAlert>{error.message}</ErrorAlert>}
 
         <Button variant="paper" size="md" onClick={onClose} className="mt-3 w-full">
           Cancel

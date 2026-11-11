@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "../../../../../../backend/services/databaseService";
+import { orderRepository } from "@/backend/db/orderRepository";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
-import { createApiErrorResponder } from "@/lib/apiError";
+import { createApiErrorResponder } from "@/server/apiError";
 
 const apiError = createApiErrorResponder("api-order-hash");
 
@@ -53,7 +53,7 @@ export async function GET(
       });
     }
 
-    const order = await DatabaseService.getPolyswapOrderByHash(orderHash);
+    const order = await orderRepository.getPolyswapOrderByHash(orderHash);
 
     if (!order) {
       return apiError({

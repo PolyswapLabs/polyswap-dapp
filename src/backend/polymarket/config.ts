@@ -1,6 +1,6 @@
 import { getAddress, type Address } from "viem";
 import { AssetType } from "@polymarket/client";
-import { parseProtocolVersion, type ProtocolVersion } from "../../lib/polymarket/protocol";
+import { parseProtocolVersion, type ProtocolVersion } from "@/shared/polymarket/protocol";
 
 export interface TradingContext {
   protocolVersion: ProtocolVersion;

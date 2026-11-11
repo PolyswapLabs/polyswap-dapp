@@ -2,9 +2,9 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
-import { useSearchSuggestions } from "@/hooks/useMarketsData";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { cn } from "@/utils/cn";
+import { useSearchSuggestions } from "@/hooks/markets/useMarkets";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   value: string;
@@ -153,7 +153,7 @@ export function SearchInputWithSuggestions({
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-auto border border-ink bg-paper shadow-lg"
+          className="absolute top-full right-0 left-0 z-50 mt-1 max-h-72 overflow-auto border border-ink bg-paper shadow-lg"
         >
           {suggestions.map((s, i) => {
             const active = i === highlight;

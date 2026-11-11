@@ -2,8 +2,8 @@
 
 import { motion } from "motion/react";
 import { useId } from "react";
-import { cn } from "@/lib/cn";
-import type { SwapStatus } from "@/types/design";
+import { cn } from "@/utils/cn";
+import type { SwapStatus } from "@/types/viewModels";
 
 export type DashboardTab = "all" | SwapStatus;
 
@@ -11,7 +11,7 @@ const TABS: { id: DashboardTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "waiting", label: "Waiting" },
   { id: "ready", label: "Ready" },
-  { id: "done", label: "Done" },
+  { id: "done", label: "Filled" },
   { id: "cancelled", label: "Cancelled" },
   { id: "expired", label: "Expired" },
 ];

@@ -2,9 +2,10 @@
 
 import { motion } from "motion/react";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
-import { fmtDateTime, fmtDuration } from "@/lib/format";
-import type { OrderViewModel } from "@/hooks/useOrders";
+import { cn } from "@/utils/cn";
+import { formatDateTime, formatDuration, formatPercent } from "@/utils/format";
+import { EDITORIAL_EASE, springInVariants, staggerVariants } from "@/client/motion";
+import type { OrderViewModel } from "@/hooks/orders/orderMapper";
 
 interface Step {
   Icon: typeof Icon.zap;
@@ -24,7 +25,7 @@ function buildSteps(order: OrderViewModel): Step[] {
     {
       Icon: Icon.plus,
       label: "You set up this swap",
-      caption: fmtDateTime(order.startTime),
+      caption: formatDateTime(order.startTime),
       state: "past",
     },
     {
@@ -32,7 +33,7 @@ function buildSteps(order: OrderViewModel): Step[] {
       label: "Watching the odds",
       caption:
         triggerHit && order.gateOpenedAt
-          ? fmtDuration(order.gateOpenedAt.getTime() - order.startTime.getTime())
+          ? formatDuration(order.gateOpenedAt.getTime() - order.startTime.getTime())
           : isWaiting
             ? "in progress"
             : isFilled
@@ -62,9 +63,9 @@ function buildSteps(order: OrderViewModel): Step[] {
       label: triggerHit ? "Trigger hit" : "Trigger not hit yet",
       caption: triggerHit
         ? order.gateOpenedAt
-          ? fmtDateTime(order.gateOpenedAt)
+          ? formatDateTime(order.gateOpenedAt)
           : "Trigger confirmed · time unavailable"
-        : `when ${order.side} drops to ${Math.round(order.threshold * 100)}%`,
+        : `when ${order.side} drops to ${formatPercent(order.threshold)}`,
       state: triggerHit ? "past" : "future",
     });
     steps.push({
@@ -72,7 +73,7 @@ function buildSteps(order: OrderViewModel): Step[] {
       label: isFilled ? "Tokens are in your wallet" : "Tokens land in your wallet",
       caption: isFilled
         ? order.filledAt
-          ? fmtDateTime(order.filledAt)
+          ? formatDateTime(order.filledAt)
           : "Settlement confirmed · time unavailable"
         : triggerHit
           ? "Settlement pending"
@@ -84,19 +85,8 @@ function buildSteps(order: OrderViewModel): Step[] {
   return steps;
 }
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -10 },
-  show: {
-    opacity: 1,
-    x: 0,
-    transition: { type: "spring" as const, stiffness: 240, damping: 30 },
-  },
-} as const;
+const containerVariants = staggerVariants(0.08);
+const itemVariants = springInVariants({ x: -10 }, 240);
 
 export function Timeline({ order }: { order: OrderViewModel }) {
   const steps = buildSteps(order);
@@ -116,7 +106,7 @@ export function Timeline({ order }: { order: OrderViewModel }) {
               <motion.span
                 aria-hidden
                 className={cn(
-                  "absolute left-[15px] top-8 w-px origin-top",
+                  "absolute top-8 left-[15px] w-px origin-top",
                   step.state === "past" ? "bg-ink" : "bg-rule-soft"
                 )}
                 style={{ height: "calc(100% - 32px)" }}
@@ -125,7 +115,7 @@ export function Timeline({ order }: { order: OrderViewModel }) {
                 transition={{
                   duration: 0.4,
                   delay: 0.08 * i + 0.1,
-                  ease: [0.16, 1, 0.3, 1],
+                  ease: EDITORIAL_EASE,
                 }}
               />
             )}
@@ -134,7 +124,7 @@ export function Timeline({ order }: { order: OrderViewModel }) {
               className={cn(
                 "z-10 inline-flex size-8 shrink-0 items-center justify-center border border-ink",
                 step.state === "past" && "bg-yes text-paper",
-                step.state === "current" && "bg-accent pulse-dot text-paper",
+                step.state === "current" && "pulse-dot bg-accent text-paper",
                 step.state === "future" && "bg-paper text-ink-3"
               )}
             >

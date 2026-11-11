@@ -1,9 +1,0 @@
-export { LandingHeader } from "./LandingHeader";
-export { Hero } from "./Hero";
-export { Premise } from "./Premise";
-export { HowItWorks } from "./HowItWorks";
-export { Categories } from "./Categories";
-export { Guarantees } from "./Guarantees";
-export { PullQuote } from "./PullQuote";
-export { FAQ } from "./FAQ";
-export { FinalCTA } from "./FinalCTA";

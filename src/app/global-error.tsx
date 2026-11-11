@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import NextError from "next/error";
 import { useEffect } from "react";
-import { capturePostHogException } from "@/lib/posthog-client";
+import { capturePostHogException } from "@/client/analytics";
 
 export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {

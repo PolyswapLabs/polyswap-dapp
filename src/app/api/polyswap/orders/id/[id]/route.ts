@@ -1,23 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "../../../../../../backend/services/databaseService";
-import { verifySignature } from "@/backend/utils/signatureVerification";
-import { getPublicClient } from "@/backend/listener/blockchainProvider";
+import { orderRepository } from "@/backend/db/orderRepository";
+import { authenticateOrderAction } from "@/backend/orders/orderActionAuth";
 import { toPublicPolyswapOrder } from "@/backend/utils/publicPolyswapOrder";
-import { createApiErrorResponder } from "@/lib/apiError";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { createApiErrorResponder } from "@/server/apiError";
+import { getPostHogClient } from "@/server/posthog";
 
 const apiError = createApiErrorResponder("api-order-id");
-
-interface DeleteDraftBody {
-  signature: string;
-  timestamp: number;
-}
-
-function isDeleteBody(value: unknown): value is DeleteDraftBody {
-  if (value === null || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return typeof v.signature === "string" && typeof v.timestamp === "number";
-}
 
 /**
  * @swagger
@@ -50,6 +38,38 @@ function isDeleteBody(value: unknown): value is DeleteDraftBody {
  *         description: Invalid order ID
  *       404:
  *         description: Order not found
+ *   delete:
+ *     tags:
+ *       - Orders
+ *     summary: Cancel a draft order
+ *     description: Deletes an off-chain draft. Requires a signed cancel_draft message from the owner.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [signature, timestamp]
+ *             properties:
+ *               signature: { type: string }
+ *               timestamp: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Draft deleted
+ *       400:
+ *         description: Invalid id, body, or order state
+ *       401:
+ *         description: Bad signature
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Server error
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -63,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       });
     }
 
-    const order = await DatabaseService.getPolyswapOrderById(orderId);
+    const order = await orderRepository.getPolyswapOrderById(orderId);
     if (!order) {
       return apiError({
         status: 404,
@@ -87,52 +107,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const orderId = Number(id);
-    if (!Number.isInteger(orderId) || orderId <= 0) {
-      return apiError({ status: 400, error: "Invalid order id" });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch (error) {
-      return apiError({ status: 400, error: "Invalid JSON body", cause: error });
-    }
-    if (!isDeleteBody(body)) {
-      return apiError({
-        status: 400,
-        error: "Invalid request body",
-        message: "Body must include { signature: string, timestamp: number }",
-      });
-    }
-
-    const order = await DatabaseService.getPolyswapOrderById(orderId);
-    if (!order) {
-      return apiError({ status: 404, error: "Order not found" });
-    }
-    if (order.status !== "draft") {
-      return apiError({
-        status: 400,
-        error:
-          "Only drafts can be deleted off-chain. Live orders must be removed via ComposableCoW.remove(orderHash).",
-      });
-    }
-
-    const verification = await verifySignature({
+    const auth = await authenticateOrderAction(request, params, {
       action: "cancel_draft",
-      orderIdentifier: String(orderId),
-      timestamp: body.timestamp,
-      chainId: 137,
-      signature: body.signature,
-      expectedAddress: order.owner,
-      publicClient: getPublicClient(),
+      apiError,
+      rejectOrder: (order) =>
+        order.status === "draft"
+          ? null
+          : {
+              status: 400,
+              error:
+                "Only drafts can be deleted off-chain. Live orders must be removed via ComposableCoW.remove(orderHash).",
+            },
     });
-    if (!verification.valid) {
-      return apiError({ status: 401, error: verification.error ?? "Unauthorized" });
-    }
+    if ("response" in auth) return auth.response;
+    const { orderId, order } = auth;
 
-    await DatabaseService.deletePolyswapOrderById(orderId);
+    await orderRepository.deletePolyswapOrderById(orderId);
 
     const posthog = getPostHogClient();
     posthog.capture({

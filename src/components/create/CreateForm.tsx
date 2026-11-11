@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Tape } from "@/components/primitives";
-import { fmtTokenAmount, fmtUSD } from "@/lib/format";
+import { Tape } from "@/components/charts/Tape";
+import { ErrorAlert } from "@/components/primitives/PageBlocks";
+import { formatTokenAmount, formatUsd } from "@/utils/format";
 import { SideToggle } from "./SideToggle";
 import { ThresholdSlider } from "./ThresholdSlider";
+import { ThresholdNote } from "./ThresholdNote";
 import { TokenPicker } from "./TokenPicker";
 import { AdvancedOptions } from "./AdvancedOptions";
-import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrder";
-import { useMarketPriceHistory } from "@/hooks/useMarketsData";
-import { useTokens } from "@/hooks/useTokens";
-import { cn } from "@/lib/cn";
+import type { CreateFormDerived, CreateFormState } from "@/hooks/useCreateOrderForm";
+import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
+import { useDefaultTokens } from "@/hooks/useDefaultTokens";
 import type { SwapEstimates } from "@/hooks/useSwapEstimates";
-import type { MarketViewModel, TokenViewModel } from "@/types/design";
-import { postOnlyCrossingMessage, type PostOnlyBuyCheck } from "@/lib/postOnlyOrder";
+import type { MarketViewModel } from "@/types/viewModels";
+import type { PostOnlyBuyCheck } from "@/shared/orders/postOnly";
+import { formatQuoteError } from "@/client/orders/quoteErrors";
 
 interface Props {
   market: MarketViewModel;
@@ -25,9 +26,6 @@ interface Props {
   set: <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => void;
 }
 
-const DEFAULT_FROM_SYMBOLS = ["USDC", "USDC.e", "USDT", "DAI"] as const;
-const DEFAULT_TO_SYMBOLS = ["WETH", "WBTC", "WPOL"] as const;
-
 export function CreateForm({
   market,
   state,
@@ -37,83 +35,55 @@ export function CreateForm({
   postOnlyCheck,
   set,
 }: Props) {
-  const { data: fetchedTokens = [], isLoading: tokensLoading } = useTokens();
-
-  const tokens = useMemo<TokenViewModel[]>(() => {
-    return fetchedTokens.map<TokenViewModel>((t) => ({
-      symbol: t.symbol,
-      name: t.name,
-      address: t.address as `0x${string}`,
-      decimals: t.decimals,
-      logoURI: t.logoURI,
-    }));
-  }, [fetchedTokens]);
-
-  useEffect(() => {
-    if (tokens.length === 0) return;
-
-    const findBy = (preferred: ReadonlyArray<string>) => {
-      for (const sym of preferred) {
-        const match = tokens.find((t) => t.symbol === sym);
-        if (match) return match;
-      }
-      return undefined;
-    };
-
-    if (state.fromToken === null) {
-      const pick = findBy(DEFAULT_FROM_SYMBOLS) ?? tokens[0];
-      if (pick) set("fromToken", pick);
-    }
-    if (state.toToken === null) {
-      const pick =
-        findBy(DEFAULT_TO_SYMBOLS) ??
-        tokens.find((t) => t.address !== state.fromToken?.address) ??
-        tokens[0];
-      if (pick) set("toToken", pick);
-    }
-  }, [tokens, state.fromToken, state.toToken, set]);
+  const { tokens, isLoading: tokensLoading } = useDefaultTokens(state, set);
 
   const { data: history = [] } = useMarketPriceHistory(market.yesTokenId, 60);
   const yesSparkData = history.map((h) => h.p);
   const sparkData = state.side === "YES" ? yesSparkData : yesSparkData.map((p) => 1 - p);
-  const thresholdMessage = !postOnlyEnabled
-    ? "Immediate execution is enabled by the administrator. This order may fire as soon as it is confirmed."
-    : postOnlyCheck.status === "crosses"
-      ? postOnlyCrossingMessage(postOnlyCheck)
-      : postOnlyCheck.status === "unavailable"
-        ? "The live order book is unavailable, so we can't verify that this order will wait."
-        : postOnlyCheck.bestAsk === null
-          ? `There are no ${state.side} sell orders right now. Your ${Math.round(state.threshold * 100)}% trigger can wait on the book.`
-          : `The best available ${state.side} price is ${Math.round(postOnlyCheck.bestAsk * 100)}%. Your ${Math.round(state.threshold * 100)}% trigger can wait on the book.`;
-  const thresholdBlocked = postOnlyEnabled && postOnlyCheck.status !== "rests";
+  const currentPrice = postOnlyCheck.status === "unavailable" ? null : postOnlyCheck.bestAsk;
 
   return (
     <div className="flex flex-col gap-5 lg:gap-6">
-      {/* 02 — When */}
-      <section className="border border-ink bg-paper p-4 sm:p-6">
-        <p className="eyebrow mb-4">02 · When should it fire</p>
+      <section aria-labelledby="when-heading" className="border border-ink bg-paper p-4 sm:p-6">
+        <h2 id="when-heading" className="mb-4 font-serif text-xl leading-tight sm:text-2xl">
+          When should the swap fire?
+        </h2>
         <div className="flex flex-col gap-5 lg:gap-6">
           <SideToggle value={state.side} onChange={(v) => set("side", v)} />
-          <ThresholdSlider value={state.threshold} onChange={(v) => set("threshold", v)} />
-          <div className="overflow-hidden border border-rule-soft bg-paper-2 p-3">
+          <div className="flex flex-col gap-4">
+            <ThresholdSlider
+              value={state.threshold}
+              onChange={(v) => set("threshold", v)}
+              currentPrice={currentPrice}
+              blockAtCurrentPrice={postOnlyEnabled}
+              describedBy="threshold-note"
+            />
+            <ThresholdNote
+              id="threshold-note"
+              postOnlyEnabled={postOnlyEnabled}
+              check={postOnlyCheck}
+              side={state.side}
+              threshold={state.threshold}
+              onUseSuggested={(v) => set("threshold", v)}
+            />
+          </div>
+          <div className="overflow-hidden border border-rule-soft bg-paper-2 p-1">
             <Tape
               data={sparkData}
               threshold={state.threshold}
               side={state.side}
               width={520}
-              height={80}
+              height={140}
               className="w-full"
             />
-            <p className={cn("mt-2 text-xs", thresholdBlocked ? "text-no" : "text-ink-3")}>
-              {thresholdMessage}
-            </p>
           </div>
         </div>
       </section>
 
-      {/* 03 — What */}
-      <section className="border border-ink bg-paper p-4 sm:p-6">
-        <p className="eyebrow mb-4">03 · What should we swap</p>
+      <section aria-labelledby="what-heading" className="border border-ink bg-paper p-4 sm:p-6">
+        <h2 id="what-heading" className="mb-4 font-serif text-xl leading-tight sm:text-2xl">
+          What do you want to swap?
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           <div>
             <p className="mb-2 text-xs text-ink-3">You send</p>
@@ -139,11 +109,11 @@ export function CreateForm({
                   set("amountIn", v);
                 }}
                 placeholder="0.00"
-                className="w-full border border-ink bg-paper-2 px-3 py-3 text-2xl font-mono tabular-nums outline-none focus:bg-paper sm:text-3xl"
+                className="w-full border border-ink bg-paper-2 px-3 py-3 font-mono text-2xl tabular-nums outline-none focus:bg-paper sm:text-3xl"
               />
             </label>
             {estimates.amountInUsd > 0 && (
-              <p className="num mt-1 text-xs text-ink-3">≈ {fmtUSD(estimates.amountInUsd)}</p>
+              <p className="num mt-1 text-xs text-ink-3">≈ {formatUsd(estimates.amountInUsd)}</p>
             )}
           </div>
 
@@ -159,9 +129,9 @@ export function CreateForm({
             ) : (
               <TokenPickerSkeleton loading={tokensLoading} />
             )}
-            <div className="mt-3 border border-ink bg-paper-2 px-3 py-3 text-2xl font-mono tabular-nums sm:text-3xl">
+            <div className="mt-3 border border-ink bg-paper-2 px-3 py-3 font-mono text-2xl tabular-nums sm:text-3xl">
               {estimates.amountOutEstimate > 0
-                ? fmtTokenAmount(estimates.amountOutEstimate)
+                ? formatTokenAmount(estimates.amountOutEstimate)
                 : derived.amountInNumber > 0 && !estimates.isQuoteError
                   ? "—"
                   : "0.00"}
@@ -169,14 +139,12 @@ export function CreateForm({
           </div>
         </div>
         {estimates.isQuoteError && derived.amountInNumber > 0 && (
-          <p className="mt-4 border border-no bg-no/10 px-3 py-2 text-xs text-no">
+          <ErrorAlert className="mt-4">
             {formatQuoteError(estimates.quoteErrorType, estimates.quoteErrorMessage)}
-          </p>
+          </ErrorAlert>
         )}
         {derived.validationMessage && (
-          <p className="mt-4 border border-no bg-no/10 px-3 py-2 text-xs text-no">
-            {derived.validationMessage}
-          </p>
+          <ErrorAlert className="mt-4">{derived.validationMessage}</ErrorAlert>
         )}
       </section>
 
@@ -191,21 +159,4 @@ function TokenPickerSkeleton({ loading }: { loading: boolean }) {
       {loading ? "Loading tokens…" : "No tokens available"}
     </div>
   );
-}
-
-function formatQuoteError(errorType: string | null, message: string | null): string {
-  switch (errorType) {
-    case "NoLiquidity":
-      return "No liquidity for this pair right now. Pick a different pair.";
-    case "UnsupportedToken":
-      return "CoW Protocol doesn't support one of these tokens. Pick a different pair.";
-    case "SellAmountDoesNotCoverFee":
-      return "The amount is too small to cover network fees. Increase it and try again.";
-    case "InsufficientBalance":
-      return "Your wallet doesn't hold enough of the send token for this swap.";
-    case "InsufficientAllowance":
-      return "Token allowance is too low. Approve the spender and retry.";
-    default:
-      return message ?? "Quote unavailable for this pair.";
-  }
 }

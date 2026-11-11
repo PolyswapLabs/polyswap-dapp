@@ -1,4 +1,4 @@
-import { Shimmer } from "@/components/primitives";
+import { Shimmer } from "@/components/primitives/Shimmer";
 
 /**
  * Six-row skeleton sized to the real MarketRow grid so reveal causes no layout

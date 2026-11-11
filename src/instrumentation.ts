@@ -15,7 +15,7 @@ export const onRequestError = async (...args: Parameters<typeof Sentry.captureRe
 
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const { getPostHogClient } = await import("./lib/posthog-server");
+  const { getPostHogClient } = await import("@/server/posthog");
   const posthog = getPostHogClient();
   const tracingDistinctId = args[1].headers["x-posthog-distinct-id"];
   const distinctId = Array.isArray(tracingDistinctId) ? tracingDistinctId[0] : tracingDistinctId;

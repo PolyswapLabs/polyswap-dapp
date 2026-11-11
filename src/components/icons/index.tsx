@@ -18,8 +18,6 @@ import {
   LineChart,
   Lock,
   Menu,
-  Music,
-  Percent,
   Plus,
   Search,
   Shield,
@@ -31,11 +29,8 @@ import {
   Wallet,
   X,
   Zap,
-  type LucideProps,
 } from "lucide-react";
-import type { MarketCategory } from "@/types/design";
-
-export type IconComponent = (props: LucideProps) => React.ReactNode;
+import type { MarketCategory } from "@/shared/markets/categories";
 
 export const Icon = {
   ai: BrainCircuit,
@@ -57,8 +52,6 @@ export const Icon = {
   lineChart: LineChart,
   lock: Lock,
   menu: Menu,
-  music: Music,
-  percent: Percent,
   plus: Plus,
   search: Search,
   shield: Shield,
@@ -89,6 +82,7 @@ const CATEGORY_ICON: Record<MarketCategory, keyof typeof Icon> = {
 };
 
 export { PolymarketIcon } from "./PolymarketIcon";
+export { GithubIcon, LinkedinIcon, XIcon } from "./BrandIcons";
 
 export function CategoryIcon({
   category,

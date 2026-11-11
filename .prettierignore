@@ -14,5 +14,4 @@ yarn.lock
 public
 *.min.js
 *.min.css
-coverage
 .DS_Store

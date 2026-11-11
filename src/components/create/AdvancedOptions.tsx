@@ -2,20 +2,15 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { InfoTip } from "@/components/primitives";
-import { cn } from "@/lib/cn";
-import type { CreateFormState, Expiry } from "@/hooks/useCreateOrder";
+import { InfoTip } from "@/components/primitives/InfoTip";
+import { cn } from "@/utils/cn";
+import { EXPIRY_OPTIONS } from "@/client/orders/createOrder";
+import type { CreateFormState } from "@/hooks/useCreateOrderForm";
 
 interface Props {
   state: Pick<CreateFormState, "expiry" | "slippagePct">;
   onChange: <K extends "expiry" | "slippagePct">(key: K, value: CreateFormState[K]) => void;
 }
-
-const EXPIRIES: { value: Expiry; label: string }[] = [
-  { value: "7d", label: "7 days" },
-  { value: "30d", label: "30 days" },
-  { value: "until-resolution", label: "Until market resolves" },
-];
 
 type SlippageOption = { value: "auto" | number; label: string };
 const SLIPPAGE_OPTIONS: SlippageOption[] = [
@@ -37,7 +32,7 @@ export function AdvancedOptions({ state, onChange }: Props) {
         className="flex w-full items-center justify-between px-4 py-3 text-left text-sm sm:px-5"
         aria-expanded={open}
       >
-        <span className="eyebrow">A few extra options</span>
+        <span className="font-medium">More options</span>
         <span className={cn("text-ink-3 transition-transform", open && "rotate-180")} aria-hidden>
           <Icon.chevronDown size={14} />
         </span>
@@ -47,7 +42,7 @@ export function AdvancedOptions({ state, onChange }: Props) {
           <div>
             <p className="text-xs text-ink-3">Cancel automatically after</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {EXPIRIES.map((e) => {
+              {EXPIRY_OPTIONS.map((e) => {
                 const active = state.expiry === e.value;
                 return (
                   <button
@@ -70,7 +65,7 @@ export function AdvancedOptions({ state, onChange }: Props) {
               How much price wiggle is OK
               <InfoTip
                 label="What does price wiggle mean?"
-                body="Auto lets the CoW solver pick the best executable price at fill time, with no minimum floor. A percentage caps the slippage: if the live price would give you less than the estimation minus choosen wiggle %, the swap waits until the price recovers or the order expires."
+                body="Auto lets the CoW solver pick the best executable price at fill time, with no minimum floor. A percentage caps the slippage: if the live price would give you less than the estimation minus chosen wiggle %, the swap waits until the price recovers or the order expires."
                 width="md"
               />
             </p>

@@ -3,13 +3,13 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import Sentry from "@sentry/nextjs";
-import { isProductionEnvironment } from "./src/lib/env";
+import { isProductionEnvironment, SENTRY_DSN } from "./src/shared/env";
 
 if (isProductionEnvironment()) {
   const isListener = process.env.POLYSWAP_SENTRY_RUNTIME === "listener";
 
   Sentry.init({
-    dsn: "https://d190690c303492020ebc0c241b5bd560@o4510743731175424.ingest.de.sentry.io/4510743738974288",
+    dsn: SENTRY_DSN,
     // The listener performs recurrent database and RPC operations. Do not send
     // their successful spans; errors remain available through exception events
     // and recoverable warnings/errors through the console logging integration.

@@ -1,3 +1,4 @@
+import { createActionSignatureMessage } from "@/shared/orders/actionSignature";
 import {
   hashMessage,
   recoverMessageAddress,
@@ -22,7 +23,7 @@ const SAFE_IS_VALID_SIGNATURE_ABI = [
 
 const MAX_TIMESTAMP_AGE_SECONDS = 300; // 5 minutes
 
-export interface SignatureVerificationParams {
+interface SignatureVerificationParams {
   action: string;
   orderIdentifier: string;
   timestamp: number;
@@ -32,29 +33,9 @@ export interface SignatureVerificationParams {
   publicClient: PublicClient;
 }
 
-export interface VerificationResult {
+interface VerificationResult {
   valid: boolean;
   error?: string;
-}
-
-/**
- * Creates the standardized message that PolySwap clients sign for action
- * authorization (cancel draft, notify-remove, etc.).
- *
- * Format:
- *   PolySwap Action Request
- *   Action: {action}
- *   Order: {orderIdentifier}
- *   Timestamp: {timestamp}
- *   Chain: {chainId}
- */
-export function createSignatureMessage(
-  action: string,
-  orderIdentifier: string,
-  timestamp: number,
-  chainId: number
-): string {
-  return `PolySwap Action Request\nAction: ${action}\nOrder: ${orderIdentifier}\nTimestamp: ${timestamp}\nChain: ${chainId}`;
 }
 
 /** Validates that a timestamp is within the acceptable signing window. */
@@ -113,7 +94,7 @@ async function verifyEip1271Signature(
  * Verifies a signed PolySwap action message. Tries EOA recovery first
  * (cheapest, no RPC), then falls back to EIP-1271 for smart contract wallets
  * such as Safe. Callers must pass a viem PublicClient — see
- * blockchainProvider.getPublicClient().
+ * getPublicClient() in rpc/clients.
  */
 export async function verifySignature(
   params: SignatureVerificationParams
@@ -123,7 +104,7 @@ export async function verifySignature(
     return { valid: false, error: timestampValidation.error };
   }
 
-  const message = createSignatureMessage(
+  const message = createActionSignatureMessage(
     params.action,
     params.orderIdentifier,
     params.timestamp,

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { polygon } from "wagmi/chains";
+import { isRecord } from "@/shared/guards";
 
 export interface Token {
   chainId: number;
@@ -22,39 +24,27 @@ const TOKEN_LIST_URLS = [
   "https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/Uniswap.137.json",
 ] as const;
 
-const POLYGON_CHAIN_ID = 137;
+/** Token lists change rarely. */
+const TOKEN_LIST_STALE_MS = 30 * 60_000;
+/** Must exceed TOKEN_LIST_STALE_MS so cached data survives the stale window. */
+const TOKEN_LIST_GC_MS = 60 * 60_000;
 
-/** 30-minute stale time — token lists change rarely. */
-const STALE_MS = 30 * 60_000;
-/** 1-hour GC time — must exceed STALE_MS so cached data survives the stale window. */
-const GC_MS = 60 * 60_000;
+/** One unavailable list must not hide the tokens of the others. */
+async function fetchTokenList(url: string): Promise<TokenListResponse | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json: unknown = await res.json();
+    if (!isRecord(json) || !Array.isArray(json.tokens)) throw new Error("unexpected shape");
+    return { tokens: json.tokens };
+  } catch (err) {
+    console.warn(`useTokens: could not load ${url}:`, err);
+    return null;
+  }
+}
 
 async function fetchPolygonTokens(): Promise<Token[]> {
-  const results = await Promise.all(
-    TOKEN_LIST_URLS.map(async (url) => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          console.warn(`useTokens: failed to fetch ${url} (${res.status})`);
-          return null;
-        }
-        const json: unknown = await res.json();
-        // Runtime guard: every valid CoW token list has a `tokens` array.
-        if (
-          typeof json !== "object" ||
-          json === null ||
-          !Array.isArray((json as Record<string, unknown>).tokens)
-        ) {
-          console.warn(`useTokens: unexpected shape from ${url}`);
-          return null;
-        }
-        return json as TokenListResponse;
-      } catch (err) {
-        console.warn(`useTokens: error fetching ${url}:`, err);
-        return null;
-      }
-    })
-  );
+  const results = await Promise.all(TOKEN_LIST_URLS.map(fetchTokenList));
 
   // Deduplicate by address (lower-cased). Prefer the entry that already has a
   // logoURI when two lists contain the same token address.
@@ -63,7 +53,7 @@ async function fetchPolygonTokens(): Promise<Token[]> {
   for (const list of results) {
     if (!list) continue;
     for (const token of list.tokens) {
-      if (token.chainId !== POLYGON_CHAIN_ID) continue;
+      if (token.chainId !== polygon.id) continue;
       const key = token.address.toLowerCase();
       const existing = tokenMap.get(key);
       if (!existing || (!existing.logoURI && token.logoURI)) {
@@ -86,14 +76,14 @@ async function fetchPolygonTokens(): Promise<Token[]> {
 
 /**
  * Fetches the CoW Protocol token lists directly from the client and returns
- * all tokens available on Polygon (chainId 137), deduplicated and sorted by
+ * all tokens available on Polygon, deduplicated and sorted by
  * symbol.
  */
 export function useTokens() {
   return useQuery<Token[]>({
     queryKey: ["cow-tokens"],
     queryFn: fetchPolygonTokens,
-    staleTime: STALE_MS,
-    gcTime: GC_MS,
+    staleTime: TOKEN_LIST_STALE_MS,
+    gcTime: TOKEN_LIST_GC_MS,
   });
 }

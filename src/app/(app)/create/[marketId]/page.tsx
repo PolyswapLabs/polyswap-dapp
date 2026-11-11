@@ -1,5 +1,5 @@
-import { CreatePage } from "@/components/create";
-import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
+import { CreateSwapView } from "@/components/create/CreateSwapView";
+import { PRIVATE_PAGE_ROBOTS } from "@/server/seo";
 
 interface Props {
   params: Promise<{ marketId: string }>;
@@ -10,7 +10,7 @@ export const metadata = {
   robots: PRIVATE_PAGE_ROBOTS,
 };
 
-export default async function CreateRoutePage({ params }: Props) {
+export default async function CreateSwapPage({ params }: Props) {
   const { marketId } = await params;
-  return <CreatePage marketId={marketId} />;
+  return <CreateSwapView marketId={marketId} />;
 }

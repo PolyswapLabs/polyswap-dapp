@@ -1,5 +1,5 @@
-import { SwapDetailPage } from "@/components/dashboard";
-import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo";
+import { SwapDetailView } from "@/components/dashboard/SwapDetailView";
+import { PRIVATE_PAGE_ROBOTS } from "@/server/seo";
 
 interface Props {
   params: Promise<{ orderId: string }>;
@@ -10,7 +10,7 @@ export const metadata = {
   robots: PRIVATE_PAGE_ROBOTS,
 };
 
-export default async function SwapDetailRoute({ params }: Props) {
+export default async function SwapDetailPage({ params }: Props) {
   const { orderId } = await params;
-  return <SwapDetailPage orderId={orderId} />;
+  return <SwapDetailView orderId={orderId} />;
 }

@@ -1,22 +1,16 @@
 "use client";
 
 import { useAccount, useDisconnect } from "wagmi";
+import { formatAddress } from "@/utils/format";
 
-export interface WalletConnectionState {
+interface WalletConnectionState {
   isConnected: boolean;
   address?: `0x${string}`;
   shortAddress?: string;
   disconnect: () => void;
 }
 
-function shorten(address: `0x${string}`): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
-
-/**
- * Presentation-friendly view of the connected wallet.
- * The actual connection flow (modal, connector picking) lives in phase 5.
- */
+/** Presentation-friendly view of the connected wallet. */
 export function useWalletConnection(): WalletConnectionState {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
@@ -24,7 +18,7 @@ export function useWalletConnection(): WalletConnectionState {
   return {
     isConnected,
     address,
-    shortAddress: address ? shorten(address) : undefined,
+    shortAddress: address ? formatAddress(address) : undefined,
     disconnect: () => disconnect(),
   };
 }

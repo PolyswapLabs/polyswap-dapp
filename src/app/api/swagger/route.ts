@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getApiDocs } from "@/lib/swagger";
-import { createApiErrorResponder } from "@/lib/apiError";
+import { getApiDocs } from "@/server/swagger";
+import { createApiErrorResponder } from "@/server/apiError";
 
 const apiError = createApiErrorResponder("api-swagger");
 

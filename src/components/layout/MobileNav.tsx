@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { useModalDismiss } from "@/hooks/useModalDismiss";
+import { cn } from "@/utils/cn";
 
 export interface MobileNavLink {
   href: string;
@@ -19,18 +19,7 @@ interface Props {
 }
 
 export function MobileNav({ open, onClose, links, footer }: Props) {
-  useEffect(() => {
-    if (!open) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onEsc);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onEsc);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+  useModalDismiss(open, onClose);
 
   if (!open) return null;
 
@@ -49,12 +38,12 @@ export function MobileNav({ open, onClose, links, footer }: Props) {
       />
       <aside
         className={cn(
-          "absolute right-0 top-0 flex h-full w-[min(360px,86vw)] flex-col",
+          "absolute top-0 right-0 flex h-full w-[min(360px,86vw)] flex-col",
           "border-l border-ink bg-paper"
         )}
       >
         <div className="flex items-center justify-between border-b border-ink px-5 py-4">
-          <span className="eyebrow">Menu</span>
+          <span className="text-sm font-medium">Menu</span>
           <button
             type="button"
             aria-label="Close menu"

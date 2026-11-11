@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Logo } from "@/components/layout/Logo";
-import { Button } from "@/components/primitives";
+import { Wordmark } from "@/components/layout/Logo";
+import { buttonVariants } from "@/components/primitives/Button";
 import { Icon } from "@/components/icons";
 import { MobileNav, type MobileNavLink } from "@/components/layout/MobileNav";
 
@@ -26,11 +26,8 @@ export function LandingHeader() {
 
   return (
     <header className="border-b border-ink bg-paper">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6 sm:px-8 lg:px-12">
-        <Link href="/" className="flex items-center gap-3">
-          <Logo size={36} />
-          <span className="font-serif text-2xl">Polyswap</span>
-        </Link>
+      <div className="page-container flex h-16 items-center justify-between">
+        <Wordmark />
 
         <nav className="hidden items-center gap-7 text-sm lg:flex" aria-label="Primary">
           {ANCHOR_LINKS.map((l) => (
@@ -38,19 +35,15 @@ export function LandingHeader() {
               {l.label}
             </a>
           ))}
-          <Link href="/markets">
-            <Button variant="ink" size="sm" style={{ cursor: "pointer" }}>
-              Open app
-              <Icon.arrowRight size={14} aria-hidden />
-            </Button>
+          <Link href="/markets" className={buttonVariants({ variant: "ink", size: "sm" })}>
+            Open app
+            <Icon.arrowRight size={14} aria-hidden />
           </Link>
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Link href="/markets">
-            <Button variant="ink" size="sm">
-              Open app
-            </Button>
+          <Link href="/markets" className={buttonVariants({ variant: "ink", size: "sm" })}>
+            Open app
           </Link>
           <button
             type="button"

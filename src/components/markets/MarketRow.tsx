@@ -2,13 +2,14 @@
 
 import { useRef } from "react";
 import { useInView } from "motion/react";
-import { Tape } from "@/components/primitives";
-import { TransitionLink } from "@/components/layout";
+import { Tape } from "@/components/charts/Tape";
+import { marketTitleTransitionName } from "@/utils/links";
+import { TransitionLink } from "@/components/layout/TransitionLink";
 import { CategoryIcon, Icon } from "@/components/icons";
-import { useMarketPriceHistory } from "@/hooks/useMarketsData";
-import { fmtUSD, fmtDate } from "@/lib/format";
-import type { MarketViewModel } from "@/types/design";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { useMarketPriceHistory } from "@/hooks/markets/useMarkets";
+import { formatUsd, formatDate } from "@/utils/format";
+import type { MarketViewModel } from "@/types/viewModels";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   market: MarketViewModel;
@@ -66,9 +67,9 @@ export function MarketRow({ market, displayCategory, source }: Props) {
   const yesValue = market.yesProbability * 100;
   const yesPct = yesValue % 1 === 0 ? yesValue.toFixed(0) : yesValue.toFixed(1);
   const category = displayCategory ?? market.category;
-  const titleVTName = `market-title-${market.id}`;
+  const titleVTName = marketTitleTransitionName(market.id);
   const volume = market.volume24h ?? market.volumeTotal;
-  const volumeLabel = market.volume24h === null ? "total vol" : "24h vol";
+  const volumeLabel = market.volume24h === null ? "Total vol" : "24h vol";
 
   return (
     <TransitionLink
@@ -80,7 +81,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           source,
         })
       }
-      className="group relative block border-b border-rule-soft bg-paper hover:bg-paper-2 before:absolute before:left-0 before:top-0 before:h-full before:w-0 before:bg-accent before:transition-[width] before:duration-200 before:ease-out before:content-[''] hover:before:w-1"
+      className="group relative block border-b border-rule-soft bg-paper before:absolute before:top-0 before:left-0 before:h-full before:w-0 before:bg-accent before:transition-[width] before:duration-200 before:ease-out before:content-[''] hover:bg-paper-2 hover:before:w-1"
       data-testid="market-row"
     >
       {/* Desktop layout */}
@@ -96,7 +97,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             {market.question}
           </p>
           <p className="mt-1 text-xs text-ink-3">
-            {category} · ends {fmtDate(market.endsAt)}
+            {category} · ends {formatDate(market.endsAt)}
           </p>
         </div>
         <div className="text-right">
@@ -107,8 +108,8 @@ export function MarketRow({ market, displayCategory, source }: Props) {
           <MarketSparkline tokenId={market.yesTokenId} width={160} height={42} />
         </div>
         <p className="text-right text-sm">
-          <span className="text-[11px] uppercase tracking-wide text-ink-3">{volumeLabel} </span>
-          <span className="num">{fmtUSD(volume, { compact: true })}</span>
+          <span className="text-xs text-ink-3">{volumeLabel} </span>
+          <span className="num">{formatUsd(volume, { compact: true })}</span>
         </p>
         <span
           aria-hidden
@@ -126,8 +127,8 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             {category}
           </span>
           <span className="text-xs text-ink-3">
-            <span className="uppercase tracking-wide">{volumeLabel} </span>
-            <span className="num">{fmtUSD(volume, { compact: true })}</span>
+            <span>{volumeLabel} </span>
+            <span className="num">{formatUsd(volume, { compact: true })}</span>
           </span>
         </div>
         <p
@@ -150,7 +151,7 @@ export function MarketRow({ market, displayCategory, source }: Props) {
             />
           </div>
         </div>
-        <p className="text-xs text-ink-3">Ends {fmtDate(market.endsAt)}</p>
+        <p className="text-xs text-ink-3">Ends {formatDate(market.endsAt)}</p>
       </div>
     </TransitionLink>
   );

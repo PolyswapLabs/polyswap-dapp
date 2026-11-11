@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { Button } from "@/components/primitives";
-import { cn } from "@/lib/cn";
+import { Button } from "@/components/primitives/Button";
+import { cn } from "@/utils/cn";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
-import { capturePostHogEvent } from "@/lib/posthog-client";
+import { capturePostHogEvent } from "@/client/analytics";
 
 interface Props {
   onConnect: () => void;
@@ -14,7 +14,7 @@ interface Props {
 
 /**
  * Compact wallet pill for the masthead.
- * - Disconnected: "Connect wallet" CTA → opens wallet modal (phase 5).
+ * - Disconnected: "Connect wallet" CTA → opens wallet modal.
  * - Connected: shortened address + a hover/click affordance to disconnect.
  */
 export function WalletButton({ onConnect, className }: Props) {
@@ -43,7 +43,7 @@ export function WalletButton({ onConnect, className }: Props) {
           "pointer-coarse:min-h-11"
         )}
       >
-        <span aria-hidden className="inline-block size-1.5 bg-yes pulse-dot" />
+        <span aria-hidden className="pulse-dot inline-block size-1.5 bg-yes" />
         {shortAddress}
         <Icon.chevronDown size={12} aria-hidden />
       </button>
@@ -58,7 +58,7 @@ export function WalletButton({ onConnect, className }: Props) {
           <div
             className={cn(
               "absolute right-0 z-50 mt-2 min-w-[180px] border border-ink bg-paper",
-              "shadow-[4px_4px_0_0_var(--color-ink)]"
+              "shadow-stamp"
             )}
           >
             <button

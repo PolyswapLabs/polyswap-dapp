@@ -1,6 +1,6 @@
 import { getAddress, type Address, type Hex } from "viem";
-import { getPublicClient } from "../listener/blockchainProvider";
-import { TransactionEncodingService } from "./transactionEncodingService";
+import { getPublicClient } from "@/backend/rpc/clients";
+import { encodeSetFallbackHandlerCalldata } from "./transactionEncodingService";
 import { createLogger } from "../logger";
 
 const log = createLogger("safe-fallback");
@@ -8,7 +8,7 @@ const log = createLogger("safe-fallback");
 // CoW Protocol's ExtensibleFallbackHandler on Polygon. ComposableCoW reads
 // EIP-1271 signatures off the Safe through this handler — without it, every
 // conditional order resolves as OrderNotValid.
-export const EXTENSIBLE_FALLBACK_HANDLER: Address = getAddress(
+const EXTENSIBLE_FALLBACK_HANDLER: Address = getAddress(
   process.env.EXTENSIBLE_FALLBACK_HANDLER ?? "0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5"
 );
 
@@ -18,7 +18,7 @@ export const EXTENSIBLE_FALLBACK_HANDLER: Address = getAddress(
 const FALLBACK_HANDLER_STORAGE_SLOT: Hex =
   "0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5";
 
-export interface SafeSetupTx {
+interface SafeSetupTx {
   to: Address;
   data: Hex;
   value: string;
@@ -47,9 +47,6 @@ async function getCurrentFallbackHandler(safeAddress: Address): Promise<Address 
 
   // Storage slot value is a 32-byte hex; the address occupies the lower 20 bytes.
   const lower20 = `0x${slot.slice(-40)}` as Hex;
-  if (lower20 === "0x0000000000000000000000000000000000000000") {
-    return getAddress(lower20);
-  }
   return getAddress(lower20);
 }
 
@@ -83,9 +80,7 @@ export async function buildFallbackHandlerSetupTx(
     `safe ${safeAddress} fallback handler is ${current}, prepending setFallbackHandler(${EXTENSIBLE_FALLBACK_HANDLER})`
   );
 
-  const data = TransactionEncodingService.encodeSetFallbackHandlerCalldata(
-    EXTENSIBLE_FALLBACK_HANDLER
-  );
+  const data = encodeSetFallbackHandlerCalldata(EXTENSIBLE_FALLBACK_HANDLER);
 
   return {
     to: safeAddress,

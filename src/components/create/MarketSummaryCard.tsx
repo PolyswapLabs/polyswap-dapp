@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Dial, Tag } from "@/components/primitives";
+import { Dial } from "@/components/charts/Dial";
+import { Tag } from "@/components/primitives/Tag";
 import { CategoryIcon } from "@/components/icons";
-import { fmtDate } from "@/lib/format";
-import type { MarketViewModel } from "@/types/design";
+import { formatDate } from "@/utils/format";
+import type { MarketViewModel } from "@/types/viewModels";
 
 interface Props {
   market: MarketViewModel;
@@ -10,14 +11,11 @@ interface Props {
 
 export function MarketSummaryCard({ market }: Props) {
   return (
-    <section aria-labelledby="market-summary" className="border border-ink bg-paper-2 p-4 sm:p-6">
-      <p id="market-summary" className="eyebrow mb-3">
-        01 · The question
-      </p>
+    <section aria-label="Market" className="border border-ink bg-paper-2 p-4 sm:p-6">
       <div className="flex items-start gap-4 sm:gap-5">
         <Dial
           current={market.yesProbability}
-          threshold={0.7}
+          threshold={1}
           side="YES"
           size={56}
           className="shrink-0"
@@ -30,7 +28,7 @@ export function MarketSummaryCard({ market }: Props) {
               <CategoryIcon category={market.category} size={11} />
               {market.category}
             </Tag>
-            <span>Ends {fmtDate(market.endsAt)}</span>
+            <span>Ends {formatDate(market.endsAt)}</span>
           </div>
         </div>
         <Link

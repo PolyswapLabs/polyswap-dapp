@@ -1,5 +1,5 @@
 import { erc1155Abi, formatUnits, parseAbiItem, type Address, type PublicClient } from "viem";
-import { PROTOCOL_VERSIONS, type ProtocolVersion } from "../../lib/polymarket/protocol";
+import { PROTOCOL_VERSIONS, type ProtocolVersion } from "@/shared/polymarket/protocol";
 import { getTradingConfig } from "./config";
 import { PolymarketDataClient, type PolymarketPosition } from "./data";
 
@@ -9,6 +9,18 @@ export interface InventoryPosition {
   balance: bigint;
   metadata?: PolymarketPosition;
 }
+
+interface InventoryReadOptions {
+  onApiError?: (error: unknown) => void;
+  onScanError?: (error: unknown, protocolVersion?: ProtocolVersion) => void;
+  lookbackBlocks?: bigint;
+  /** Resolved markets cannot be sold, so the seller spends no RPC calls on them. */
+  skipRedeemable?: boolean;
+}
+
+const DEFAULT_LOOKBACK_BLOCKS = 2000n;
+/** Bounds RPC concurrency for large portfolios. */
+const BALANCE_READ_CONCURRENCY = 10;
 
 export const TRANSFER_SINGLE = parseAbiItem(
   "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)"
@@ -44,23 +56,8 @@ export class PolymarketInventory {
     });
   }
 
-  async read(
-    options: {
-      onApiError?: (error: unknown) => void;
-      onScanError?: (error: unknown, protocolVersion?: ProtocolVersion) => void;
-      lookbackBlocks?: bigint;
-      /** Resolved markets cannot be sold, so the seller spends no RPC calls on them. */
-      skipRedeemable?: boolean;
-    } = {}
-  ): Promise<InventoryPosition[]> {
-    let positions: PolymarketPosition[];
-    try {
-      positions = await this.data.fetchPositions(this.owner);
-    } catch (error) {
-      if (!options.onApiError) throw error;
-      options.onApiError(error);
-      positions = [];
-    }
+  async read(options: InventoryReadOptions = {}): Promise<InventoryPosition[]> {
+    const positions = await this.fetchApiPositions(options.onApiError);
     const metadata = new Map(positions.map((position) => [position.assetId, position]));
     const skipped = new Set(
       options.skipRedeemable
@@ -71,66 +68,95 @@ export class PolymarketInventory {
       options.onScanError?.(error);
       return undefined;
     });
-    const lookback = options.lookbackBlocks ?? 2000n;
+    const lookback = options.lookbackBlocks ?? DEFAULT_LOOKBACK_BLOCKS;
     const fromBlock =
       currentBlock !== undefined && currentBlock > lookback ? currentBlock - lookback : 0n;
+
     const inventories = await Promise.all(
       PROTOCOL_VERSIONS.map(async (protocolVersion) => {
         const ledger = getTradingConfig({ protocolVersion, negRisk: false }).ledger;
+        const received =
+          currentBlock === undefined
+            ? []
+            : await this.scanReceivedAssetIds(ledger, fromBlock, currentBlock, (error) =>
+                options.onScanError?.(error, protocolVersion)
+              );
         // API IDs are checked in both ledgers; a market's current version cannot
         // identify the ledger of an existing holding after a position migration.
-        const ids = new Set(metadata.keys());
-        if (currentBlock !== undefined) {
-          const [single, batch] = await Promise.allSettled([
-            this.client.getLogs({
-              address: ledger,
-              event: TRANSFER_SINGLE,
-              args: { to: this.owner },
-              fromBlock,
-              toBlock: currentBlock,
-            }),
-            this.client.getLogs({
-              address: ledger,
-              event: TRANSFER_BATCH,
-              args: { to: this.owner },
-              fromBlock,
-              toBlock: currentBlock,
-            }),
-          ]);
-          // Supplementary discovery must not discard API inventory or successful
-          // scans in this ledger or the other ledger when one log request fails.
-          if (single.status === "fulfilled") {
-            for (const log of single.value) {
-              if (typeof log.args.id === "bigint") ids.add(log.args.id.toString());
-            }
-          } else {
-            options.onScanError?.(single.reason, protocolVersion);
-          }
-          if (batch.status === "fulfilled") {
-            for (const log of batch.value)
-              for (const id of log.args.ids ?? []) ids.add(id.toString());
-          } else {
-            options.onScanError?.(batch.reason, protocolVersion);
-          }
-        }
-        const result: InventoryPosition[] = [];
-        // Bound RPC concurrency for large portfolios.
-        const assets = [...ids].filter((assetId) => !skipped.has(assetId));
-        for (let offset = 0; offset < assets.length; offset += 10) {
-          const balances = await Promise.all(
-            assets.slice(offset, offset + 10).map(async (assetId) => ({
-              assetId,
-              protocolVersion,
-              balance: await this.balance(assetId, protocolVersion),
-              metadata: metadata.get(assetId),
-            }))
-          );
-          result.push(...balances.filter((position) => position.balance > 0n));
-        }
-        return result;
+        const assets = [...new Set([...metadata.keys(), ...received])].filter(
+          (assetId) => !skipped.has(assetId)
+        );
+        const held = await this.readNonZeroBalances(assets, protocolVersion);
+        return held.map((position) => ({
+          ...position,
+          metadata: metadata.get(position.assetId),
+        }));
       })
     );
     return inventories.flat();
+  }
+
+  private async fetchApiPositions(
+    onApiError: InventoryReadOptions["onApiError"]
+  ): Promise<PolymarketPosition[]> {
+    try {
+      return await this.data.fetchPositions(this.owner);
+    } catch (error) {
+      if (!onApiError) throw error;
+      onApiError(error);
+      return [];
+    }
+  }
+
+  /**
+   * Supplementary discovery: a failed log request is reported, never thrown, so it cannot
+   * discard API inventory or the successful scans of either ledger.
+   */
+  private async scanReceivedAssetIds(
+    ledger: Address,
+    fromBlock: bigint,
+    toBlock: bigint,
+    onError: (error: unknown) => void
+  ): Promise<string[]> {
+    const range = { address: ledger, args: { to: this.owner }, fromBlock, toBlock };
+    const [single, batch] = await Promise.allSettled([
+      this.client.getLogs({ ...range, event: TRANSFER_SINGLE }),
+      this.client.getLogs({ ...range, event: TRANSFER_BATCH }),
+    ]);
+    const ids: string[] = [];
+    if (single.status === "fulfilled") {
+      for (const log of single.value) {
+        if (typeof log.args.id === "bigint") ids.push(log.args.id.toString());
+      }
+    } else {
+      onError(single.reason);
+    }
+    if (batch.status === "fulfilled") {
+      for (const log of batch.value) {
+        for (const id of log.args.ids ?? []) ids.push(id.toString());
+      }
+    } else {
+      onError(batch.reason);
+    }
+    return ids;
+  }
+
+  private async readNonZeroBalances(
+    assets: string[],
+    protocolVersion: ProtocolVersion
+  ): Promise<InventoryPosition[]> {
+    const held: InventoryPosition[] = [];
+    for (let offset = 0; offset < assets.length; offset += BALANCE_READ_CONCURRENCY) {
+      const balances = await Promise.all(
+        assets.slice(offset, offset + BALANCE_READ_CONCURRENCY).map(async (assetId) => ({
+          assetId,
+          protocolVersion,
+          balance: await this.balance(assetId, protocolVersion),
+        }))
+      );
+      held.push(...balances.filter((position) => position.balance > 0n));
+    }
+    return held;
   }
 }
 

@@ -1,4 +1,5 @@
 import type { PublicClient } from "viem";
+import { describeError } from "@/backend/errorReporting";
 import { createLogger } from "@/backend/logger";
 
 const log = createLogger("ws-supervisor");
@@ -9,7 +10,7 @@ const CHECK_TIMEOUT_MS = 10_000;
 /** A provider that closes each new socket waits for the next check, not a tight loop. */
 const MIN_REBUILD_GAP_MS = 10_000;
 
-export interface WebSocketSupervisorOptions {
+interface WebSocketSupervisorOptions {
   connect: () => PublicClient;
   disconnect: () => void;
   subscribe: (ws: PublicClient, onError: (error: Error) => void) => Array<() => void>;
@@ -18,13 +19,6 @@ export interface WebSocketSupervisorOptions {
 }
 
 let stop: (() => void) | null = null;
-
-/** viem puts the provider URL in `message`, and that URL can contain an API key. */
-function describe(error: unknown): string {
-  const { shortMessage, message } = error as { shortMessage?: unknown; message?: unknown };
-  if (typeof shortMessage === "string") return shortMessage;
-  return typeof message === "string" && message ? message.split("\n", 1)[0]! : "unknown error";
-}
 
 async function isAlive(ws: PublicClient): Promise<boolean> {
   let timeout: NodeJS.Timeout | undefined;
@@ -64,7 +58,7 @@ export function startWebSocketSupervisor(options: WebSocketSupervisorOptions): v
     const current = ++generation;
     unwatchers = subscribe(ws, (error) => {
       if (current !== generation || down) return;
-      log.warn(`subscription lost: ${describe(error)}`);
+      log.warn(`subscription lost: ${describeError(error)}`);
       down = true;
       if (Date.now() - lastRebuildAt >= MIN_REBUILD_GAP_MS) void check();
     });
@@ -76,7 +70,7 @@ export function startWebSocketSupervisor(options: WebSocketSupervisorOptions): v
       try {
         unwatch();
       } catch (error) {
-        log.debug(`unsubscribe failed on the old socket: ${describe(error)}`);
+        log.debug(`unsubscribe failed on the old socket: ${describeError(error)}`);
       }
     }
     unwatchers = [];
@@ -111,7 +105,7 @@ export function startWebSocketSupervisor(options: WebSocketSupervisorOptions): v
         recoveryPending = false;
       }
     } catch (error) {
-      log.warn(`recovery failed; retrying on the next check: ${describe(error)}`);
+      log.warn(`recovery failed; retrying on the next check: ${describeError(error)}`);
     } finally {
       busy = false;
     }

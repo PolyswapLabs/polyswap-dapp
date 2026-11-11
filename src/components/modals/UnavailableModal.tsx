@@ -2,7 +2,8 @@
 
 import { Icon } from "@/components/icons";
 import { TransitionLink } from "@/components/layout/TransitionLink";
-import { Button, Modal } from "@/components/primitives";
+import { Button } from "@/components/primitives/Button";
+import { Modal } from "@/components/primitives/Modal";
 
 interface Props {
   heading: string;
@@ -20,7 +21,7 @@ export function UnavailableModal({ heading, body, retryLabel, onRetry }: Props) 
       size="sm"
       hideClose
       staticDismiss
-      panelClassName="shadow-[6px_6px_0_0_var(--color-ink)]"
+      panelClassName="shadow-stamp-lg"
     >
       <div className="flex flex-col gap-5 p-5 sm:p-6">
         <div className="flex items-start gap-4">

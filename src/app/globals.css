@@ -15,11 +15,9 @@
   --color-ink-3: #6b6450;
   --color-ink-4: #948c75;
 
-  --color-rule: #16140f;
   --color-rule-soft: rgba(22, 20, 15, 0.18);
 
   --color-accent: #d94a1f;
-  --color-accent-2: #1f4d8c;
 
   --color-yes: #2e6b3f;
   --color-no: #b03a2e;
@@ -28,8 +26,6 @@
   --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Fraunces", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-
-  --radius-sq: 0;
 
   --shadow-stamp: 4px 4px 0 0 var(--color-ink);
   --shadow-stamp-lg: 6px 6px 0 0 var(--color-ink);
@@ -92,12 +88,13 @@ body {
   }
 }
 
+@utility page-container {
+  @apply mx-auto max-w-[1280px] px-6 sm:px-8 lg:px-12;
+}
+
 @layer utilities {
-  .num,
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
   .num {
+    font-variant-numeric: tabular-nums;
     font-family: var(--font-mono);
   }
 
@@ -112,73 +109,6 @@ body {
     font-style: italic;
     font-weight: 400;
   }
-
-  .small-caps {
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--color-ink-3);
-  }
-
-  .dropcap::first-letter {
-    font-family: var(--font-serif);
-    font-size: 4.6em;
-    line-height: 0.85;
-    float: left;
-    padding-right: 8px;
-    padding-top: 6px;
-    font-weight: 500;
-  }
-
-  .hatch {
-    background-image: repeating-linear-gradient(
-      45deg,
-      var(--color-ink) 0,
-      var(--color-ink) 1px,
-      transparent 1px,
-      transparent 5px
-    );
-  }
-
-  .scan {
-    background-image: repeating-linear-gradient(
-      0deg,
-      var(--color-ink-4) 0,
-      var(--color-ink-4) 1px,
-      transparent 1px,
-      transparent 4px
-    );
-    opacity: 0.3;
-  }
-
-  .grid-paper {
-    background-image:
-      linear-gradient(var(--color-rule-soft) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-rule-soft) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-}
-
-@keyframes marq {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.marq {
-  display: inline-flex;
-  gap: 48px;
-  animation: marq 40s linear infinite;
-  white-space: nowrap;
 }
 
 @keyframes pulse-dot {
@@ -254,10 +184,7 @@ body {
   ::view-transition-group(*) {
     animation: none;
   }
-  /* Aggressively neutralise every CSS animation and transition for users who
-     ask for less motion. JS-driven motion (Framer) honours the same media
-     query when components use `useReducedMotion`; this CSS guard catches
-     keyframes (shimmer, breathe, pulse-dot, tape-draw, marquee) and SMIL. */
+  /* Neutralise every CSS animation and transition for users who ask for less motion. */
   *,
   *::before,
   *::after {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/icons";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 interface Props {
   page: number;

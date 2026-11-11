@@ -4,10 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { Logo } from "./Logo";
+import { Wordmark } from "./Logo";
 import { WalletButton } from "./WalletButton";
 import { MobileNav, type MobileNavLink } from "./MobileNav";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/markets", label: "Markets" },
@@ -15,7 +15,6 @@ const NAV_LINKS: { href: string; label: string }[] = [
 ];
 
 interface Props {
-  /** Opens the wallet modal — wired up in phase 5. */
   onConnectWallet: () => void;
 }
 
@@ -38,17 +37,13 @@ export function Masthead({ onConnectWallet }: Props) {
   return (
     <header className="border-b border-ink bg-paper">
       {/* Main bar */}
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-4 sm:px-8 lg:px-12 lg:py-5">
-        <Link
-          href="/"
-          className="flex items-center gap-3 hover:no-underline"
+      <div className="page-container flex items-center justify-between gap-6 py-4 lg:py-5">
+        <Wordmark
+          logoSize={38}
+          className="hover:no-underline"
+          textClassName="tracking-tight text-ink lg:text-[26px]"
           aria-label="Polyswap home"
-        >
-          <Logo size={38} />
-          <span className="font-serif text-2xl tracking-tight text-ink lg:text-[26px]">
-            Polyswap
-          </span>
-        </Link>
+        />
 
         <nav className="hidden items-center gap-8 lg:flex" aria-label="Primary">
           {NAV_LINKS.map((l) => (
@@ -58,7 +53,7 @@ export function Masthead({ onConnectWallet }: Props) {
               className={cn(
                 "text-sm transition-colors",
                 isActive(l.href)
-                  ? "text-ink underline underline-offset-[6px] decoration-accent decoration-2"
+                  ? "text-ink underline decoration-accent decoration-2 underline-offset-[6px]"
                   : "text-ink-2 hover:text-ink"
               )}
             >

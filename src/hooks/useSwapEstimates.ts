@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import { formatUnits, isAddress, parseUnits } from "viem";
-import { CowQuoteError, useQuote } from "@/hooks/useQuote";
+import { useQuote } from "@/hooks/useQuote";
 import { useTokenPrice } from "@/hooks/useTokenPrice";
-import type { TokenViewModel } from "@/types/design";
+import { CowQuoteError, type CowQuoteParams } from "@/client/api/cowApi";
+import type { TokenViewModel } from "@/types/viewModels";
 
 export interface SwapEstimates {
   amountInUsd: number;
@@ -20,6 +21,19 @@ interface UseSwapEstimatesParams {
   toToken: TokenViewModel | null;
   amountIn: string;
   userAddress: string | undefined;
+}
+
+/** The single gate for quote inputs: null means there is nothing valid to quote yet. */
+function toQuoteParams(
+  fromToken: TokenViewModel | null,
+  toToken: TokenViewModel | null,
+  sellAmount: string | null,
+  userAddress: string | undefined
+): CowQuoteParams | null {
+  if (!fromToken || !toToken || sellAmount === null) return null;
+  if (typeof userAddress !== "string" || !isAddress(userAddress)) return null;
+  if (fromToken.address.toLowerCase() === toToken.address.toLowerCase()) return null;
+  return { sellToken: fromToken.address, buyToken: toToken.address, sellAmount, userAddress };
 }
 
 export function useSwapEstimates({
@@ -44,24 +58,7 @@ export function useSwapEstimates({
     }
   }, [fromToken, amountIn]);
 
-  const canQuote =
-    fromToken !== null &&
-    toToken !== null &&
-    sellAmountWei !== null &&
-    typeof userAddress === "string" &&
-    isAddress(userAddress) &&
-    fromToken.address.toLowerCase() !== toToken.address.toLowerCase();
-
-  const quoteQuery = useQuote(
-    canQuote
-      ? {
-          sellToken: fromToken!.address,
-          buyToken: toToken!.address,
-          sellAmount: sellAmountWei!,
-          userAddress: userAddress!,
-        }
-      : null
-  );
+  const quoteQuery = useQuote(toQuoteParams(fromToken, toToken, sellAmountWei, userAddress));
 
   return useMemo<SwapEstimates>(() => {
     const fromPrice = fromPriceQuery.data ?? null;

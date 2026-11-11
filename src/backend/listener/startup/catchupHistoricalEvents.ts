@@ -1,22 +1,21 @@
-import { getAbiItem, type AbiEvent, type Address, type Log } from "viem";
-import { getPublicClient } from "../blockchainProvider";
-import { handleConditionalOrderCreated } from "../handlers/conditionalOrderCreated";
-import { handleTrade } from "../handlers/trade";
-import { handleOrderInvalidated } from "../handlers/orderInvalidated";
-import { DatabaseService } from "@/backend/services/databaseService";
-import composableCowAbi from "@/abi/composableCoW.json";
-import gpv2Abi from "@/abi/GPV2Settlement.json";
+import { type Log } from "viem";
+import { getPublicClient } from "@/backend/rpc/clients";
+import { handleConditionalOrderCreated } from "@/backend/listener/handlers/conditionalOrderCreated";
+import { handleTrade } from "@/backend/listener/handlers/trade";
+import { handleOrderInvalidated } from "@/backend/listener/handlers/orderInvalidated";
+import { listenerCursor } from "@/backend/db/listenerCursor";
 import { createLogger } from "@/backend/logger";
+import { requireAddress } from "@/backend/utils/env";
+import {
+  CONDITIONAL_ORDER_CREATED_EVENT,
+  ORDER_INVALIDATED_EVENT,
+  TRADE_EVENT,
+  type EventHandlingOptions,
+} from "@/backend/listener/events";
 
 const log = createLogger("catchup");
 
 const DEFAULT_BATCH_SIZE = 5_000n;
-
-function requireAddress(envName: string): Address {
-  const value = process.env[envName];
-  if (!value) throw new Error(`${envName} is not set`);
-  return value as Address;
-}
 
 /**
  * Catch up on missed events between the last processed block and the chain head,
@@ -25,9 +24,7 @@ function requireAddress(envName: string): Address {
  * Iterates in BATCH_SIZE windows so that an RPC log limit doesn't blow up the
  * whole catch-up. Honours STARTING_BLOCK as a floor.
  */
-export async function catchupHistoricalEvents(
-  options: { allowTrading?: boolean } = {}
-): Promise<void> {
+export async function catchupHistoricalEvents(options: EventHandlingOptions = {}): Promise<void> {
   const composableCow = requireAddress("COMPOSABLE_COW");
   const gpv2 = requireAddress("GPV2SETTLEMENT");
   const startingBlock = BigInt(process.env.STARTING_BLOCK ?? "0");
@@ -35,7 +32,7 @@ export async function catchupHistoricalEvents(
 
   const client = getPublicClient();
 
-  const dbCursor = BigInt(await DatabaseService.getLatestProcessedBlock());
+  const dbCursor = BigInt(await listenerCursor.getLatestProcessedBlock());
   const head = await client.getBlockNumber();
 
   const fromBlock = dbCursor > startingBlock ? dbCursor + 1n : startingBlock;
@@ -45,32 +42,25 @@ export async function catchupHistoricalEvents(
   }
   log.info(`replaying blocks ${fromBlock}..${head} in batches of ${batchSize}`);
 
-  const createdEvent = getAbiItem({
-    abi: composableCowAbi,
-    name: "ConditionalOrderCreated",
-  }) as AbiEvent;
-  const tradeEvent = getAbiItem({ abi: gpv2Abi, name: "Trade" }) as AbiEvent;
-  const invalidatedEvent = getAbiItem({ abi: gpv2Abi, name: "OrderInvalidated" }) as AbiEvent;
-
   for (let cursor = fromBlock; cursor <= head; cursor += batchSize) {
     const windowEnd = cursor + batchSize - 1n > head ? head : cursor + batchSize - 1n;
 
     const [createdLogs, tradeLogs, invalidatedLogs] = await Promise.all([
       client.getLogs({
         address: composableCow,
-        event: createdEvent,
+        event: CONDITIONAL_ORDER_CREATED_EVENT,
         fromBlock: cursor,
         toBlock: windowEnd,
       }),
       client.getLogs({
         address: gpv2,
-        event: tradeEvent,
+        event: TRADE_EVENT,
         fromBlock: cursor,
         toBlock: windowEnd,
       }),
       client.getLogs({
         address: gpv2,
-        event: invalidatedEvent,
+        event: ORDER_INVALIDATED_EVENT,
         fromBlock: cursor,
         toBlock: windowEnd,
       }),
@@ -88,7 +78,7 @@ export async function catchupHistoricalEvents(
     for (const entry of tradeLogs) await handleTrade(entry as Log);
     for (const entry of invalidatedLogs) await handleOrderInvalidated(entry as Log);
 
-    await DatabaseService.setLatestProcessedBlock(Number(windowEnd));
+    await listenerCursor.setLatestProcessedBlock(Number(windowEnd));
   }
   log.info(`catch-up complete; cursor at block ${head}`);
 }

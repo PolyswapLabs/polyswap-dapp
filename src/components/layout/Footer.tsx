@@ -30,7 +30,7 @@ const BUILT_WITH: ExternalLink[] = [
 export function Footer() {
   return (
     <footer className="mt-16 border-t border-ink bg-paper">
-      <div className="mx-auto max-w-[1280px] px-6 py-12 sm:px-8 lg:px-12">
+      <div className="page-container py-12">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <div className="flex items-center gap-3">
@@ -44,7 +44,7 @@ export function Footer() {
           </div>
 
           <div className="lg:col-span-3">
-            <p className="eyebrow mb-4">GitHub</p>
+            <p className="mb-4 text-sm font-semibold">GitHub</p>
             <ul className="space-y-3 text-sm">
               {GITHUB_LINKS.map((l) => (
                 <li key={l.href}>
@@ -70,7 +70,7 @@ export function Footer() {
           </div>
 
           <div className="lg:col-span-2">
-            <p className="eyebrow mb-4">Built with</p>
+            <p className="mb-4 text-sm font-semibold">Built with</p>
             <ul className="space-y-2 text-sm">
               {BUILT_WITH.map((l) => (
                 <li key={l.href}>
@@ -93,7 +93,7 @@ export function Footer() {
           </div>
 
           <div className="lg:col-span-3">
-            <p className="eyebrow mb-4">Read on</p>
+            <p className="mb-4 text-sm font-semibold">Explore</p>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/markets" className="hover:underline">
@@ -137,5 +137,3 @@ export function Footer() {
     </footer>
   );
 }
-
-export default Footer;
