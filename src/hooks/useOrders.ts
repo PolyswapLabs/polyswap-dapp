@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { getOrdersByOwner } from "@/client/api/polyswapApi";
+import { ordersRefetchInterval } from "@/client/orders/draftPolling";
 import { getErrorMessage } from "@/utils/errors";
 import { useTokens } from "@/hooks/useTokens";
 import { buildTokenMap, toOrderView, type OrderViewModel } from "@/hooks/orders/orderMapper";
@@ -28,6 +29,8 @@ export function useOrders(): UseOrdersResult {
     queryFn: () => (address ? getOrdersByOwner(address) : []),
     enabled: Boolean(address),
     staleTime: ORDERS_STALE_MS,
+    // A fresh draft turns live within seconds; poll so the page doesn't keep it as a draft.
+    refetchInterval: (q) => ordersRefetchInterval(q.state.data),
   });
 
   const tokenMap = buildTokenMap(tokensQ.data);

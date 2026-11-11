@@ -100,6 +100,10 @@ function isOrdersEnvelope(value: unknown): value is ApiSuccessEnvelope<PublicPol
   return isSuccessEnvelope(value) && Array.isArray(value.data);
 }
 
+function isOrderEnvelope(value: unknown): value is ApiSuccessEnvelope<PublicPolyswapOrder> {
+  return isSuccessEnvelope(value) && isRecord(value.data);
+}
+
 export async function readApiResponse<T>(
   response: Response,
   isExpected: (json: unknown) => json is T
@@ -144,21 +148,13 @@ export async function getOrdersByOwner(
   return (await readApiResponse(response, isOrdersEnvelope)).data;
 }
 
-/**
- * Off-chain draft cancellation: DELETEs the row.
- * Auth: EIP-191 message signed via useSignAction("cancel_draft", String(orderId)).
- */
-export async function deleteDraftOrder(
-  orderId: number,
-  signature: string,
-  timestamp: number
-): Promise<void> {
-  const res = await fetch(`${API_BASE}/polyswap/orders/id/${orderId}`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ signature, timestamp }),
+/** One order as the server sees it now, bypassing any cache. Null when it no longer exists. */
+export async function getOrderById(orderId: number): Promise<PublicPolyswapOrder | null> {
+  const response = await fetch(`${API_BASE}/polyswap/orders/id/${orderId}`, {
+    cache: "no-store",
   });
-  await readApiResponse(res, isSuccessEnvelope);
+  if (response.status === 404) return null;
+  return (await readApiResponse(response, isOrderEnvelope)).data;
 }
 
 /**

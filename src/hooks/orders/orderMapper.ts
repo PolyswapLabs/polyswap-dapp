@@ -22,7 +22,7 @@ export interface OrderViewModel {
   spark: number[];
   /** Threshold used for visual feedback. */
   threshold: number;
-  /** Underlying DB lifecycle status — used by cancel logic (off-chain delete vs. on-chain remove). */
+  /** Underlying DB lifecycle status. Only a `live` order can be cancelled (on-chain, via the Safe). */
   phase: "draft" | "live" | "filled" | "canceled" | "errored" | "expired";
   /** On-chain order hash, populated once the listener observes ConditionalOrderCreated. Null while draft. */
   orderHash: Hex | null;

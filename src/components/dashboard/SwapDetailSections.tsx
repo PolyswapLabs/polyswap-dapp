@@ -16,6 +16,8 @@ interface SwapHeaderProps {
   marketQuestion: string | undefined;
   isTitlePending: boolean;
   cancellable: boolean;
+  /** Draft whose Safe transaction is not confirmed yet: cancel is locked until it goes live. */
+  confirming: boolean;
   cancelPending: boolean;
   cancelError: string | null;
   cancelNotice: string | null;
@@ -27,6 +29,7 @@ export function SwapHeader({
   marketQuestion,
   isTitlePending,
   cancellable,
+  confirming,
   cancelPending,
   cancelError,
   cancelNotice,
@@ -63,11 +66,24 @@ export function SwapHeader({
         </div>
         {cancellable && (
           <div className="flex flex-col items-end gap-1">
-            <Button variant="ink" size="md" disabled={cancelPending} onClick={onCancel}>
-              <Icon.trash size={14} aria-hidden />
-              {cancelPending ? "Cancelling…" : "Cancel swap"}
+            <Button
+              variant="ink"
+              size="md"
+              disabled={confirming || cancelPending}
+              onClick={onCancel}
+            >
+              {confirming ? (
+                <span aria-hidden className="pulse-dot size-1.5 rounded-full bg-paper" />
+              ) : (
+                <Icon.trash size={14} aria-hidden />
+              )}
+              {cancelButtonLabel(confirming, cancelPending)}
             </Button>
-            {cancelError && <p className="text-xs text-no">{cancelError}</p>}
+            {confirming && (
+              <p className="max-w-56 text-right text-xs text-ink-3">
+                You can cancel once your Safe transaction is confirmed.
+              </p>
+            )}
             {cancelNotice && (
               <p role="status" className="max-w-56 text-right text-xs text-ink-3">
                 {cancelNotice}
@@ -76,8 +92,14 @@ export function SwapHeader({
           </div>
         )}
       </div>
+      {cancelError && <ErrorAlert className="mt-4 px-4 py-3 text-sm">{cancelError}</ErrorAlert>}
     </div>
   );
+}
+
+function cancelButtonLabel(confirming: boolean, cancelPending: boolean): string {
+  if (confirming) return "Confirming on-chain…";
+  return cancelPending ? "Cancelling…" : "Cancel swap";
 }
 
 export function RetryNote({ retryAt }: { retryAt: number | null }) {

@@ -169,29 +169,29 @@ function ReviewScreen({
 
 function SuccessScreen({ onChainHash, onClose }: { onChainHash: Hash; onClose: () => void }) {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
+    <div className="space-y-6">
+      <div className="flex items-start gap-4">
         <DrawnCheck />
-        <div role="status" aria-live="polite">
-          <p className="font-serif text-2xl">Done.</p>
+        <div role="status" aria-live="polite" className="space-y-1">
+          <p className="font-serif text-2xl leading-tight">Done.</p>
+          <p className="text-sm text-ink-2">
+            Your transaction is on chain.{" "}
+            {/* TODO: derive block-explorer URL from chain config when multi-network support lands */}
+            <a
+              href={polygonscanTxUrl(onChainHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 whitespace-nowrap text-ink underline underline-offset-2 hover:text-ink-2"
+            >
+              View on Polygonscan
+              <Icon.arrowUpRight size={12} aria-hidden />
+            </a>
+          </p>
         </div>
       </div>
-      <p className="text-sm text-ink-2">Your transaction is on chain.</p>
-      {/* TODO: derive block-explorer URL from chain config when multi-network support lands */}
-      <a
-        href={polygonscanTxUrl(onChainHash)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-sm underline underline-offset-2 hover:text-ink-2"
-      >
-        View on Polygonscan
-        <Icon.arrowUpRight size={12} aria-hidden />
-      </a>
-      <div className="flex justify-end">
-        <Button variant="ghost" size="md" onClick={onClose}>
-          Close
-        </Button>
-      </div>
+      <Button variant="ink" size="lg" className="w-full" onClick={onClose}>
+        Close
+      </Button>
     </div>
   );
 }
