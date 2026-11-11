@@ -1,4 +1,5 @@
 import { isRecord } from "@/shared/guards";
+import { createRequestBatcher } from "@/shared/requestBatcher";
 
 const CLOB_BASE = "https://clob.polymarket.com";
 
@@ -67,21 +68,38 @@ async function withHistorySlot<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
+/** CLOB rejects `/batch-prices-history` bodies with more than 20 markets. */
+const HISTORY_BATCH_LIMIT = 20;
+
 /**
  * Real trade history for a single CLOB token, as Polymarket's web charts use.
  * `interval=max` is the only one that consistently returns data; we slice
- * client-side to whatever window the caller wants.
+ * client-side to whatever window the caller wants. Calls made in the same
+ * tick (one per list row) share a single batch request.
  */
 export async function fetchClobPriceHistory(tokenId: string): Promise<ClobHistoryPoint[]> {
   if (!tokenId) return [];
-  return withHistorySlot(() => fetchHistory(tokenId));
+  return (await loadHistory(tokenId)) ?? [];
 }
 
-async function fetchHistory(tokenId: string): Promise<ClobHistoryPoint[]> {
-  const url = `${CLOB_BASE}/prices-history?market=${encodeURIComponent(tokenId)}&interval=max`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-  if (!res.ok) throw new Error(`CLOB /prices-history failed: ${res.status}`);
+const loadHistory = createRequestBatcher<ClobHistoryPoint[]>({
+  loadMany: (tokenIds) => withHistorySlot(() => fetchHistories(tokenIds)),
+  maxBatchSize: HISTORY_BATCH_LIMIT,
+});
+
+async function fetchHistories(tokenIds: string[]): Promise<Map<string, ClobHistoryPoint[]>> {
+  const res = await fetch(`${CLOB_BASE}/batch-prices-history`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ markets: tokenIds, interval: "max" }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) throw new Error(`CLOB /batch-prices-history failed: ${res.status}`);
   const json: unknown = await res.json();
-  if (!isRecord(json) || !Array.isArray(json.history)) return [];
-  return json.history as ClobHistoryPoint[];
+  const histories = new Map<string, ClobHistoryPoint[]>();
+  if (!isRecord(json) || !isRecord(json.history)) return histories;
+  for (const [tokenId, points] of Object.entries(json.history)) {
+    if (Array.isArray(points)) histories.set(tokenId, points as ClobHistoryPoint[]);
+  }
+  return histories;
 }

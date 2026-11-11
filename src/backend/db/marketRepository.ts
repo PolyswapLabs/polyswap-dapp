@@ -18,6 +18,21 @@ export function missingSearchVectorIdsQuery(cursor: string | null, batchSize: nu
   `;
 }
 
+export function resolveMarketIdentifiers(
+  identifiers: string[],
+  rows: MarketRow[]
+): Map<string, MarketRow> {
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const bySlug = new Map(rows.map((row) => [row.slug, row]));
+  const resolved = new Map<string, MarketRow>();
+  for (const identifier of identifiers) {
+    const [first, second] = /^\d+$/.test(identifier) ? [byId, bySlug] : [bySlug, byId];
+    const row = first.get(identifier) ?? second.get(identifier);
+    if (row) resolved.set(identifier, row);
+  }
+  return resolved;
+}
+
 export const marketRepository = {
   async upsertMarket(market: Market): Promise<void> {
     const data = {
@@ -137,6 +152,19 @@ export const marketRepository = {
   async getMarketById(id: string): Promise<MarketRow | null> {
     const row = await prisma.market.findUnique({ where: { id } });
     return row ? toMarketRow(row) : null;
+  },
+
+  /**
+   * Bulk variant of the single-market lookup in one query. Each identifier
+   * resolves like `GET /api/markets/{slug}`: numeric strings try the id first,
+   * anything else tries the slug first. Unknown identifiers are omitted.
+   */
+  async getMarketsByIdentifiers(identifiers: string[]): Promise<Map<string, MarketRow>> {
+    if (identifiers.length === 0) return new Map();
+    const rows = await prisma.market.findMany({
+      where: { OR: [{ id: { in: identifiers } }, { slug: { in: identifiers } }] },
+    });
+    return resolveMarketIdentifiers(identifiers, rows.map(toMarketRow));
   },
 
   async getMarketBySlug(slug: string): Promise<MarketRow | null> {

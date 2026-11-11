@@ -4,6 +4,7 @@ import { WalletModalProvider } from "@/components/modals/WalletModalProvider";
 import ClientWeb3Provider from "@/components/providers/ClientWeb3Provider";
 import { RuntimeConfigProvider } from "@/components/providers/RuntimeConfigProvider";
 import { UnavailableModal } from "@/components/modals/UnavailableModal";
+import { BetaNoticeModal } from "@/components/modals/BetaNoticeModal";
 import {
   isDappMaintenanceMode,
   isOrderCreationDisabled,
@@ -29,6 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <ClientWeb3Provider>
           <WalletModalProvider>
             <PageShell>{children}</PageShell>
+            <BetaNoticeModal />
           </WalletModalProvider>
         </ClientWeb3Provider>
       </RuntimeConfigProvider>

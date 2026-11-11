@@ -96,6 +96,14 @@ function isMarketEnvelope(value: unknown): value is ApiSuccessEnvelope<MarketRow
   return isSuccessEnvelope(value) && isRecord(value.data);
 }
 
+function isMarketMapEnvelope(
+  value: unknown
+): value is ApiSuccessEnvelope<Record<string, MarketRow>> {
+  return (
+    isSuccessEnvelope(value) && isRecord(value.data) && Object.values(value.data).every(isRecord)
+  );
+}
+
 function isOrdersEnvelope(value: unknown): value is ApiSuccessEnvelope<PublicPolyswapOrder[]> {
   return isSuccessEnvelope(value) && Array.isArray(value.data);
 }
@@ -125,6 +133,16 @@ export async function getMarketBySlug(
   const response = await fetch(url);
   if (response.status === 404) return null;
   return (await readApiResponse(response, isMarketEnvelope)).data;
+}
+
+/** Batch lookup by slug or id; unknown identifiers are absent from the result. */
+export async function getMarketsByIdentifiers(
+  identifiers: string[]
+): Promise<Record<string, MarketRow>> {
+  const params = new URLSearchParams();
+  for (const identifier of identifiers) params.append("ids", identifier);
+  const response = await fetch(`${API_BASE}/markets?${params}`);
+  return (await readApiResponse(response, isMarketMapEnvelope)).data;
 }
 
 export async function createPolyswapOrder(

@@ -3,8 +3,15 @@ import {
   fetchClobPrices,
   type ClobHistoryPoint,
 } from "@/shared/polymarket/clob";
-import { isSuccessEnvelope, readApiResponse, getMarketBySlug } from "@/client/api/polyswapApi";
+import {
+  isSuccessEnvelope,
+  readApiResponse,
+  getMarketBySlug,
+  getMarketsByIdentifiers,
+} from "@/client/api/polyswapApi";
+import type { MarketRow } from "@/backend/interfaces/Market";
 import type { MarketCategory } from "@/shared/markets/categories";
+import { createRequestBatcher } from "@/shared/requestBatcher";
 import type { MarketViewModel } from "@/types/viewModels";
 import type {
   RecommendationMarketRow,
@@ -21,6 +28,8 @@ import {
 
 const SUGGESTION_LIMIT = 8;
 const SECONDS_PER_DAY = 86_400;
+/** Matches the cap enforced by `GET /api/markets`. */
+const MARKET_BATCH_LIMIT = 50;
 
 interface MarketSearchParams {
   sort?: string;
@@ -76,19 +85,47 @@ export async function searchPricedMarkets(params: MarketSearchParams): Promise<P
   return { items: data.markets.map((row) => toPricedMarket(row, prices)), total };
 }
 
+/**
+ * Tracked lookups (a real market-page visit) stay a dedicated request so the
+ * view counter fires. Untracked side-traffic — one lookup per dashboard row —
+ * is coalesced into one `GET /api/markets` plus one CLOB `/prices` call.
+ */
 export async function fetchPricedMarket(
   slug: string,
   opts: { track?: boolean } = {}
 ): Promise<PricedMarket | null> {
+  if (!opts.track) return (await loadPricedMarket(slug)) ?? null;
   const market = await getMarketBySlug(slug, opts);
   if (!market) return null;
-  const row: RecommendationMarketRow = {
+  const row = toRecommendationRow(market);
+  const prices = await fetchClobPrices(tokenPriceRequests([row]));
+  return toPricedMarket(row, prices);
+}
+
+const loadPricedMarket = createRequestBatcher<PricedMarket | null>({
+  loadMany: fetchPricedMarkets,
+  maxBatchSize: MARKET_BATCH_LIMIT,
+});
+
+async function fetchPricedMarkets(
+  identifiers: string[]
+): Promise<Map<string, PricedMarket | null>> {
+  const markets = Object.entries(await getMarketsByIdentifiers(identifiers));
+  const rows = markets.map(
+    ([identifier, market]) => [identifier, toRecommendationRow(market)] as const
+  );
+  const prices = rows.length
+    ? await fetchClobPrices(tokenPriceRequests(rows.map(([, row]) => row)))
+    : {};
+  return new Map(rows.map(([identifier, row]) => [identifier, toPricedMarket(row, prices)]));
+}
+
+function toRecommendationRow(market: MarketRow): RecommendationMarketRow {
+  return {
     ...market,
     // Typed as Date, but the API response delivers an ISO string at runtime.
     end_date: market.end_date instanceof Date ? market.end_date.toISOString() : market.end_date,
   };
-  const prices = await fetchClobPrices(tokenPriceRequests([row]));
-  return toPricedMarket(row, prices);
 }
 
 async function pricedViewModels(rows: RecommendationMarketRow[]): Promise<MarketViewModel[]> {
